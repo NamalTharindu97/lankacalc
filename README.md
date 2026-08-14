@@ -70,6 +70,7 @@ Production deployments should place TLS termination in front of the exposed appl
 - `src/app/api/v1/` exposes calculator metadata and calculation endpoints.
 - `src/server/db/` owns PostgreSQL schema and access.
 - `docs/` contains product research.
-- `plan/` contains the backend platform blueprint.
+- `plan/LankaTools_Backend_Plan.md` contains the architecture blueprint.
+- `plan/LankaTools_Implementation_Roadmap.md` tracks current gaps, execution order, and completion gates.
 
-The database is not required to execute the initial static calculators. It establishes the source and rule persistence foundation for regulated calculators.
+The database is not required to execute the initial static calculators. It currently establishes calculator and source metadata; versioned rule persistence is the next platform stage.
