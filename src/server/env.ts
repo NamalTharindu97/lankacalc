@@ -1,7 +1,20 @@
 import { z } from "zod";
 
+const optionalSecret = z.preprocess(
+  (value) => value === "" ? undefined : value,
+  z.string().min(32).optional(),
+);
+
 const serverEnvironmentSchema = z.object({
   DATABASE_URL: z.url().startsWith("postgresql://"),
+  ADMIN_API_TOKEN: optionalSecret,
+  ADMIN_ACTOR: z.string().min(1).default("initial-admin"),
+  REVIEWER_API_TOKEN: optionalSecret,
+  REVIEWER_ACTOR: z.string().min(1).default("initial-reviewer"),
+}).superRefine((environment, context) => {
+  if (environment.ADMIN_API_TOKEN && environment.ADMIN_API_TOKEN === environment.REVIEWER_API_TOKEN) {
+    context.addIssue({ code: "custom", message: "Admin and reviewer tokens must be different." });
+  }
 });
 
 export type ServerEnvironment = z.infer<typeof serverEnvironmentSchema>;
@@ -27,5 +40,11 @@ export function getServerEnvironment(): ServerEnvironment {
     password: process.env.POSTGRES_PASSWORD ?? "",
   });
 
-  return serverEnvironmentSchema.parse({ DATABASE_URL: databaseUrl });
+  return serverEnvironmentSchema.parse({
+    DATABASE_URL: databaseUrl,
+    ADMIN_API_TOKEN: process.env.ADMIN_API_TOKEN,
+    ADMIN_ACTOR: process.env.ADMIN_ACTOR,
+    REVIEWER_API_TOKEN: process.env.REVIEWER_API_TOKEN,
+    REVIEWER_ACTOR: process.env.REVIEWER_ACTOR,
+  });
 }

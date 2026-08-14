@@ -26,6 +26,10 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-lankacalc}
       POSTGRES_USER: ${POSTGRES_USER:-lankacalc}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-}
+      ADMIN_ACTOR: ${ADMIN_ACTOR:-initial-admin}
+      REVIEWER_API_TOKEN: ${REVIEWER_API_TOKEN:-}
+      REVIEWER_ACTOR: ${REVIEWER_ACTOR:-initial-reviewer}
     depends_on:
       db:
         condition: service_healthy

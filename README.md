@@ -49,6 +49,12 @@ npm run db:migrate
 
 Migrations are explicit and are not applied during application startup.
 
+## Rule Administration
+
+The temporary Stage 1 operator API is `POST /api/internal/rule-platform`. Set independent random values of at least 32 characters for `ADMIN_API_TOKEN` and `REVIEWER_API_TOKEN`; leave them unset to disable administration. `ADMIN_ACTOR` and `REVIEWER_ACTOR` identify people in immutable verification and publication events.
+
+Send a token as `Authorization: Bearer <token>`. Administrators manage sources, drafts, publication, scheduling, and retirement. Reviewers verify sources, run fixtures, compare draft and active payloads, review drafts, and inspect history. See `docs/rule-platform-administration.md` for request contracts and operational safeguards.
+
 ## Docker Deployment
 
 Set a strong `POSTGRES_PASSWORD` in `.env`. Build and start PostgreSQL, the web application, and the Nginx edge proxy:
@@ -76,4 +82,4 @@ Only Nginx publishes the application port. It enforces request-size and calculat
 - `plan/LankaTools_Backend_Plan.md` contains the architecture blueprint.
 - `plan/LankaTools_Implementation_Roadmap.md` tracks current gaps, execution order, and completion gates.
 
-The database is not required to execute the initial static calculators. It currently establishes calculator and source metadata; versioned rule persistence is the next platform stage.
+The database is not required to execute static calculators. Regulated calculators use the server-authoritative, effective-dated rule and source platform.

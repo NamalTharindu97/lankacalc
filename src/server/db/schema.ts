@@ -1,15 +1,22 @@
 import {
   boolean,
+  char,
+  check,
   date,
+  index,
+  integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const calculatorClassification = pgEnum("calculator_classification", [
   "static",
@@ -17,6 +24,34 @@ export const calculatorClassification = pgEnum("calculator_classification", [
   "regulated",
   "data-driven",
   "workflow",
+]);
+
+export const sourceVerificationOutcome = pgEnum("source_verification_outcome", [
+  "verified",
+  "rejected",
+]);
+
+export const sourceLinkStatus = pgEnum("source_link_status", [
+  "healthy",
+  "redirected",
+  "changed",
+  "broken",
+  "error",
+]);
+
+export const ruleVersionStatus = pgEnum("rule_version_status", [
+  "draft",
+  "reviewed",
+  "scheduled",
+  "published",
+  "retired",
+]);
+
+export const publicationEventType = pgEnum("publication_event_type", [
+  "reviewed",
+  "scheduled",
+  "published",
+  "retired",
 ]);
 
 export const calculatorDefinitions = pgTable(
@@ -34,16 +69,89 @@ export const calculatorDefinitions = pgTable(
   (table) => [uniqueIndex("calculator_definitions_key_unique").on(table.key)],
 );
 
-export const sources = pgTable("sources", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  authority: varchar("authority", { length: 200 }).notNull(),
-  title: text("title").notNull(),
-  url: text("url").notNull(),
-  publishedOn: date("published_on"),
-  retrievedAt: timestamp("retrieved_at", { withTimezone: true }).defaultNow().notNull(),
-  verifiedAt: timestamp("verified_at", { withTimezone: true }).notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+export const sources = pgTable(
+  "sources",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    key: varchar("key", { length: 120 }).notNull(),
+    authority: varchar("authority", { length: 200 }).notNull(),
+    title: text("title").notNull(),
+    url: text("url").notNull(),
+    official: boolean("official").default(true).notNull(),
+    publishedOn: date("published_on"),
+    retrievedAt: timestamp("retrieved_at", { withTimezone: true }).defaultNow().notNull(),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("sources_key_unique").on(table.key)],
+);
+
+export const sourceRevisions = pgTable(
+  "source_revisions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "cascade" }),
+    revision: integer("revision").notNull(),
+    authority: varchar("authority", { length: 200 }).notNull(),
+    title: text("title").notNull(),
+    url: text("url").notNull(),
+    official: boolean("official").notNull(),
+    publishedOn: date("published_on"),
+    retrievedAt: timestamp("retrieved_at", { withTimezone: true }).notNull(),
+    contentHash: char("content_hash", { length: 64 }),
+    archiveUrl: text("archive_url"),
+    changeNote: text("change_note").notNull(),
+    createdBy: varchar("created_by", { length: 160 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("source_revisions_source_revision_unique").on(table.sourceId, table.revision),
+    index("source_revisions_source_created_idx").on(table.sourceId, table.createdAt),
+  ],
+);
+
+export const verificationEvents = pgTable(
+  "verification_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "cascade" }),
+    sourceRevisionId: uuid("source_revision_id")
+      .notNull()
+      .references(() => sourceRevisions.id, { onDelete: "restrict" }),
+    outcome: sourceVerificationOutcome("outcome").notNull(),
+    verifier: varchar("verifier", { length: 160 }).notNull(),
+    reason: text("reason").notNull(),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("verification_events_source_verified_idx").on(table.sourceId, table.verifiedAt)],
+);
+
+export const sourceLinkChecks = pgTable(
+  "source_link_checks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "cascade" }),
+    sourceRevisionId: uuid("source_revision_id")
+      .notNull()
+      .references(() => sourceRevisions.id, { onDelete: "restrict" }),
+    status: sourceLinkStatus("status").notNull(),
+    httpStatus: smallint("http_status"),
+    finalUrl: text("final_url"),
+    etag: text("etag"),
+    lastModified: text("last_modified"),
+    contentHash: char("content_hash", { length: 64 }),
+    detail: text("detail"),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("source_link_checks_source_checked_idx").on(table.sourceId, table.checkedAt)],
+);
 
 export const calculatorSources = pgTable(
   "calculator_sources",
@@ -57,4 +165,117 @@ export const calculatorSources = pgTable(
     note: text("note"),
   },
   (table) => [primaryKey({ columns: [table.calculatorId, table.sourceId] })],
+);
+
+export const ruleDefinitions = pgTable(
+  "rule_definitions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    key: varchar("key", { length: 120 }).notNull(),
+    calculatorKey: varchar("calculator_key", { length: 80 }).notNull(),
+    scope: varchar("scope", { length: 120 }).default("default").notNull(),
+    name: varchar("name", { length: 200 }).notNull(),
+    description: text("description"),
+    createdBy: varchar("created_by", { length: 160 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("rule_definitions_key_scope_unique").on(table.key, table.scope),
+    index("rule_definitions_calculator_idx").on(table.calculatorKey),
+  ],
+);
+
+export const ruleVersions = pgTable(
+  "rule_versions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ruleDefinitionId: uuid("rule_definition_id")
+      .notNull()
+      .references(() => ruleDefinitions.id, { onDelete: "restrict" }),
+    version: varchar("version", { length: 40 }).notNull(),
+    status: ruleVersionStatus("status").default("draft").notNull(),
+    effectiveFrom: date("effective_from").notNull(),
+    effectiveTo: date("effective_to"),
+    payload: jsonb("payload").notNull(),
+    payloadSchemaVersion: varchar("payload_schema_version", { length: 40 }).notNull(),
+    checksum: char("checksum", { length: 64 }).notNull(),
+    author: varchar("author", { length: 160 }).notNull(),
+    reviewer: varchar("reviewer", { length: 160 }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    retiredAt: timestamp("retired_at", { withTimezone: true }),
+    retiredEffectiveOn: date("retired_effective_on"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("rule_versions_definition_version_unique").on(table.ruleDefinitionId, table.version),
+    index("rule_versions_resolution_idx").on(table.ruleDefinitionId, table.status, table.effectiveFrom),
+    check(
+      "rule_versions_effective_range_check",
+      sql`${table.effectiveTo} is null or ${table.effectiveTo} >= ${table.effectiveFrom}`,
+    ),
+    check(
+      "rule_versions_retirement_date_check",
+      sql`((${table.status} = 'retired') = (${table.retiredEffectiveOn} is not null)) and (${table.retiredEffectiveOn} is null or ${table.retiredEffectiveOn} >= ${table.effectiveFrom})`,
+    ),
+  ],
+);
+
+export const ruleVersionSources = pgTable(
+  "rule_version_sources",
+  {
+    ruleVersionId: uuid("rule_version_id")
+      .notNull()
+      .references(() => ruleVersions.id, { onDelete: "cascade" }),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "restrict" }),
+    sourceRevisionId: uuid("source_revision_id")
+      .notNull()
+      .references(() => sourceRevisions.id, { onDelete: "restrict" }),
+    verificationEventId: uuid("verification_event_id")
+      .notNull()
+      .references(() => verificationEvents.id, { onDelete: "restrict" }),
+    note: text("note"),
+  },
+  (table) => [primaryKey({ columns: [table.ruleVersionId, table.sourceId] })],
+);
+
+export const publicationEvents = pgTable(
+  "publication_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ruleVersionId: uuid("rule_version_id")
+      .notNull()
+      .references(() => ruleVersions.id, { onDelete: "restrict" }),
+    type: publicationEventType("type").notNull(),
+    actor: varchar("actor", { length: 160 }).notNull(),
+    reason: text("reason").notNull(),
+    metadata: jsonb("metadata").default({}).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("publication_events_version_created_idx").on(table.ruleVersionId, table.createdAt)],
+);
+
+export const ruleValidationFixtures = pgTable(
+  "rule_validation_fixtures",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ruleVersionId: uuid("rule_version_id")
+      .notNull()
+      .references(() => ruleVersions.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 200 }).notNull(),
+    input: jsonb("input").notNull(),
+    expectedResult: jsonb("expected_result").notNull(),
+    actualResult: jsonb("actual_result"),
+    passed: boolean("passed"),
+    ruleChecksum: char("rule_checksum", { length: 64 }),
+    executedAt: timestamp("executed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("rule_validation_fixtures_version_name_unique").on(table.ruleVersionId, table.name),
+  ],
 );

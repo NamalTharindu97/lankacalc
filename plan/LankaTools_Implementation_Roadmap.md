@@ -206,6 +206,8 @@ Exit criteria:
 
 ## 6. Stage 1: Rule And Source Platform
 
+Status: complete. Stage 2 is the next active stage.
+
 ### 6.1 Source Registry
 
 Required data:
@@ -1130,9 +1132,9 @@ The next implementation work should occur in this exact order:
 5. [x] Add browser/API parity for static calculators.
 6. [x] Add API and Docker hardening.
 7. [x] Write specifications for existing calculators.
-8. [ ] Research official APIT, EPF, and ETF sources.
-9. [ ] Implement source revisions, verification events, and versioned rules.
-10. [ ] Build the protected rule administration workflow.
+8. [x] Research official APIT, EPF, and ETF sources.
+9. [x] Implement source revisions, verification events, and versioned rules.
+10. [x] Build the protected rule administration workflow.
 11. [ ] Implement APIT, EPF, ETF, salary, and take-home calculators.
 12. [ ] Add optional accounts only when saved WorkMoney scenarios begin.
 
