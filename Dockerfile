@@ -14,6 +14,7 @@ COPY --from=dependencies /app/node_modules ./node_modules
 COPY package.json drizzle.config.ts ./
 COPY drizzle ./drizzle
 COPY src/server/db ./src/server/db
+COPY src/server/env.ts ./src/server/env.ts
 CMD ["npm", "run", "db:migrate"]
 
 FROM base AS builder

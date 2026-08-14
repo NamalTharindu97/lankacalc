@@ -9,6 +9,25 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: lankacalc_test
+          POSTGRES_USER: lankacalc
+          POSTGRES_PASSWORD: test-only-password
+        options: >-
+          --health-cmd "pg_isready -U lankacalc -d lankacalc_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+    env:
+      DATABASE_URL: postgresql://lankacalc:test-only-password@localhost:5432/lankacalc_test
+      POSTGRES_PASSWORD: docker-test-password
+      POSTGRES_PORT: 5433
+      APP_PORT: 3100
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -17,7 +36,17 @@ jobs:
           cache: npm
       - run: npm install --global npm@11.6.2
       - run: npm ci
+      - run: npm run db:generate
+      - run: git diff --exit-code -- drizzle
+      - run: npm run db:migrate
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - run: docker compose build web migrate
+      - run: docker run --rm --volume "$PWD/deploy/nginx.conf:/etc/nginx/nginx.conf:ro" nginx:1.27-alpine nginx -t
+      - run: docker compose up --detach db web proxy
+      - run: docker compose --profile tools run --rm migrate
+      - run: npm run test:edge
+      - if: always()
+        run: docker compose down --volumes

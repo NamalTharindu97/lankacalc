@@ -47,6 +47,18 @@ export function executeCalculationRequest(
       };
     }
 
+    if (error instanceof RangeError) {
+      return {
+        status: 422,
+        body: {
+          error: {
+            code: "CALCULATION_OUT_OF_RANGE",
+            message: "The calculation result is outside the supported range.",
+          },
+        },
+      };
+    }
+
     throw error;
   }
 }

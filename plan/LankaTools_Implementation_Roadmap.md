@@ -46,22 +46,22 @@ This roadmap covers the full research catalog, but it does not authorize paralle
 | Database registry | Tables exist | Synchronization with code registry and versioned rule ownership |
 | Browser execution | Anonymous UI exists | Static calculations run locally with API parity |
 
-### Known Foundation Defects
+### Stage 0 Resolution Checklist
 
-These defects must be resolved before regulated calculators are added:
+These audited foundation defects are resolved by Stage 0:
 
-1. Strictly reject empty strings, booleans, arrays, and null for numeric API inputs.
-2. Prevent Decimal values from becoming unsafe JavaScript numbers or JSON `null` at numeric extremes.
-3. Define and test monetary serialization as decimal strings or safe minor units.
-4. Define Loan EMI rounding order so displayed installments reconcile with displayed totals.
-5. Document nominal/effective rate conventions for Loan EMI and compound interest.
-6. Align published field metadata with server validation, including required, minimum, maximum, and unit information.
-7. Add explicit area units and conversion.
-8. Add registry duplicate-key detection.
-9. Add public API rate limiting before external promotion.
-10. Avoid constructing PostgreSQL URLs from unescaped Docker password interpolation.
-11. Display normalized inputs, sources, versions, and verification information when present.
-12. Correct documentation that implies rule persistence already exists.
+1. [x] Strictly reject empty strings, booleans, arrays, and null for numeric API inputs.
+2. [x] Prevent Decimal values from becoming unsafe JavaScript numbers or JSON `null` at numeric extremes.
+3. [x] Define and test monetary serialization as decimal strings or safe minor units.
+4. [x] Define Loan EMI rounding order so displayed installments reconcile with displayed totals.
+5. [x] Document nominal/effective rate conventions for Loan EMI and compound interest.
+6. [x] Align published field metadata with server validation, including required, minimum, maximum, and unit information.
+7. [x] Add explicit area units and conversion.
+8. [x] Add registry duplicate-key detection.
+9. [x] Add public API rate limiting before external promotion.
+10. [x] Avoid constructing PostgreSQL URLs from unescaped Docker password interpolation.
+11. [x] Display normalized inputs, sources, versions, and verification information when present.
+12. [x] Correct documentation that implies rule persistence already exists.
 
 ## 3. Delivery Rules
 
@@ -94,6 +94,8 @@ These defects must be resolved before regulated calculators are added:
 | K. Partner platform | API keys, quotas, widgets, domain restrictions | B2B calculator API |
 
 ## 5. Stage 0: Stabilize The Foundation
+
+Status: complete. Stage 1 is the next active stage.
 
 ### 5.1 Strict Input Contracts
 
@@ -132,7 +134,8 @@ Exit criteria:
 
 Deliverables:
 
-- Add typed length, area, volume, mass, distance, fuel, energy, and time units.
+- Add typed length, area, distance, and volume units required by the current calculators.
+- Add mass, energy, and time units only when the first calculator requiring them enters development.
 - Normalize values before calculation.
 - Preserve original values and selected units in result metadata.
 - Add metric and common imperial conversions needed by construction tools.
@@ -1084,7 +1087,7 @@ A product track is complete only when:
 
 | Research product | Roadmap stage | Status |
 |---|---|---|
-| LankaCalc static foundation | Stage 0 | Implemented, stabilization required |
+| LankaCalc static foundation | Stage 0 | Complete |
 | LankaCalc regulated employment | Stages 1-2 | Next |
 | WorkMoney | Stage 3 | Planned |
 | LankaCalc remaining families | Stage 5 | Planned |
@@ -1120,18 +1123,18 @@ Before starting another major product track, confirm:
 
 The next implementation work should occur in this exact order:
 
-1. Fix strict input parsing and unsafe numeric serialization.
-2. Define money serialization and Loan EMI rounding.
-3. Align UI/API metadata and validation.
-4. Add typed units and area conversion.
-5. Add browser/API parity for static calculators.
-6. Add API and Docker hardening.
-7. Write specifications for existing calculators.
-8. Research official APIT, EPF, and ETF sources.
-9. Implement source revisions, verification events, and versioned rules.
-10. Build the protected rule administration workflow.
-11. Implement APIT, EPF, ETF, salary, and take-home calculators.
-12. Add optional accounts only when saved WorkMoney scenarios begin.
+1. [x] Fix strict input parsing and unsafe numeric serialization.
+2. [x] Define money serialization and Loan EMI rounding.
+3. [x] Align UI/API metadata and validation.
+4. [x] Add typed units and area conversion.
+5. [x] Add browser/API parity for static calculators.
+6. [x] Add API and Docker hardening.
+7. [x] Write specifications for existing calculators.
+8. [ ] Research official APIT, EPF, and ETF sources.
+9. [ ] Implement source revisions, verification events, and versioned rules.
+10. [ ] Build the protected rule administration workflow.
+11. [ ] Implement APIT, EPF, ETF, salary, and take-home calculators.
+12. [ ] Add optional accounts only when saved WorkMoney scenarios begin.
 
 No later product track should interrupt this sequence unless product research changes the selected first vertical.
 

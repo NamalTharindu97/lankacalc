@@ -13,7 +13,7 @@
 - Run locally with `npm run dev`; start PostgreSQL separately with `docker compose up -d db` when database work is needed.
 - Run verification in order with `npm run verify` (`lint -> typecheck -> test -> build`).
 - Run one test file with `npx vitest run <path>`.
-- After editing `src/server/db/schema.ts`, run `npm run db:generate`, review generated SQL under `drizzle/`, then run `npm run db:migrate` with `DATABASE_URL` set.
+- After editing `src/server/db/schema.ts`, run `npm run db:generate`, review generated SQL under `drizzle/`, then run `npm run db:migrate` with `DATABASE_URL` or the discrete `POSTGRES_*` variables set.
 - Docker startup does not migrate automatically; use `docker compose --profile tools run --rm migrate` as an explicit deployment step.
 
 ## Git Workflow

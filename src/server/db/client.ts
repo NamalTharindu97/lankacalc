@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
@@ -14,4 +15,8 @@ export function getDatabase(): PostgresJsDatabase<typeof schema> {
   }
 
   return database;
+}
+
+export async function checkDatabase(): Promise<void> {
+  await getDatabase().execute(sql`select 1`);
 }

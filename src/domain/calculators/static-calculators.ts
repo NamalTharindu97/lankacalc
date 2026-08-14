@@ -1,11 +1,28 @@
 import { z } from "zod";
 
-import { decimal, rounded } from "@/domain/calculators/decimal";
+import { decimal, money, moneyRoundedDown, rounded } from "@/domain/calculators/decimal";
+import {
+  decimalInput,
+  integerInput,
+} from "@/domain/calculators/input";
 import {
   defineCalculator,
   type CalculationResult,
   type CalculatorMetadata,
 } from "@/domain/calculators/types";
+import {
+  distanceInKilometres,
+  distanceUnitOptions,
+  distanceUnits,
+  lengthInMetres,
+  lengthUnitOptions,
+  lengthUnits,
+  squareMetresInUnit,
+  squareUnitLabels,
+  volumeInLitres,
+  volumeUnitOptions,
+  volumeUnits,
+} from "@/domain/calculators/units";
 
 const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -52,8 +69,8 @@ const ageMetadata = {
   version: "1.0.0",
   accent: "ink",
   fields: [
-    { name: "dateOfBirth", label: "Date of birth", type: "date" },
-    { name: "asOfDate", label: "Calculate age on", type: "date" },
+    { name: "dateOfBirth", label: "Date of birth", type: "date", required: true, min: "0100-01-01", max: "9999-12-31" },
+    { name: "asOfDate", label: "Calculate age on", type: "date", required: true, min: "0100-01-01", max: "9999-12-31" },
   ],
 } as const satisfies CalculatorMetadata;
 
@@ -111,17 +128,40 @@ const percentageMetadata = {
   summary: "Calculate a percentage of any value without hidden rounding.",
   category: "Everyday",
   classification: "static",
-  version: "1.0.0",
+  version: "2.0.0",
   accent: "orange",
   fields: [
-    { name: "percentage", label: "Percentage", type: "number", step: 0.01, suffix: "%" },
-    { name: "value", label: "Value", type: "number", step: 0.01 },
+    {
+      name: "percentage",
+      label: "Percentage",
+      type: "number",
+      required: true,
+      min: -1_000_000,
+      max: 1_000_000,
+      maxDecimalPlaces: 12,
+      step: 0.000000000001,
+      suffix: "%",
+    },
+    {
+      name: "value",
+      label: "Value",
+      type: "number",
+      required: true,
+      min: -1_000_000_000_000,
+      max: 1_000_000_000_000,
+      maxDecimalPlaces: 12,
+      step: 0.000000000001,
+    },
   ],
 } as const satisfies CalculatorMetadata;
 
 const percentageSchema = z.object({
-  percentage: z.coerce.number().finite().min(-1_000_000).max(1_000_000),
-  value: z.coerce.number().finite().min(-1_000_000_000_000).max(1_000_000_000_000),
+  percentage: decimalInput({ min: -1_000_000, max: 1_000_000, maxDecimalPlaces: 12 }),
+  value: decimalInput({
+    min: -1_000_000_000_000,
+    max: 1_000_000_000_000,
+    maxDecimalPlaces: 12,
+  }),
 });
 
 export const percentageCalculator = defineCalculator({
@@ -141,7 +181,7 @@ export const percentageCalculator = defineCalculator({
           value: rounded(result, 6),
         },
       ],
-      assumptions: [],
+      assumptions: ["The result is rounded to a maximum of six decimal places."],
       warnings: [],
     });
   },
@@ -154,16 +194,17 @@ const compoundInterestMetadata = {
   summary: "Project a principal using a fixed rate and compounding frequency.",
   category: "Money",
   classification: "static",
-  version: "1.0.0",
+  version: "2.0.0",
   accent: "green",
   fields: [
-    { name: "principal", label: "Starting principal", type: "number", min: 0, step: 0.01, suffix: "LKR" },
-    { name: "annualRatePercent", label: "Annual interest rate", type: "number", min: 0, max: 100, step: 0.01, suffix: "%" },
-    { name: "years", label: "Duration", type: "number", min: 0, max: 100, step: 0.1, suffix: "years" },
+    { name: "principal", label: "Starting principal", type: "number", required: true, min: 0, max: 1_000_000_000_000, maxDecimalPlaces: 2, step: 0.01, suffix: "LKR" },
+    { name: "annualRatePercent", label: "Nominal annual interest rate", type: "number", required: true, min: 0, max: 100, maxDecimalPlaces: 6, step: 0.000001, suffix: "%" },
+    { name: "years", label: "Duration", type: "number", required: true, min: 0, max: 100, maxDecimalPlaces: 4, step: 0.0001, suffix: "years" },
     {
       name: "compoundsPerYear",
       label: "Compounding",
       type: "select",
+      required: true,
       defaultValue: "12",
       options: [
         { label: "Annually", value: "1" },
@@ -176,10 +217,21 @@ const compoundInterestMetadata = {
 } as const satisfies CalculatorMetadata;
 
 const compoundInterestSchema = z.object({
-  principal: z.coerce.number().finite().min(0).max(1_000_000_000_000),
-  annualRatePercent: z.coerce.number().finite().min(0).max(100),
-  years: z.coerce.number().finite().min(0).max(100),
-  compoundsPerYear: z.coerce.number().int().min(1).max(365),
+  principal: decimalInput({ min: 0, max: 1_000_000_000_000, maxDecimalPlaces: 2 }),
+  annualRatePercent: decimalInput({ min: 0, max: 100, maxDecimalPlaces: 6 }),
+  years: decimalInput({ min: 0, max: 100, maxDecimalPlaces: 4 }),
+  compoundsPerYear: z
+    .union([
+      z.literal("1"),
+      z.literal("4"),
+      z.literal("12"),
+      z.literal("365"),
+      z.literal(1),
+      z.literal(4),
+      z.literal(12),
+      z.literal(365),
+    ])
+    .transform(Number),
 });
 
 export const compoundInterestCalculator = defineCalculator({
@@ -196,24 +248,28 @@ export const compoundInterestCalculator = defineCalculator({
       asOfDate: null,
       normalizedInputs: input,
       result: {
-        finalAmount: rounded(finalAmount),
-        totalInterest: rounded(totalInterest),
+        finalAmount: money(finalAmount),
+        totalInterest: money(totalInterest),
       },
       breakdown: [
-        { label: "Starting principal", value: rounded(principal), unit: "LKR" },
-        { label: "Interest earned", value: rounded(totalInterest), unit: "LKR" },
-        { label: "Final amount", value: rounded(finalAmount), unit: "LKR" },
+        { label: "Starting principal", value: money(principal), unit: "LKR" },
+        { label: "Interest earned", value: money(totalInterest), unit: "LKR" },
+        { label: "Final amount", value: money(finalAmount), unit: "LKR" },
       ],
-      assumptions: ["The interest rate remains fixed and interest is reinvested."],
+      assumptions: [
+        "The entered annual rate is nominal and is divided by the selected compounding frequency.",
+        "The interest rate remains fixed and interest is reinvested.",
+      ],
       warnings: ["Taxes, fees, deposits, and withdrawals are not included."],
     });
   },
 });
 
-const optionalDimension = z.preprocess(
-  (value) => (value === "" || value === null ? undefined : value),
-  z.coerce.number().finite().positive().max(1_000_000_000).optional(),
-);
+const dimension = decimalInput({
+  min: "0.000001",
+  max: 1_000_000_000,
+  maxDecimalPlaces: 6,
+});
 
 const areaMetadata = {
   key: "area",
@@ -222,13 +278,14 @@ const areaMetadata = {
   summary: "Calculate rectangular, triangular, or circular area in one unit.",
   category: "Build",
   classification: "static",
-  version: "1.0.0",
+  version: "2.0.0",
   accent: "blue",
   fields: [
     {
       name: "shape",
       label: "Shape",
       type: "select",
+      required: true,
       defaultValue: "rectangle",
       options: [
         { label: "Rectangle", value: "rectangle" },
@@ -236,72 +293,89 @@ const areaMetadata = {
         { label: "Circle", value: "circle" },
       ],
     },
-    { name: "length", label: "Length", type: "number", min: 0, step: 0.01, visibleWhen: { field: "shape", equals: "rectangle" } },
-    { name: "width", label: "Width", type: "number", min: 0, step: 0.01, visibleWhen: { field: "shape", equals: "rectangle" } },
-    { name: "base", label: "Base", type: "number", min: 0, step: 0.01, visibleWhen: { field: "shape", equals: "triangle" } },
-    { name: "height", label: "Height", type: "number", min: 0, step: 0.01, visibleWhen: { field: "shape", equals: "triangle" } },
-    { name: "radius", label: "Radius", type: "number", min: 0, step: 0.01, visibleWhen: { field: "shape", equals: "circle" } },
+    {
+      name: "unit",
+      label: "Dimension unit",
+      type: "select",
+      required: true,
+      defaultValue: "metre",
+      options: lengthUnitOptions,
+    },
+    { name: "length", label: "Length", type: "number", required: true, min: 0.000001, max: 1_000_000_000, maxDecimalPlaces: 6, step: 0.000001, visibleWhen: { field: "shape", equals: "rectangle" } },
+    { name: "width", label: "Width", type: "number", required: true, min: 0.000001, max: 1_000_000_000, maxDecimalPlaces: 6, step: 0.000001, visibleWhen: { field: "shape", equals: "rectangle" } },
+    { name: "base", label: "Base", type: "number", required: true, min: 0.000001, max: 1_000_000_000, maxDecimalPlaces: 6, step: 0.000001, visibleWhen: { field: "shape", equals: "triangle" } },
+    { name: "height", label: "Height", type: "number", required: true, min: 0.000001, max: 1_000_000_000, maxDecimalPlaces: 6, step: 0.000001, visibleWhen: { field: "shape", equals: "triangle" } },
+    { name: "radius", label: "Radius", type: "number", required: true, min: 0.000001, max: 1_000_000_000, maxDecimalPlaces: 6, step: 0.000001, visibleWhen: { field: "shape", equals: "circle" } },
   ],
 } as const satisfies CalculatorMetadata;
 
-const areaSchema = z
-  .object({
-    shape: z.enum(["rectangle", "triangle", "circle"]),
-    length: optionalDimension,
-    width: optionalDimension,
-    base: optionalDimension,
-    height: optionalDimension,
-    radius: optionalDimension,
-  })
-  .superRefine((input, context) => {
-    const requiredByShape = {
-      rectangle: ["length", "width"],
-      triangle: ["base", "height"],
-      circle: ["radius"],
-    } as const;
-
-    for (const field of requiredByShape[input.shape]) {
-      if (input[field] === undefined) {
-        context.addIssue({
-          code: "custom",
-          path: [field],
-          message: `${field[0].toUpperCase()}${field.slice(1)} is required.`,
-        });
-      }
-    }
-  });
+const areaSchema = z.discriminatedUnion("shape", [
+  z.object({
+    shape: z.literal("rectangle"),
+    unit: z.enum(lengthUnits),
+    length: dimension,
+    width: dimension,
+  }),
+  z.object({
+    shape: z.literal("triangle"),
+    unit: z.enum(lengthUnits),
+    base: dimension,
+    height: dimension,
+  }),
+  z.object({
+    shape: z.literal("circle"),
+    unit: z.enum(lengthUnits),
+    radius: dimension,
+  }),
+]);
 
 export const areaCalculator = defineCalculator({
   ...areaMetadata,
   schema: areaSchema,
   run(input) {
-    let area;
+    let squareMetres;
     let expression;
 
     if (input.shape === "rectangle") {
-      area = decimal(input.length!).mul(input.width!);
-      expression = `${input.length} x ${input.width}`;
+      squareMetres = lengthInMetres(input.length, input.unit).mul(
+        lengthInMetres(input.width, input.unit),
+      );
+      expression = `${input.length} x ${input.width} ${input.unit}`;
     } else if (input.shape === "triangle") {
-      area = decimal(input.base!).mul(input.height!).div(2);
-      expression = `${input.base} x ${input.height} / 2`;
+      squareMetres = lengthInMetres(input.base, input.unit)
+        .mul(lengthInMetres(input.height, input.unit))
+        .div(2);
+      expression = `${input.base} x ${input.height} / 2 ${input.unit}`;
     } else {
-      area = decimal(input.radius!).pow(2).mul(Math.PI);
-      expression = `pi x ${input.radius}^2`;
+      squareMetres = lengthInMetres(input.radius, input.unit)
+        .pow(2)
+        .mul("3.141592653589793238462643383279502884197");
+      expression = `pi x ${input.radius}^2 ${input.unit}`;
     }
 
-    const normalizedInputs: Record<string, string | number> = {};
-    for (const [key, value] of Object.entries(input)) {
-      if (value !== undefined) {
-        normalizedInputs[key] = value;
-      }
-    }
+    const selectedArea = squareMetresInUnit(squareMetres.toString(), input.unit);
 
     return staticResult(areaMetadata, {
       asOfDate: null,
-      normalizedInputs,
-      result: { area: rounded(area, 6) },
-      breakdown: [{ label: "Area", expression, value: rounded(area, 6), unit: "square units" }],
-      assumptions: ["All dimensions use the same unit."],
+      normalizedInputs: input,
+      result: {
+        area: rounded(selectedArea, 6),
+        squareMetres: rounded(squareMetres, 6),
+      },
+      breakdown: [
+        {
+          label: "Area",
+          expression,
+          value: rounded(selectedArea, 6),
+          unit: squareUnitLabels[input.unit],
+        },
+        {
+          label: "Normalized area",
+          value: rounded(squareMetres, 6),
+          unit: "m2",
+        },
+      ],
+      assumptions: ["All dimensions use the selected unit."],
       warnings: [],
     });
   },
@@ -314,19 +388,19 @@ const loanEmiMetadata = {
   summary: "Estimate a fixed monthly installment and total interest.",
   category: "Money",
   classification: "static",
-  version: "1.0.0",
+  version: "2.0.0",
   accent: "rose",
   fields: [
-    { name: "principal", label: "Loan amount", type: "number", min: 0, step: 0.01, suffix: "LKR" },
-    { name: "annualRatePercent", label: "Annual interest rate", type: "number", min: 0, max: 100, step: 0.01, suffix: "%" },
-    { name: "termMonths", label: "Loan term", type: "number", min: 1, max: 1200, step: 1, suffix: "months" },
+    { name: "principal", label: "Loan amount", type: "number", required: true, min: 0.01, max: 1_000_000_000_000, maxDecimalPlaces: 2, step: 0.01, suffix: "LKR" },
+    { name: "annualRatePercent", label: "Nominal annual interest rate", type: "number", required: true, min: 0, max: 100, maxDecimalPlaces: 6, step: 0.000001, suffix: "%" },
+    { name: "termMonths", label: "Loan term", type: "number", required: true, min: 1, max: 1200, maxDecimalPlaces: 0, step: 1, suffix: "months" },
   ],
 } as const satisfies CalculatorMetadata;
 
 const loanEmiSchema = z.object({
-  principal: z.coerce.number().finite().positive().max(1_000_000_000_000),
-  annualRatePercent: z.coerce.number().finite().min(0).max(100),
-  termMonths: z.coerce.number().int().min(1).max(1200),
+  principal: decimalInput({ min: "0.01", max: 1_000_000_000_000, maxDecimalPlaces: 2 }),
+  annualRatePercent: decimalInput({ min: 0, max: 100, maxDecimalPlaces: 6 }),
+  termMonths: integerInput({ min: 1, max: 1200 }),
 });
 
 export const loanEmiCalculator = defineCalculator({
@@ -335,29 +409,41 @@ export const loanEmiCalculator = defineCalculator({
   run(input) {
     const principal = decimal(input.principal);
     const monthlyRate = decimal(input.annualRatePercent).div(1200);
-    const monthlyPayment = monthlyRate.isZero()
+    const exactMonthlyPayment = monthlyRate.isZero()
       ? principal.div(input.termMonths)
       : principal
           .mul(monthlyRate)
           .mul(decimal(1).plus(monthlyRate).pow(input.termMonths))
           .div(decimal(1).plus(monthlyRate).pow(input.termMonths).minus(1));
-    const totalPayment = monthlyPayment.mul(input.termMonths);
+    let monthlyPayment = decimal(money(exactMonthlyPayment));
+    const totalPayment = decimal(money(exactMonthlyPayment.mul(input.termMonths)));
+    let finalPayment = totalPayment.minus(monthlyPayment.mul(input.termMonths - 1));
+    if (input.termMonths > 1 && !finalPayment.isPositive()) {
+      monthlyPayment = decimal(moneyRoundedDown(totalPayment.div(input.termMonths)));
+      finalPayment = totalPayment.minus(monthlyPayment.mul(input.termMonths - 1));
+    }
     const totalInterest = totalPayment.minus(principal);
 
     return staticResult(loanEmiMetadata, {
       asOfDate: null,
       normalizedInputs: input,
       result: {
-        monthlyPayment: rounded(monthlyPayment),
-        totalPayment: rounded(totalPayment),
-        totalInterest: rounded(totalInterest),
+        monthlyPayment: money(monthlyPayment),
+        finalPayment: money(finalPayment),
+        totalPayment: money(totalPayment),
+        totalInterest: money(totalInterest),
       },
       breakdown: [
-        { label: "Monthly installment", value: rounded(monthlyPayment), unit: "LKR" },
-        { label: "Total interest", value: rounded(totalInterest), unit: "LKR" },
-        { label: "Total repayment", value: rounded(totalPayment), unit: "LKR" },
+        { label: "Regular monthly installment", value: money(monthlyPayment), unit: "LKR" },
+        { label: "Adjusted final installment", value: money(finalPayment), unit: "LKR" },
+        { label: "Total interest", value: money(totalInterest), unit: "LKR" },
+        { label: "Total repayment", value: money(totalPayment), unit: "LKR" },
       ],
-      assumptions: ["The interest rate and monthly payment remain fixed for the full term."],
+      assumptions: [
+        "The entered rate is a nominal annual rate divided by 12 for monthly calculations.",
+        "Regular installments are rounded to cents; the final installment is adjusted so displayed payments reconcile with the displayed total.",
+        "The interest rate remains fixed for the full term.",
+      ],
       warnings: ["Fees, insurance, taxes, and lender-specific rounding are not included."],
     });
   },
@@ -370,31 +456,39 @@ const fuelConsumptionMetadata = {
   summary: "Convert distance and fuel used into both common efficiency measures.",
   category: "Travel",
   classification: "static",
-  version: "1.0.0",
+  version: "2.0.0",
   accent: "gold",
   fields: [
-    { name: "distanceKilometres", label: "Distance travelled", type: "number", min: 0, step: 0.01, suffix: "km" },
-    { name: "fuelLitres", label: "Fuel used", type: "number", min: 0, step: 0.01, suffix: "litres" },
+    { name: "distance", label: "Distance travelled", type: "number", required: true, min: 0.000001, max: 10_000_000, maxDecimalPlaces: 6, step: 0.000001 },
+    { name: "distanceUnit", label: "Distance unit", type: "select", required: true, defaultValue: "kilometre", options: distanceUnitOptions },
+    { name: "fuelVolume", label: "Fuel used", type: "number", required: true, min: 0.000001, max: 1_000_000, maxDecimalPlaces: 6, step: 0.000001 },
+    { name: "volumeUnit", label: "Fuel unit", type: "select", required: true, defaultValue: "litre", options: volumeUnitOptions },
   ],
 } as const satisfies CalculatorMetadata;
 
 const fuelConsumptionSchema = z.object({
-  distanceKilometres: z.coerce.number().finite().positive().max(10_000_000),
-  fuelLitres: z.coerce.number().finite().positive().max(1_000_000),
+  distance: decimalInput({ min: "0.000001", max: 10_000_000, maxDecimalPlaces: 6 }),
+  distanceUnit: z.enum(distanceUnits),
+  fuelVolume: decimalInput({ min: "0.000001", max: 1_000_000, maxDecimalPlaces: 6 }),
+  volumeUnit: z.enum(volumeUnits),
 });
 
 export const fuelConsumptionCalculator = defineCalculator({
   ...fuelConsumptionMetadata,
   schema: fuelConsumptionSchema,
   run(input) {
-    const distance = decimal(input.distanceKilometres);
-    const fuel = decimal(input.fuelLitres);
+    const distance = distanceInKilometres(input.distance, input.distanceUnit);
+    const fuel = volumeInLitres(input.fuelVolume, input.volumeUnit);
     const kilometresPerLitre = distance.div(fuel);
     const litresPerHundredKilometres = fuel.div(distance).mul(100);
 
     return staticResult(fuelConsumptionMetadata, {
       asOfDate: null,
-      normalizedInputs: input,
+      normalizedInputs: {
+        ...input,
+        distanceKilometres: rounded(distance, 6),
+        fuelLitres: rounded(fuel, 6),
+      },
       result: {
         kilometresPerLitre: rounded(kilometresPerLitre, 3),
         litresPerHundredKilometres: rounded(litresPerHundredKilometres, 3),
