@@ -27,6 +27,8 @@ export type SourceReference = {
   authority: string;
   title: string;
   url: string;
+  publishedOn?: string | null;
+  retrievedAt?: string;
   verifiedAt: string;
 };
 

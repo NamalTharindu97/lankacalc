@@ -257,7 +257,7 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
               <div className="result-notes">
                 <h3>Sources</h3>
                 {result.sources.map((source) => (
-                  <p key={source.url}><a href={source.url} rel="noreferrer" target="_blank">{source.authority}: {source.title}</a></p>
+                  <p key={source.url}><a href={source.url} rel="noreferrer" target="_blank">{source.authority}: {source.title}</a> (verified {source.verifiedAt})</p>
                 ))}
               </div>
             ) : null}
