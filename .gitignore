@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Tests
+coverage/
+playwright-report/
+test-results/
+.playwright-mcp/
+/lankacalc-docker-*.png
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Tooling
+*.tsbuildinfo
+.eslintcache
+
+# OS and editors
+.DS_Store
+.idea/
+.vscode/

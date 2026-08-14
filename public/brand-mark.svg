@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">LankaCalc</title>
+  <rect width="64" height="64" rx="14" fill="#18231f"/>
+  <path d="M16 16h8v25h17v7H16V16Zm25 0h8v32h-8V16Z" fill="#f5f0e5"/>
+</svg>
