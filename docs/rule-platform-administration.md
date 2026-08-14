@@ -24,6 +24,12 @@ REVIEWER_ACTOR
 
 The reviewer token can verify/check sources, run fixtures, compare a draft with the active payload, review a draft, and inspect history. The administrator token can perform every action. Leaving both tokens unset disables administration.
 
+## Operator GUI
+
+Open `/admin/rules` to use the protected rule desk. The GUI provides live source and version registers, guided forms for every lifecycle action, fixture/result output, and quick actions from existing records. It sends the same bounded requests documented below.
+
+The bearer token remains only in React component memory. It is not placed in cookies, local storage, session storage, URLs, or server-rendered markup. Reloading or closing the tab clears it.
+
 ## Workflow
 
 All requests are JSON with an `action` discriminator and are limited to 16 KiB at both Nginx and the route.
@@ -41,6 +47,7 @@ All requests are JSON with an `action` discriminator and are limited to 16 KiB a
 11. `promoteScheduled` records publication when scheduled versions reach their effective Sri Lankan business date.
 12. `retireRule` retires an active/scheduled version on an explicit effective date; corrections are new versions, never edits.
 13. `ruleHistory` returns the version, fixture evidence, and publication events.
+14. `dashboard` returns bounded source, definition, and version summaries for the protected GUI.
 
 The route's Zod discriminated union in `src/app/api/internal/rule-platform/route.ts` is the executable request contract.
 

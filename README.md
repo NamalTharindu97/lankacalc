@@ -55,6 +55,8 @@ The temporary Stage 1 operator API is `POST /api/internal/rule-platform`. Set in
 
 Send a token as `Authorization: Bearer <token>`. Administrators manage sources, drafts, publication, scheduling, and retirement. Reviewers verify sources, run fixtures, compare draft and active payloads, review drafts, and inspect history. See `docs/rule-platform-administration.md` for request contracts and operational safeguards.
 
+The operator GUI is available at `http://localhost:3000/admin/rules`. Tokens stay in component memory and are cleared by a page reload.
+
 ## Docker Deployment
 
 Set a strong `POSTGRES_PASSWORD` in `.env`. Build and start PostgreSQL, the web application, and the Nginx edge proxy:
