@@ -12,8 +12,8 @@ describe("calculation API contract", () => {
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
       calculator: "percentage",
-      calculationVersion: "1.0.0",
-      result: { percentageValue: 50 },
+      calculationVersion: "2.0.0",
+      result: { percentageValue: "50" },
       ruleVersions: [],
       sources: [],
     });
@@ -21,8 +21,10 @@ describe("calculation API contract", () => {
 
   it("returns field-level validation errors", () => {
     const response = executeCalculationRequest("fuel-consumption", {
-      distanceKilometres: 0,
-      fuelLitres: 0,
+      distance: 0,
+      distanceUnit: "kilometre",
+      fuelVolume: 0,
+      volumeUnit: "litre",
     });
 
     expect(response.status).toBe(422);
@@ -30,11 +32,22 @@ describe("calculation API contract", () => {
       error: {
         code: "VALIDATION_ERROR",
         issues: expect.arrayContaining([
-          expect.objectContaining({ path: "distanceKilometres" }),
-          expect.objectContaining({ path: "fuelLitres" }),
+          expect.objectContaining({ path: "distance" }),
+          expect.objectContaining({ path: "fuelVolume" }),
         ]),
       },
     });
+  });
+
+  it.each([
+    { percentage: "", value: "250" },
+    { percentage: true, value: 250 },
+    { percentage: 10, value: [250] },
+    { percentage: null, value: 250 },
+  ])("does not coerce malformed JSON values: %j", (payload) => {
+    const response = executeCalculationRequest("percentage", payload);
+
+    expect(response.status).toBe(422);
   });
 
   it("returns a stable not-found error", () => {

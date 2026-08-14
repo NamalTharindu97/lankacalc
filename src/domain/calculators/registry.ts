@@ -17,7 +17,20 @@ const calculators = [
   fuelConsumptionCalculator,
 ] satisfies CalculatorDefinition[];
 
-const calculatorByKey = new Map(calculators.map((calculator) => [calculator.key, calculator]));
+export function createCalculatorRegistry(definitions: CalculatorDefinition[]) {
+  const registry = new Map<string, CalculatorDefinition>();
+
+  for (const definition of definitions) {
+    if (registry.has(definition.key)) {
+      throw new Error(`Duplicate calculator key '${definition.key}'.`);
+    }
+    registry.set(definition.key, definition);
+  }
+
+  return registry;
+}
+
+const calculatorByKey = createCalculatorRegistry(calculators);
 
 export function getCalculators(): CalculatorDefinition[] {
   return calculators;

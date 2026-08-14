@@ -1,6 +1,6 @@
 # LankaCalc
 
-LankaCalc is a web-first collection of transparent calculation and decision tools for Sri Lanka. The foundation release contains anonymous static calculators and a versioned public API. Regulated calculators will be added only with effective-dated rules, official sources, verification dates, and regression fixtures.
+LankaCalc is a web-first collection of transparent calculation and decision tools for Sri Lanka. The foundation release contains anonymous static calculators that run in the browser plus a versioned public API. Regulated calculators will be added only with effective-dated rules, official sources, verification dates, and regression fixtures.
 
 ## Requirements
 
@@ -20,6 +20,8 @@ npm run dev
 ```
 
 The app is available at `http://localhost:3000`.
+
+Liveness is available at `/api/health`; database readiness is available at `/api/ready`.
 
 ## Verification
 
@@ -49,10 +51,10 @@ Migrations are explicit and are not applied during application startup.
 
 ## Docker Deployment
 
-Set a strong `POSTGRES_PASSWORD` in `.env`. Build and start PostgreSQL and the web application:
+Set a strong `POSTGRES_PASSWORD` in `.env`. Build and start PostgreSQL, the web application, and the Nginx edge proxy:
 
 ```sh
-docker compose up -d --build db web
+docker compose up -d --build db web proxy
 ```
 
 Apply migrations as a separate operator action:
@@ -61,11 +63,12 @@ Apply migrations as a separate operator action:
 docker compose --profile tools run --rm migrate
 ```
 
-Production deployments should place TLS termination in front of the exposed application port and back up the PostgreSQL volume.
+Only Nginx publishes the application port. It enforces request-size and calculation-rate limits while replacing client IP headers before forwarding to Next.js. Production should terminate TLS in this Nginx. If a separate trusted proxy terminates TLS, configure Nginx `set_real_ip_from` with only that proxy's CIDR and set the matching `real_ip_header` before deployment; otherwise all users will share the proxy's rate-limit identity. Back up the PostgreSQL volume before storing user data.
 
 ## Architecture
 
 - `src/domain/calculators/` contains framework-independent calculator definitions and the registry.
+- `docs/calculators/` contains the approved behavior, rounding, units, and fixtures for each implemented calculator.
 - `src/app/calculators/` renders anonymous calculator pages from registry metadata.
 - `src/app/api/v1/` exposes calculator metadata and calculation endpoints.
 - `src/server/db/` owns PostgreSQL schema and access.

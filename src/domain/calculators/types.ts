@@ -11,10 +11,12 @@ export type CalculatorField = {
   name: string;
   label: string;
   type: "number" | "date" | "select";
+  required: boolean;
   description?: string;
   defaultValue?: string | number;
-  min?: number;
-  max?: number;
+  min?: number | string;
+  max?: number | string;
+  maxDecimalPlaces?: number;
   step?: number;
   suffix?: string;
   options?: Array<{ label: string; value: string }>;

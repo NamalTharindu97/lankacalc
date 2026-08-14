@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition, type FormEvent } from "react";
+import { ZodError } from "zod";
 
+import { getCalculator } from "@/domain/calculators/registry";
 import type {
   CalculationResult,
   CalculatorField,
@@ -33,7 +35,22 @@ function formatValue(value: string | number): string {
     return new Intl.NumberFormat("en-LK", { maximumFractionDigits: 6 }).format(value);
   }
 
+  if (/^-?\d+(?:\.\d+)?$/.test(value)) {
+    const sign = value.startsWith("-") ? "-" : "";
+    const unsigned = sign ? value.slice(1) : value;
+    const [integer, fraction] = unsigned.split(".");
+    const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return `${sign}${grouped}${fraction ? `.${fraction}` : ""}`;
+  }
+
   return value;
+}
+
+function humanize(value: string): string {
+  return value
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[-_]/g, " ")
+    .replace(/^./, (letter) => letter.toUpperCase());
 }
 
 function InputField({
@@ -62,6 +79,7 @@ function InputField({
             id={field.name}
             name={field.name}
             onChange={(event) => onChange(event.target.value)}
+            required={field.required}
             value={value}
           >
             {field.options?.map((option) => (
@@ -77,6 +95,7 @@ function InputField({
             min={field.min}
             name={field.name}
             onChange={(event) => onChange(event.target.value)}
+            required={field.required}
             step={field.step}
             type={field.type}
             value={value}
@@ -97,12 +116,43 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
 
+  function showValidationError(error: ZodError) {
+    setResult(null);
+    setFormError("The calculation input is invalid.");
+    setFieldErrors(
+      Object.fromEntries(
+        error.issues.map((issue) => [issue.path.join("."), issue.message]),
+      ),
+    );
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError(null);
     setFieldErrors({});
 
     startTransition(async () => {
+      if (calculator.classification === "static") {
+        try {
+          const definition = getCalculator(calculator.key);
+          if (!definition) {
+            setFormError("The calculator definition is unavailable.");
+            return;
+          }
+
+          setResult(definition.calculate(values));
+        } catch (error) {
+          if (error instanceof ZodError) {
+            showValidationError(error);
+            return;
+          }
+
+          setResult(null);
+          setFormError("The calculation could not be completed.");
+        }
+        return;
+      }
+
       try {
         const response = await fetch(`/api/v1/calculations/${calculator.key}`, {
           method: "POST",
@@ -189,6 +239,29 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
             {result.warnings.length > 0 ? (
               <div className="result-notes warning-notes"><h3>Check before deciding</h3>{result.warnings.map((note) => <p key={note}>{note}</p>)}</div>
             ) : null}
+            <div className="result-notes">
+              <h3>Normalized inputs</h3>
+              {Object.entries(result.normalizedInputs).map(([key, value]) => (
+                <p key={key}><strong>{humanize(key)}:</strong> {formatValue(value)}</p>
+              ))}
+            </div>
+            {result.ruleVersions.length > 0 ? (
+              <div className="result-notes">
+                <h3>Rule versions</h3>
+                {result.ruleVersions.map((rule) => (
+                  <p key={`${rule.key}-${rule.version}`}>{rule.key} {rule.version}, effective {rule.effectiveFrom}{rule.effectiveTo ? ` to ${rule.effectiveTo}` : ""}</p>
+                ))}
+              </div>
+            ) : null}
+            {result.sources.length > 0 ? (
+              <div className="result-notes">
+                <h3>Sources</h3>
+                {result.sources.map((source) => (
+                  <p key={source.url}><a href={source.url} rel="noreferrer" target="_blank">{source.authority}: {source.title}</a></p>
+                ))}
+              </div>
+            ) : null}
+            {result.verifiedAt ? <p className="result-version">Last verified {result.verifiedAt}</p> : null}
             <p className="result-version">Calculated with {result.calculator} v{result.calculationVersion}</p>
           </div>
         ) : (
