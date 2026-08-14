@@ -6,6 +6,8 @@ This plan translates `docs/Sri_Lanka_Web_Application_Service_Research.md` into a
 
 It covers every product and calculator named in the research while preserving its main execution constraint: launch and validate one narrow vertical before expanding. This is a platform blueprint, not approval to build every service at once.
 
+Use `plan/LankaTools_Implementation_Roadmap.md` for current gaps, implementation order, deliverables, and exit criteria.
+
 ## 2. Current Decisions
 
 - The first product direction is LankaCalc, with WorkMoney capabilities following from the same calculation and rule foundation.
