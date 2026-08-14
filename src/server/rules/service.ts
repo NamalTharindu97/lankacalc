@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import * as schema from "@/server/db/schema";
@@ -424,6 +424,69 @@ export class RulePlatform {
       .where(eq(schema.ruleValidationFixtures.ruleVersionId, ruleVersionId))
       .orderBy(schema.ruleValidationFixtures.createdAt);
     return { version, events, fixtures };
+  }
+
+  async getDashboard() {
+    const [sourceRows, definitions, versions, sourceCount, definitionCount, draftCount, publishedCount] = await Promise.all([
+      this.database.select().from(schema.sources).orderBy(desc(schema.sources.updatedAt)).limit(50),
+      this.database.select().from(schema.ruleDefinitions).orderBy(desc(schema.ruleDefinitions.createdAt)).limit(50),
+      this.database.select({
+        id: schema.ruleVersions.id,
+        ruleDefinitionId: schema.ruleVersions.ruleDefinitionId,
+        ruleName: schema.ruleDefinitions.name,
+        version: schema.ruleVersions.version,
+        status: schema.ruleVersions.status,
+        effectiveFrom: schema.ruleVersions.effectiveFrom,
+        effectiveTo: schema.ruleVersions.effectiveTo,
+        checksum: schema.ruleVersions.checksum,
+        reviewer: schema.ruleVersions.reviewer,
+        publishedAt: schema.ruleVersions.publishedAt,
+        updatedAt: schema.ruleVersions.updatedAt,
+      }).from(schema.ruleVersions)
+        .innerJoin(schema.ruleDefinitions, eq(schema.ruleDefinitions.id, schema.ruleVersions.ruleDefinitionId))
+        .orderBy(desc(schema.ruleVersions.updatedAt)).limit(100),
+      this.database.$count(schema.sources),
+      this.database.$count(schema.ruleDefinitions),
+      this.database.$count(schema.ruleVersions, eq(schema.ruleVersions.status, "draft")),
+      this.database.$count(schema.ruleVersions, eq(schema.ruleVersions.status, "published")),
+    ]);
+    const revisions = sourceRows.length ? await this.database.select({
+      id: schema.sourceRevisions.id,
+      sourceId: schema.sourceRevisions.sourceId,
+      revision: schema.sourceRevisions.revision,
+    }).from(schema.sourceRevisions)
+      .where(inArray(schema.sourceRevisions.sourceId, sourceRows.map((source) => source.id)))
+      .orderBy(desc(schema.sourceRevisions.revision)) : [];
+    const latestRevisions = new Map<string, (typeof revisions)[number]>();
+    for (const revision of revisions) {
+      if (!latestRevisions.has(revision.sourceId)) latestRevisions.set(revision.sourceId, revision);
+    }
+    const revisionIds = [...latestRevisions.values()].map((revision) => revision.id);
+    const checks = revisionIds.length ? await this.database.select({
+      sourceRevisionId: schema.sourceLinkChecks.sourceRevisionId,
+      status: schema.sourceLinkChecks.status,
+      checkedAt: schema.sourceLinkChecks.checkedAt,
+    }).from(schema.sourceLinkChecks)
+      .where(inArray(schema.sourceLinkChecks.sourceRevisionId, revisionIds))
+      .orderBy(desc(schema.sourceLinkChecks.checkedAt), desc(schema.sourceLinkChecks.id)) : [];
+    const latestChecks = new Map<string, (typeof checks)[number]>();
+    for (const check of checks) {
+      if (!latestChecks.has(check.sourceRevisionId)) latestChecks.set(check.sourceRevisionId, check);
+    }
+    const sources = sourceRows.map((source) => {
+      const revision = latestRevisions.get(source.id);
+      return {
+        ...source,
+        revision: revision?.revision ?? 0,
+        linkCheck: revision ? latestChecks.get(revision.id) ?? null : null,
+      };
+    });
+    return {
+      sources,
+      definitions,
+      versions,
+      totals: { sources: sourceCount, definitions: definitionCount, drafts: draftCount, published: publishedCount },
+    };
   }
 
   private async validatePayload(ruleDefinitionId: string, payloadSchemaVersion: string, payload: JsonValue) {

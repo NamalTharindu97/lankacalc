@@ -221,6 +221,12 @@ describe.sequential("rule and source platform", () => {
     }, "test-admin");
     const historicalSources = await listSourcesForCalculator(database, "percentage", "2025-05-01");
     expect(historicalSources.some((item) => item.url === originalUrl && item.title === "Official test publication")).toBe(true);
+    await expect(platform.getDashboard()).resolves.toMatchObject({
+      sources: expect.arrayContaining([expect.objectContaining({ id: source.id, revision: 2 })]),
+      definitions: expect.arrayContaining([expect.objectContaining({ id: definition.id })]),
+      versions: expect.arrayContaining([expect.objectContaining({ id: correction.id, ruleName: "Integration test rule", status: "published" })]),
+      totals: expect.objectContaining({ sources: expect.any(Number), definitions: expect.any(Number), published: expect.any(Number) }),
+    });
   }, 30_000);
 
   it("blocks publication when a fixture fails", async () => {

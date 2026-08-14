@@ -71,6 +71,7 @@ const requestSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("promoteScheduled"), asOfDate: dateOnly }),
   z.object({ action: z.literal("retireRule"), ruleVersionId: uuid, effectiveOn: dateOnly, reason: z.string().min(1).max(2_000) }),
   z.object({ action: z.literal("ruleHistory"), ruleVersionId: uuid }),
+  z.object({ action: z.literal("dashboard") }),
 ]);
 
 const reviewerActions = new Set([
@@ -80,6 +81,7 @@ const reviewerActions = new Set([
   "compareRule",
   "reviewRule",
   "ruleHistory",
+  "dashboard",
 ]);
 
 class PayloadTooLargeError extends Error {}
@@ -223,6 +225,9 @@ export async function POST(request: Request) {
         break;
       case "ruleHistory":
         data = await rules.getHistory(input.ruleVersionId);
+        break;
+      case "dashboard":
+        data = { ...await rules.getDashboard(), operator };
         break;
     }
     return NextResponse.json({ data });

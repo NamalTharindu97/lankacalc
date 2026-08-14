@@ -34,6 +34,25 @@ describe("POST /api/internal/rule-platform", () => {
     await expect(response.json()).resolves.toMatchObject({ error: { code: "FORBIDDEN" } });
   });
 
+  it("lets reviewers load dashboard summaries with their operator identity", async () => {
+    process.env.REVIEWER_API_TOKEN = "r".repeat(32);
+    process.env.REVIEWER_ACTOR = "test-reviewer";
+    const response = await POST(new Request("https://example.test/api/internal/rule-platform", {
+      method: "POST",
+      headers: { authorization: `Bearer ${"r".repeat(32)}` },
+      body: JSON.stringify({ action: "dashboard" }),
+    }));
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      data: {
+        operator: { name: "test-reviewer", role: "reviewer" },
+        sources: expect.any(Array),
+        definitions: expect.any(Array),
+        versions: expect.any(Array),
+      },
+    });
+  });
+
   it("rejects oversized bodies before dispatch", async () => {
     process.env.ADMIN_API_TOKEN = "a".repeat(32);
     const response = await POST(new Request("https://example.test/api/internal/rule-platform", {
