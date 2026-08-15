@@ -19,6 +19,10 @@ CMD ["npm", "run", "db:migrate"]
 
 FROM base AS builder
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG BETTER_AUTH_SECRET
+ENV BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+ARG BETTER_AUTH_URL
+ENV BETTER_AUTH_URL=${BETTER_AUTH_URL}
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

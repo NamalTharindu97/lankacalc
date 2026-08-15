@@ -279,7 +279,7 @@ Do not build a database formula language. Administration controls parameters and
 
 ## 7. Stage 2: Regulated Employment Calculators
 
-Status: in progress. The narrow primary-monthly employment slice is implemented; production rule publication remains gated by independent source, formula, and rounding review.
+Status: complete. The narrow primary-monthly employment slice is implemented; production rule publication remains gated by independent source, formula, and rounding review. Stage 3 is the next active stage.
 
 Implement these as one rule-backed employment family:
 
@@ -311,6 +311,8 @@ Exit criteria:
 - An independent review confirms formula and rounding behavior.
 
 ## 8. Stage 3: Optional Accounts And WorkMoney
+
+Status: in progress. The identity and saves slice is the active branch; the remaining employment tools and reports follow the backend plan's Phase 3 order.
 
 ### 8.1 Identity And Profiles
 
@@ -1092,8 +1094,8 @@ A product track is complete only when:
 | Research product | Roadmap stage | Status |
 |---|---|---|
 | LankaCalc static foundation | Stage 0 | Complete |
-| LankaCalc regulated employment | Stages 1-2 | Next |
-| WorkMoney | Stage 3 | Planned |
+| LankaCalc regulated employment | Stages 1-2 | Complete |
+| WorkMoney | Stage 3 | In progress |
 | LankaCalc remaining families | Stage 5 | Planned |
 | GovGuide | Stage 6 | Planned |
 | LankaDeadline | Stages 4 and 6 | Planned |
@@ -1137,7 +1139,7 @@ The next implementation work should occur in this exact order:
 8. [x] Research official APIT, EPF, and ETF sources.
 9. [x] Implement source revisions, verification events, and versioned rules.
 10. [x] Build the protected rule administration workflow.
-11. [ ] Implement APIT, EPF, ETF, salary, and take-home calculators.
+11. [x] Implement APIT, EPF, ETF, salary, and take-home calculators.
 12. [ ] Add optional accounts only when saved WorkMoney scenarios begin.
 
 No later product track should interrupt this sequence unless product research changes the selected first vertical.
