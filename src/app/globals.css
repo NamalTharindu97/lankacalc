@@ -1740,6 +1740,18 @@ textarea {
   gap: 16px;
 }
 
+.saved-actions .report-status {
+  align-self: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.saved-row .report-error {
+  color: #b23a2e;
+  font-size: 0.85rem;
+  margin-top: 8px;
+}
+
 .saved-rename {
   display: flex;
   flex: 1;
