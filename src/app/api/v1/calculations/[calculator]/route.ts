@@ -81,7 +81,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   const { calculator: calculatorKey } = await context.params;
   try {
-    const response = executeCalculationRequest(calculatorKey, payload);
+    const response = await executeCalculationRequest(calculatorKey, payload);
     return NextResponse.json(response.body, { status: response.status, headers: responseHeaders });
   } catch (error) {
     console.error(JSON.stringify({

@@ -1,16 +1,17 @@
 import { ZodError } from "zod";
 
 import { getCalculator } from "@/domain/calculators/registry";
+import { resolveRegulatedProvenance, RegulatedRuleUnavailableError } from "@/server/rules/runtime";
 
 export type CalculationApiResponse = {
   status: number;
   body: unknown;
 };
 
-export function executeCalculationRequest(
+export async function executeCalculationRequest(
   calculatorKey: string,
   payload: unknown,
-): CalculationApiResponse {
+): Promise<CalculationApiResponse> {
   const calculator = getCalculator(calculatorKey);
 
   if (!calculator) {
@@ -26,11 +27,27 @@ export function executeCalculationRequest(
   }
 
   try {
+    if (calculator.execution === "browser") {
+      return { status: 200, body: calculator.calculate(payload) };
+    }
+    const asOfDate = calculator.getAsOfDate(payload);
+    const provenance = await resolveRegulatedProvenance(calculator, asOfDate);
     return {
       status: 200,
-      body: calculator.calculate(payload),
+      body: {
+        ...calculator.calculate(payload, provenance.payloads),
+        ruleVersions: provenance.rules.map(({ key, version, effectiveFrom, effectiveTo }) => ({ key, version, effectiveFrom, effectiveTo })),
+        sources: provenance.sources,
+        verifiedAt: provenance.verifiedAt,
+      },
     };
   } catch (error) {
+    if (error instanceof RegulatedRuleUnavailableError) {
+      return {
+        status: 503,
+        body: { error: { code: "RULE_UNAVAILABLE", message: error.message } },
+      };
+    }
     if (error instanceof ZodError) {
       return {
         status: 422,

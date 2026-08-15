@@ -72,9 +72,25 @@ export type CalculatorMetadata = {
   fields: CalculatorField[];
 };
 
-export type CalculatorDefinition = CalculatorMetadata & {
+export type RuleDependency = {
+  name: string;
+  key: string;
+  scope: string;
+};
+
+export type StaticCalculatorDefinition = CalculatorMetadata & {
+  execution: "browser";
   calculate(rawInput: unknown): CalculationResult;
 };
+
+export type RegulatedCalculatorDefinition = CalculatorMetadata & {
+  execution: "server";
+  ruleDependencies: readonly RuleDependency[];
+  getAsOfDate(rawInput: unknown): string;
+  calculate(rawInput: unknown, rulePayloads: Readonly<Record<string, unknown>>): CalculationResult;
+};
+
+export type CalculatorDefinition = StaticCalculatorDefinition | RegulatedCalculatorDefinition;
 
 type CalculatorConfiguration<TSchema extends z.ZodType> = CalculatorMetadata & {
   schema: TSchema;
@@ -83,13 +99,42 @@ type CalculatorConfiguration<TSchema extends z.ZodType> = CalculatorMetadata & {
 
 export function defineCalculator<TSchema extends z.ZodType>(
   configuration: CalculatorConfiguration<TSchema>,
-): CalculatorDefinition {
+): StaticCalculatorDefinition {
   const { schema, run, ...metadata } = configuration;
 
   return {
     ...metadata,
+    execution: "browser",
     calculate(rawInput: unknown) {
       return run(schema.parse(rawInput));
+    },
+  };
+}
+
+type RegulatedCalculatorConfiguration<TSchema extends z.ZodType> = CalculatorMetadata & {
+  schema: TSchema;
+  ruleDependencies: readonly RuleDependency[];
+  getAsOfDate(input: z.output<TSchema>): string;
+  run(
+    input: z.output<TSchema>,
+    rulePayloads: Readonly<Record<string, unknown>>,
+  ): CalculationResult;
+};
+
+export function defineRegulatedCalculator<TSchema extends z.ZodType>(
+  configuration: RegulatedCalculatorConfiguration<TSchema>,
+): RegulatedCalculatorDefinition {
+  const { schema, ruleDependencies, getAsOfDate, run, ...metadata } = configuration;
+
+  return {
+    ...metadata,
+    execution: "server",
+    ruleDependencies,
+    getAsOfDate(rawInput: unknown) {
+      return getAsOfDate(schema.parse(rawInput));
+    },
+    calculate(rawInput: unknown, rulePayloads: Readonly<Record<string, unknown>>) {
+      return run(schema.parse(rawInput), rulePayloads);
     },
   };
 }

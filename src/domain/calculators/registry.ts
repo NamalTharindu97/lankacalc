@@ -6,6 +6,13 @@ import {
   loanEmiCalculator,
   percentageCalculator,
 } from "@/domain/calculators/static-calculators";
+import {
+  apitCalculator,
+  epfCalculator,
+  etfCalculator,
+  salaryCalculator,
+  takeHomeCalculator,
+} from "@/domain/calculators/employment-calculators";
 import type { CalculatorDefinition, CalculatorMetadata } from "@/domain/calculators/types";
 
 const calculators = [
@@ -15,6 +22,11 @@ const calculators = [
   areaCalculator,
   loanEmiCalculator,
   fuelConsumptionCalculator,
+  apitCalculator,
+  epfCalculator,
+  etfCalculator,
+  salaryCalculator,
+  takeHomeCalculator,
 ] satisfies CalculatorDefinition[];
 
 export function createCalculatorRegistry(definitions: CalculatorDefinition[]) {
