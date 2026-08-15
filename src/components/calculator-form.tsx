@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import Link from "next/link";
+import { useRef, useState, useTransition, type FormEvent } from "react";
 import { ZodError } from "zod";
 
+import { AuthDialog } from "@/components/auth-dialog";
 import { getCalculator } from "@/domain/calculators/registry";
 import type {
   CalculationResult,
   CalculatorField,
   CalculatorMetadata,
 } from "@/domain/calculators/types";
+import { authClient } from "@/server/auth/client";
 
 type ApiError = {
   error?: {
@@ -122,6 +125,61 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
+  const { data: session } = authClient.useSession();
+  const [authOpen, setAuthOpen] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const pendingSaveRef = useRef(false);
+
+  function defaultSaveName(): string {
+    return `${calculator.shortName} · ${today()}`;
+  }
+
+  async function persistSave(name: string) {
+    if (!result) return;
+    setSaveStatus("saving");
+    setSaveError(null);
+    try {
+      const response = await fetch("/api/v1/saved-calculations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          calculatorKey: calculator.key,
+          input: values,
+          result,
+        }),
+      });
+      if (!response.ok) {
+        setSaveError("The calculation could not be saved. Please try again.");
+        return;
+      }
+      setSaveStatus("saved");
+    } catch {
+      setSaveError("The save service is unavailable. Please try again.");
+    } finally {
+      setSaveStatus((status) => (status === "saving" ? "idle" : status));
+    }
+  }
+
+  function handleSaveClick() {
+    if (!session) {
+      pendingSaveRef.current = true;
+      setAuthOpen(true);
+      return;
+    }
+    setSaveName(defaultSaveName());
+    setSaveOpen(true);
+  }
+
+  function handleAuthenticated() {
+    if (pendingSaveRef.current) {
+      pendingSaveRef.current = false;
+      void persistSave(defaultSaveName());
+    }
+  }
 
   function showValidationError(error: ZodError) {
     setResult(null);
@@ -275,6 +333,47 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
             ) : null}
             {result.verifiedAt ? <p className="result-version">Last verified {result.verifiedAt}</p> : null}
             <p className="result-version">Calculated with {result.calculator} v{result.calculationVersion}</p>
+
+            <div className="save-area">
+              {saveStatus === "saved" ? (
+                <p className="save-confirmed">
+                  Saved to your account. <Link href="/saved">View saved calculations</Link>
+                </p>
+              ) : saveOpen ? (
+                <form
+                  className="save-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void persistSave(saveName);
+                  }}
+                >
+                  <label htmlFor="save-name">Name this calculation</label>
+                  <div className="save-form-row">
+                    <div className="input-shell">
+                      <input
+                        id="save-name"
+                        maxLength={160}
+                        onChange={(event) => setSaveName(event.target.value)}
+                        required
+                        type="text"
+                        value={saveName}
+                      />
+                    </div>
+                    <button className="save-submit" disabled={saveStatus === "saving"} type="submit">
+                      {saveStatus === "saving" ? "Saving..." : "Save"}
+                    </button>
+                    <button className="text-button" onClick={() => setSaveOpen(false)} type="button">
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <button className="save-button" onClick={handleSaveClick} type="button">
+                  {session ? "Save result" : "Save result · sign in"}
+                </button>
+              )}
+              {saveError ? <div className="form-error" role="alert">{saveError}</div> : null}
+            </div>
           </div>
         ) : (
           <div className="result-empty">
@@ -283,6 +382,15 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
           </div>
         )}
       </section>
+
+      <AuthDialog
+        onAuthenticated={handleAuthenticated}
+        onClose={() => {
+          pendingSaveRef.current = false;
+          setAuthOpen(false);
+        }}
+        open={authOpen}
+      />
     </div>
   );
 }

@@ -28,6 +28,8 @@ jobs:
       POSTGRES_PASSWORD: docker-test-password
       POSTGRES_PORT: 5433
       APP_PORT: 3100
+      BETTER_AUTH_SECRET: test-only-secret-that-is-at-least-32-characters-long
+      BETTER_AUTH_URL: http://localhost:3100
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5

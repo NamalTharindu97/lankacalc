@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { AccountBar } from "@/components/account-bar";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <Link href="/#principles">How results work</Link>
             <Link href="/api/v1/calculators">API</Link>
           </nav>
+          <AccountBar />
         </header>
         <main>{children}</main>
         <footer className="site-footer">

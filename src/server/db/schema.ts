@@ -259,6 +259,124 @@ export const publicationEvents = pgTable(
   (table) => [index("publication_events_version_created_idx").on(table.ruleVersionId, table.createdAt)],
 );
 
+export const users = pgTable(
+  "users",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    email_verified: boolean("email_verified").notNull().default(false),
+    image: text("image"),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("users_email_unique").on(table.email)],
+);
+
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: text("id").primaryKey(),
+    user_id: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    token: text("token").notNull(),
+    expires_at: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ip_address: text("ip_address"),
+    user_agent: text("user_agent"),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("sessions_token_unique").on(table.token),
+    index("sessions_user_idx").on(table.user_id),
+  ],
+);
+
+export const authAccounts = pgTable(
+  "auth_accounts",
+  {
+    id: text("id").primaryKey(),
+    user_id: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    account_id: text("account_id").notNull(),
+    provider_id: text("provider_id").notNull(),
+    access_token: text("access_token"),
+    refresh_token: text("refresh_token"),
+    access_token_expires_at: timestamp("access_token_expires_at", { withTimezone: true }),
+    refresh_token_expires_at: timestamp("refresh_token_expires_at", { withTimezone: true }),
+    scope: text("scope"),
+    id_token: text("id_token"),
+    password: text("password"),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("auth_accounts_user_idx").on(table.user_id),
+    index("auth_accounts_provider_idx").on(table.provider_id),
+  ],
+);
+
+export const verifications = pgTable(
+  "verifications",
+  {
+    id: text("id").primaryKey(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expires_at: timestamp("expires_at", { withTimezone: true }).notNull(),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("verifications_identifier_idx").on(table.identifier)],
+);
+
+export const profiles = pgTable(
+  "profiles",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    locale: varchar("locale", { length: 35 }).notNull().default("en"),
+    timezone: varchar("timezone", { length: 64 }).notNull().default("Asia/Colombo"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [check("profiles_locale_check", sql`${table.locale} in ('en', 'si', 'ta')`)],
+);
+
+export const savedCalculations = pgTable(
+  "saved_calculations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 160 }).notNull(),
+    calculatorKey: varchar("calculator_key", { length: 80 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("saved_calculations_user_created_idx").on(table.userId, table.createdAt),
+    index("saved_calculations_calculator_idx").on(table.calculatorKey),
+  ],
+);
+
+export const calculationSnapshots = pgTable(
+  "calculation_snapshots",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    savedCalculationId: uuid("saved_calculation_id")
+      .notNull()
+      .references(() => savedCalculations.id, { onDelete: "cascade" }),
+    input: jsonb("input").notNull(),
+    result: jsonb("result").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("calculation_snapshots_saved_idx").on(table.savedCalculationId)],
+);
+
 export const ruleValidationFixtures = pgTable(
   "rule_validation_fixtures",
   {

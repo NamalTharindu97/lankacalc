@@ -15,6 +15,13 @@
       "when": 1786728414858,
       "tag": "0001_dark_wallflower",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786771743212,
+      "tag": "0002_sudden_spencer_smythe",
+      "breakpoints": true
     }
   ]
 }
