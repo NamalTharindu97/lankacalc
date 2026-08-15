@@ -10,6 +10,7 @@ import {
   apitCalculator,
   epfCalculator,
   etfCalculator,
+  gratuityCalculator,
   netToGrossCalculator,
   salaryCalculator,
   takeHomeCalculator,
@@ -29,6 +30,7 @@ const calculators = [
   salaryCalculator,
   takeHomeCalculator,
   netToGrossCalculator,
+  gratuityCalculator,
 ] satisfies CalculatorDefinition[];
 
 export function createCalculatorRegistry(definitions: CalculatorDefinition[]) {

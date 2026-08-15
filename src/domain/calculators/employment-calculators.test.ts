@@ -4,6 +4,7 @@ import {
   apitCalculator,
   epfCalculator,
   etfCalculator,
+  gratuityCalculator,
   netToGrossCalculator,
   salaryCalculator,
   takeHomeCalculator,
@@ -26,9 +27,19 @@ const payloads = {
   etf: { employerRate: "0.03", rounding: "exact-cent-only" },
 } as const;
 
+const gratuityPayloads = {
+  ...payloads,
+  gratuity: {
+    ratePerCompletedYear: "0.5",
+    minimumCompletedYears: "5",
+    minimumEmployerWorkmen: "15",
+    rounding: "half-up-rupee",
+  },
+} as const;
+
 describe("regulated employment calculator definitions", () => {
-  it("registers all six calculators for server execution", () => {
-    for (const key of ["apit", "epf", "etf", "salary", "take-home", "net-to-gross"]) {
+  it("registers all seven calculators for server execution", () => {
+    for (const key of ["apit", "epf", "etf", "salary", "take-home", "net-to-gross", "gratuity"]) {
       expect(getCalculator(key)).toMatchObject({ key, classification: "regulated", execution: "server" });
     }
   });
@@ -217,5 +228,55 @@ describe("regulated employment calculator definitions", () => {
         maxAchievableTakeHomePay: "560000094000.00",
       },
     });
+  });
+
+  it("computes statutory gratuity for an eligible monthly-rated workman", () => {
+    expect(gratuityCalculator.calculate({
+      asOfDate: "2026-08-14",
+      lastDrawnMonthlyWage: "250000",
+      completedYearsOfService: 11,
+      employerWorkmenAtLeast15: "confirmed",
+      notExcludedByAct: "confirmed",
+      supportedScenario: "confirmed",
+    }, gratuityPayloads)).toMatchObject({
+      calculator: "gratuity",
+      asOfDate: "2026-08-14",
+      result: {
+        eligibility: "eligible",
+        notEligibleReason: "",
+        gratuity: "1375000.00",
+        halfMonthAmount: "125000.00",
+        ratePerCompletedYear: "half-month",
+        completedYearsOfService: 11,
+      },
+    });
+  });
+
+  it("reports non-eligibility below five completed years", () => {
+    expect(gratuityCalculator.calculate({
+      asOfDate: "2026-08-14",
+      lastDrawnMonthlyWage: "100000",
+      completedYearsOfService: 4,
+      employerWorkmenAtLeast15: "confirmed",
+      notExcludedByAct: "confirmed",
+      supportedScenario: "confirmed",
+    }, gratuityPayloads)).toMatchObject({
+      result: {
+        eligibility: "not-eligible",
+        notEligibleReason: "service-below-five-years",
+        gratuity: "0.00",
+      },
+    });
+  });
+
+  it("requires an explicit answer for each statutory condition", () => {
+    expect(() => gratuityCalculator.calculate({
+      asOfDate: "2026-08-14",
+      lastDrawnMonthlyWage: "100000",
+      completedYearsOfService: 5,
+      employerWorkmenAtLeast15: "",
+      notExcludedByAct: "confirmed",
+      supportedScenario: "confirmed",
+    }, gratuityPayloads)).toThrow("Select an answer for each statutory condition");
   });
 });

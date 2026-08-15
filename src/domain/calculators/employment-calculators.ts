@@ -6,14 +6,15 @@ import {
   calculateApit,
   calculateEpf,
   calculateEtf,
+  calculateGratuity,
   calculateNetToGross,
   calculateSalary,
   epfPayloadSchema,
   etfPayloadSchema,
-  netToGrossInputSchema,
+  gratuityPayloadSchema,
   salaryPayloadsSchema,
 } from "@/domain/calculators/employment";
-import { decimalInput } from "@/domain/calculators/input";
+import { decimalInput, integerInput } from "@/domain/calculators/input";
 import {
   defineRegulatedCalculator,
   type CalculationResult,
@@ -28,6 +29,7 @@ const maximumMonthlyEarnings = 1_000_000_000_000;
 const apitRule: RuleDependency = { name: "apit", key: "apit-primary-regular-monthly", scope: "standard" };
 const epfRule: RuleDependency = { name: "epf", key: "epf-standard-contribution", scope: "standard" };
 const etfRule: RuleDependency = { name: "etf", key: "etf-standard-contribution", scope: "standard" };
+const gratuityRule: RuleDependency = { name: "gratuity", key: "gratuity-payment-act-employment-1983-03-18", scope: "standard" };
 
 const asOfDateSchema = z.string().regex(dateOnlyPattern, "Enter a valid calculation date.").refine((value) => {
   const date = new Date(`${value}T00:00:00Z`);
@@ -423,6 +425,127 @@ export const netToGrossCalculator = defineRegulatedCalculator({
         ...commonWarnings,
         "Whole-rupee rounding means a few gross amounts satisfy the same target; the minimum is returned.",
         "Confirm the APIT-only amount before relying on the required salary; a different split changes it.",
+      ],
+    });
+  },
+});
+
+const gratuityConfirmationField: Omit<CalculatorField, "name" | "label"> = {
+  type: "select",
+  required: true,
+  options: [
+    { label: "Select an answer", value: "" },
+    { label: "Yes", value: "confirmed" },
+    { label: "No", value: "not-confirmed" },
+  ],
+};
+
+const gratuityMetadata = {
+  key: "gratuity",
+  name: "Gratuity calculator",
+  shortName: "Gratuity",
+  summary: "Estimate the statutory gratuity for a completed service period.",
+  category: "Employment",
+  classification: "regulated",
+  version: "1.0.0",
+  accent: "green",
+  fields: [
+    { name: "asOfDate", label: "Termination date", type: "date", required: true, min: "1983-03-18", max: "9999-12-31" },
+    {
+      name: "lastDrawnMonthlyWage",
+      label: "Last drawn monthly wage",
+      type: "number",
+      required: true,
+      min: 0,
+      max: maximumMonthlyEarnings,
+      maxDecimalPlaces: 0,
+      step: 1,
+      suffix: "LKR",
+      description: "The monthly wage or salary at which gratuity is computed.",
+    },
+    { name: "completedYearsOfService", label: "Completed years of service", type: "number", required: true, min: 0, max: 100, maxDecimalPlaces: 0, step: 1, suffix: "years" },
+    {
+      ...gratuityConfirmationField,
+      name: "employerWorkmenAtLeast15",
+      label: "Employer had at least 15 workmen in the 12 months before termination",
+      description: "Section 5(1) of the Payment of Gratuity Act applies when the employer employs or has employed fifteen or more workmen during that period.",
+    },
+    {
+      ...gratuityConfirmationField,
+      name: "notExcludedByAct",
+      label: "Not excluded by section 7 of the Payment of Gratuity Act",
+      description: "Section 7 excludes domestic servants or personal chauffeurs in private households and workmen entitled to a pension under a non-contributory pension scheme.",
+    },
+    scenarioField,
+  ],
+} satisfies CalculatorMetadata;
+
+const gratuityConfirmationSchema = z.enum(["confirmed", "not-confirmed"], {
+  error: "Select an answer for each statutory condition.",
+});
+
+const gratuityRequestSchema = z.object({
+  asOfDate: asOfDateSchema,
+  lastDrawnMonthlyWage: wholeRupees,
+  completedYearsOfService: integerInput({ min: 0, max: 100 }),
+  employerWorkmenAtLeast15: gratuityConfirmationSchema,
+  notExcludedByAct: gratuityConfirmationSchema,
+  supportedScenario,
+}).strict();
+
+export const gratuityCalculator = defineRegulatedCalculator({
+  ...gratuityMetadata,
+  schema: gratuityRequestSchema,
+  ruleDependencies: [gratuityRule],
+  getAsOfDate: (input) => input.asOfDate,
+  run(input, payloads) {
+    const gratuity = calculateGratuity(
+      {
+        lastDrawnMonthlyWage: input.lastDrawnMonthlyWage,
+        completedYearsOfService: String(input.completedYearsOfService),
+        employerWorkmenAtLeast15: input.employerWorkmenAtLeast15,
+        notExcludedByAct: input.notExcludedByAct,
+      },
+      gratuityPayloadSchema.parse(payloads.gratuity),
+    );
+
+    const notEligibleReason = gratuity.notEligibleReason ?? "";
+    const notEligibleLabels: Record<string, string> = {
+      "service-below-five-years": "Service below the statutory five completed years",
+      "employer-workmen-below-fifteen": "Employer below the statutory fifteen-workmen threshold",
+      "excluded-by-act": "The employment is excluded by section 7 of the Payment of Gratuity Act",
+    };
+
+    return baseResult(gratuityMetadata, {
+      asOfDate: input.asOfDate,
+      normalizedInputs: input,
+      result: {
+        eligibility: gratuity.eligible ? "eligible" : "not-eligible",
+        notEligibleReason,
+        gratuity: gratuity.gratuity,
+        halfMonthAmount: gratuity.halfMonthAmount,
+        ratePerCompletedYear: gratuity.ratePerCompletedYear,
+        completedYearsOfService: input.completedYearsOfService,
+      },
+      breakdown: [
+        { label: "Last drawn monthly wage", value: money(decimal(input.lastDrawnMonthlyWage)), unit: "LKR" },
+        { label: "Half-month amount per completed year", value: gratuity.halfMonthAmount, unit: "LKR" },
+        { label: "Completed years of service", value: String(input.completedYearsOfService), unit: "years" },
+        { label: "Statutory gratuity", value: gratuity.gratuity, unit: "LKR" },
+      ],
+      assumptions: [
+        "The calculation covers a monthly-rated workman only.",
+        "Gratuity is half a month's wage for each completed year, computed at the wage last drawn.",
+        "Gratuity is rounded to the nearest rupee as a calculator convention.",
+        "Gratuity is payable within thirty days of termination.",
+        "Partial years are not prorated; only fully completed years count.",
+      ],
+      warnings: [
+        ...commonWarnings,
+        gratuity.eligible
+          ? "Eligibility conditions are user-confirmed and are not verified by the tool."
+          : `${notEligibleLabels[notEligibleReason]}; no statutory gratuity is payable.`,
+        "Daily, contract, and piece-rated workmen are out of scope.",
       ],
     });
   },
