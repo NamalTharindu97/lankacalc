@@ -10,6 +10,7 @@ import {
   apitCalculator,
   epfCalculator,
   etfCalculator,
+  netToGrossCalculator,
   salaryCalculator,
   takeHomeCalculator,
 } from "@/domain/calculators/employment-calculators";
@@ -27,6 +28,7 @@ const calculators = [
   etfCalculator,
   salaryCalculator,
   takeHomeCalculator,
+  netToGrossCalculator,
 ] satisfies CalculatorDefinition[];
 
 export function createCalculatorRegistry(definitions: CalculatorDefinition[]) {

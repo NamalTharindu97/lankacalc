@@ -4,6 +4,7 @@ import {
   apitCalculator,
   epfCalculator,
   etfCalculator,
+  netToGrossCalculator,
   salaryCalculator,
   takeHomeCalculator,
 } from "@/domain/calculators/employment-calculators";
@@ -26,8 +27,8 @@ const payloads = {
 } as const;
 
 describe("regulated employment calculator definitions", () => {
-  it("registers all five calculators for server execution", () => {
-    for (const key of ["apit", "epf", "etf", "salary", "take-home"]) {
+  it("registers all six calculators for server execution", () => {
+    for (const key of ["apit", "epf", "etf", "salary", "take-home", "net-to-gross"]) {
       expect(getCalculator(key)).toMatchObject({ key, classification: "regulated", execution: "server" });
     }
   });
@@ -181,5 +182,40 @@ describe("regulated employment calculator definitions", () => {
       apitOnlyEarnings: "0",
       supportedScenario: "",
     })).toThrow("Confirm that the supported employment scenario applies");
+  });
+
+  it("inverts the composite to the minimum gross salary", () => {
+    expect(netToGrossCalculator.calculate({
+      asOfDate: "2026-08-14",
+      targetTakeHomePay: "150000",
+      apitOnlyEarnings: "0",
+      supportedScenario: "confirmed",
+    }, payloads)).toMatchObject({
+      calculator: "net-to-gross",
+      asOfDate: "2026-08-14",
+      result: {
+        requiredGrossPay: "163955.00",
+        fundBase: "163955.00",
+        apit: "838.00",
+        employeeEpf: "13116.40",
+        computedTakeHomePay: "150000.60",
+        convergence: "minimum-gross",
+      },
+    });
+  });
+
+  it("reports non-convergence through the common result contract", () => {
+    expect(netToGrossCalculator.calculate({
+      asOfDate: "2026-08-14",
+      targetTakeHomePay: "600000000000",
+      apitOnlyEarnings: "0",
+      supportedScenario: "confirmed",
+    }, payloads)).toMatchObject({
+      result: {
+        convergence: "not-converged",
+        targetTakeHomePay: "600000000000",
+        maxAchievableTakeHomePay: "560000094000.00",
+      },
+    });
   });
 });
