@@ -19,6 +19,14 @@ import {
   salaryIncrementCalculator,
   takeHomeCalculator,
 } from "@/domain/calculators/employment-calculators";
+import {
+  brickBlockCalculator,
+  concreteCalculator,
+  paintCalculator,
+  roofMaterialCalculator,
+  steelCalculator,
+  tileQuantityCalculator,
+} from "@/domain/calculators/construction-calculators";
 import type { CalculatorDefinition, CalculatorMetadata } from "@/domain/calculators/types";
 
 const calculators = [
@@ -26,6 +34,12 @@ const calculators = [
   percentageCalculator,
   compoundInterestCalculator,
   areaCalculator,
+  tileQuantityCalculator,
+  paintCalculator,
+  concreteCalculator,
+  brickBlockCalculator,
+  steelCalculator,
+  roofMaterialCalculator,
   loanEmiCalculator,
   loanAffordabilityCalculator,
   fuelConsumptionCalculator,
