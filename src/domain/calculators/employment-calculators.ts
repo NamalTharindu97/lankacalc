@@ -11,6 +11,7 @@ import {
   calculateOvertime,
   calculateSalary,
   calculateSalaryIncrement,
+  calculateJobOfferComparison,
   epfPayloadSchema,
   etfPayloadSchema,
   gratuityPayloadSchema,
@@ -792,6 +793,194 @@ export const salaryIncrementCalculator = defineRegulatedCalculator({
         "The comparison inherits the approved take-home component formulas.",
       ],
       warnings,
+    });
+  },
+});
+
+function jobOfferMoneyField(name: string, label: string, description?: string): CalculatorField {
+  return {
+    name,
+    label,
+    type: "number",
+    required: true,
+    min: 0,
+    max: maximumMonthlyEarnings,
+    maxDecimalPlaces: 0,
+    step: 1,
+    suffix: "LKR",
+    ...(description ? { description } : {}),
+  };
+}
+
+const jobOfferFields: CalculatorMetadata["fields"] = [
+  { name: "asOfDate", label: "Calculation date", type: "date", required: true, min: "2025-04-01", max: "9999-12-31" },
+  jobOfferMoneyField("currentBasicPay", "Current basic monthly pay", "The monthly salary before fund and tax classification."),
+  jobOfferMoneyField("currentAdditionalFundEarnings", "Current additional EPF/ETF-eligible earnings", "For example, already-classified COLA, holiday pay, meal allowance, or commission."),
+  jobOfferMoneyField("currentApitOnlyEarnings", "Current additional APIT-only earnings", "For example, already-classified regular overtime or taxable cash allowances excluded from the fund base."),
+  jobOfferMoneyField("currentAnnualBonus", "Current annual bonus", "Spread evenly across the tax base; not EPF/ETF-eligible."),
+  jobOfferMoneyField("currentAnnualTravelCost", "Current annual commuting cost", "Applied to the financial position after tax."),
+  jobOfferMoneyField("currentAnnualWorkFromHomeSaving", "Current annual work-from-home saving", "For example, meals and travel saved by working from home. Applied after tax."),
+  jobOfferMoneyField("newBasicPay", "New basic monthly pay", "The monthly salary before fund and tax classification."),
+  jobOfferMoneyField("newAdditionalFundEarnings", "New additional EPF/ETF-eligible earnings", "For example, already-classified COLA, holiday pay, meal allowance, or commission."),
+  jobOfferMoneyField("newApitOnlyEarnings", "New additional APIT-only earnings", "For example, already-classified regular overtime or taxable cash allowances excluded from the fund base."),
+  jobOfferMoneyField("newAnnualBonus", "New annual bonus", "Spread evenly across the tax base; not EPF/ETF-eligible."),
+  jobOfferMoneyField("newAnnualTravelCost", "New annual commuting cost", "Applied to the financial position after tax."),
+  jobOfferMoneyField("newAnnualWorkFromHomeSaving", "New annual work-from-home saving", "For example, meals and travel saved by working from home. Applied after tax."),
+  scenarioField,
+];
+
+function jobGrossWithinBound(job: {
+  basicPay: string;
+  additionalFundEarnings: string;
+  apitOnlyEarnings: string;
+  annualBonus: string;
+}): boolean {
+  const bonusMonth = decimal(job.annualBonus).div(12).toDecimalPlaces(0);
+  return decimal(job.basicPay)
+    .plus(job.additionalFundEarnings)
+    .plus(job.apitOnlyEarnings)
+    .plus(bonusMonth)
+    .lessThanOrEqualTo(maximumMonthlyEarnings);
+}
+
+const jobOfferRequestSchema = z.object({
+  asOfDate: asOfDateSchema,
+  currentBasicPay: wholeRupees,
+  currentAdditionalFundEarnings: wholeRupees,
+  currentApitOnlyEarnings: wholeRupees,
+  currentAnnualBonus: wholeRupees,
+  currentAnnualTravelCost: wholeRupees,
+  currentAnnualWorkFromHomeSaving: wholeRupees,
+  newBasicPay: wholeRupees,
+  newAdditionalFundEarnings: wholeRupees,
+  newApitOnlyEarnings: wholeRupees,
+  newAnnualBonus: wholeRupees,
+  newAnnualTravelCost: wholeRupees,
+  newAnnualWorkFromHomeSaving: wholeRupees,
+  supportedScenario,
+}).strict().refine(
+  (value) => jobGrossWithinBound({
+    basicPay: value.currentBasicPay,
+    additionalFundEarnings: value.currentAdditionalFundEarnings,
+    apitOnlyEarnings: value.currentApitOnlyEarnings,
+    annualBonus: value.currentAnnualBonus,
+  }) && jobGrossWithinBound({
+    basicPay: value.newBasicPay,
+    additionalFundEarnings: value.newAdditionalFundEarnings,
+    apitOnlyEarnings: value.newApitOnlyEarnings,
+    annualBonus: value.newAnnualBonus,
+  }),
+  "The combined monthly salary of each job must stay within the supported bound.",
+);
+
+const jobOfferMetadata = {
+  key: "job-offer",
+  name: "Job offer comparison calculator",
+  shortName: "Job offer comparison",
+  summary: "Compare current and offered jobs across take-home, tax, bonus, travel, and contributions.",
+  category: "Employment",
+  classification: "regulated",
+  version: "1.0.0",
+  accent: "rose",
+  fields: jobOfferFields,
+} satisfies CalculatorMetadata;
+
+export const jobOfferCalculator = defineRegulatedCalculator({
+  ...jobOfferMetadata,
+  schema: jobOfferRequestSchema,
+  ruleDependencies: [apitRule, epfRule, etfRule],
+  getAsOfDate: (input) => input.asOfDate,
+  run(input, payloads) {
+    const comparison = calculateJobOfferComparison({
+      current: {
+        basicPay: input.currentBasicPay,
+        additionalFundEarnings: input.currentAdditionalFundEarnings,
+        apitOnlyEarnings: input.currentApitOnlyEarnings,
+        annualBonus: input.currentAnnualBonus,
+        annualTravelCost: input.currentAnnualTravelCost,
+        annualWorkFromHomeSaving: input.currentAnnualWorkFromHomeSaving,
+      },
+      new: {
+        basicPay: input.newBasicPay,
+        additionalFundEarnings: input.newAdditionalFundEarnings,
+        apitOnlyEarnings: input.newApitOnlyEarnings,
+        annualBonus: input.newAnnualBonus,
+        annualTravelCost: input.newAnnualTravelCost,
+        annualWorkFromHomeSaving: input.newAnnualWorkFromHomeSaving,
+      },
+    }, salaryPayloadsSchema.parse(payloads));
+
+    const current = comparison.current;
+    const offered = comparison.new;
+    const differences = comparison.differences;
+
+    return baseResult(jobOfferMetadata, {
+      asOfDate: input.asOfDate,
+      normalizedInputs: input,
+      result: {
+        currentMonthlyGrossPay: current.monthlyGrossPay,
+        newMonthlyGrossPay: offered.monthlyGrossPay,
+        currentAnnualTakeHomePay: current.annualTakeHomePay,
+        newAnnualTakeHomePay: offered.annualTakeHomePay,
+        annualTakeHomeDifference: differences.annualTakeHomePay,
+        currentAnnualBonus: current.annualBonus,
+        newAnnualBonus: offered.annualBonus,
+        annualBonusDifference: differences.annualBonus,
+        currentAnnualTravelCost: current.annualTravelCost,
+        newAnnualTravelCost: offered.annualTravelCost,
+        annualTravelCostDifference: differences.annualTravelCost,
+        currentAnnualWorkFromHomeSaving: current.annualWorkFromHomeSaving,
+        newAnnualWorkFromHomeSaving: offered.annualWorkFromHomeSaving,
+        annualWorkFromHomeSavingDifference: differences.annualWorkFromHomeSaving,
+        currentAnnualApit: current.annualApit,
+        newAnnualApit: offered.annualApit,
+        additionalAnnualTax: differences.additionalAnnualTax,
+        currentAnnualEmployeeEpf: current.annualEmployeeEpf,
+        newAnnualEmployeeEpf: offered.annualEmployeeEpf,
+        currentAnnualEmployerEpf: current.annualEmployerEpf,
+        newAnnualEmployerEpf: offered.annualEmployerEpf,
+        currentAnnualEmployerEtf: current.annualEmployerEtf,
+        newAnnualEmployerEtf: offered.annualEmployerEtf,
+        currentEmployerContributions: current.employerContributions,
+        newEmployerContributions: offered.employerContributions,
+        employerContributionDifference: differences.employerContributions,
+        realAnnualFinancialImprovement: comparison.realAnnualFinancialImprovement,
+        recommendation: comparison.recommendation,
+      },
+      breakdown: [
+        { label: "Current monthly gross pay", value: current.monthlyGrossPay, unit: "LKR" },
+        { label: "Current annual take-home pay", value: current.annualTakeHomePay, unit: "LKR" },
+        { label: "Current annual bonus", value: current.annualBonus, unit: "LKR" },
+        { label: "Current annual commuting cost", value: current.annualTravelCost, unit: "LKR" },
+        { label: "Current annual work-from-home saving", value: current.annualWorkFromHomeSaving, unit: "LKR" },
+        { label: "Current annual APIT", value: current.annualApit, unit: "LKR" },
+        { label: "Current employer contributions", value: current.employerContributions, unit: "LKR" },
+        { label: "New monthly gross pay", value: offered.monthlyGrossPay, unit: "LKR" },
+        { label: "New annual take-home pay", value: offered.annualTakeHomePay, unit: "LKR" },
+        { label: "New annual bonus", value: offered.annualBonus, unit: "LKR" },
+        { label: "New annual commuting cost", value: offered.annualTravelCost, unit: "LKR" },
+        { label: "New annual work-from-home saving", value: offered.annualWorkFromHomeSaving, unit: "LKR" },
+        { label: "New annual APIT", value: offered.annualApit, unit: "LKR" },
+        { label: "New employer contributions", value: offered.employerContributions, unit: "LKR" },
+        { label: "Annual take-home difference", value: differences.annualTakeHomePay, unit: "LKR" },
+        { label: "Additional annual tax", value: differences.additionalAnnualTax, unit: "LKR" },
+        { label: "Annual bonus difference", value: differences.annualBonus, unit: "LKR" },
+        { label: "Annual travel-cost difference", value: differences.annualTravelCost, unit: "LKR" },
+        { label: "Annual work-from-home saving difference", value: differences.annualWorkFromHomeSaving, unit: "LKR" },
+        { label: "Employer contribution difference", value: differences.employerContributions, unit: "LKR" },
+        { label: "Real annual financial improvement", value: comparison.realAnnualFinancialImprovement, unit: "LKR" },
+      ],
+      assumptions: [
+        "One calendar month of regular earnings per job, annualized by 12 months.",
+        "The annual bonus is spread evenly across the tax base (rounded monthly) and is excluded from the fund base.",
+        "Travel cost and work-from-home saving are annual cash figures applied after tax.",
+        "The comparison inherits the approved take-home component formulas.",
+      ],
+      warnings: [
+        ...commonWarnings,
+        "This is a financial comparison estimate, not an offer evaluation or compensation advice.",
+        "Bonuses are taxed in the month paid; the even monthly spread is an approximation.",
+      ],
     });
   },
 });
