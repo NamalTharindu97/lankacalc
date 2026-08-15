@@ -32,6 +32,11 @@ This roadmap covers the full research catalog, but it does not authorize paralle
 - Calculator/source metadata tables
 - Unit and API contract tests
 - CI for lint, typecheck, test, and build
+- Optional accounts, profiles, and saved calculation snapshots with export and account deletion
+- Net-to-gross, gratuity, and overtime employment calculators
+- Job-offer comparison with annual financial improvement
+- Expiring signed PDF reports from saved snapshots
+- Timezone-aware obligation reminders with scheduled email delivery, retries, and unsubscribe
 
 ### Partially Implemented
 
@@ -312,7 +317,7 @@ Exit criteria:
 
 ## 8. Stage 3: Optional Accounts And WorkMoney
 
-Status: in progress. The identity and saves slice is the active branch; the remaining employment tools and reports follow the backend plan's Phase 3 order.
+Status: complete. Stage 4 is the next active stage.
 
 ### 8.1 Identity And Profiles
 
@@ -377,6 +382,8 @@ Exit criteria:
 - Account deletion removes personal records according to policy.
 
 ## 9. Stage 4: Notifications And Reminders
+
+Status: complete. Stage 5 is the next active stage.
 
 Required data:
 
@@ -1095,7 +1102,7 @@ A product track is complete only when:
 |---|---|---|
 | LankaCalc static foundation | Stage 0 | Complete |
 | LankaCalc regulated employment | Stages 1-2 | Complete |
-| WorkMoney | Stage 3 | In progress |
+| WorkMoney | Stage 3 | Complete |
 | LankaCalc remaining families | Stage 5 | Planned |
 | GovGuide | Stage 6 | Planned |
 | LankaDeadline | Stages 4 and 6 | Planned |
@@ -1140,7 +1147,7 @@ The next implementation work should occur in this exact order:
 9. [x] Implement source revisions, verification events, and versioned rules.
 10. [x] Build the protected rule administration workflow.
 11. [x] Implement APIT, EPF, ETF, salary, and take-home calculators.
-12. [ ] Add optional accounts only when saved WorkMoney scenarios begin.
+ 12. [x] Add optional accounts only when saved WorkMoney scenarios begin.
 
 No later product track should interrupt this sequence unless product research changes the selected first vertical.
 
