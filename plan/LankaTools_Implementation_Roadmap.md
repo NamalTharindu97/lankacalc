@@ -279,6 +279,8 @@ Do not build a database formula language. Administration controls parameters and
 
 ## 7. Stage 2: Regulated Employment Calculators
 
+Status: in progress. The narrow primary-monthly employment slice is implemented; production rule publication remains gated by independent source, formula, and rounding review.
+
 Implement these as one rule-backed employment family:
 
 | Calculator | Required inputs | Required outputs | Dependencies |

@@ -57,6 +57,8 @@ Send a token as `Authorization: Bearer <token>`. Administrators manage sources, 
 
 The operator GUI is available at `http://localhost:3000/admin/rules`. Tokens stay in component memory and are cleared by a page reload.
 
+APIT, EPF, ETF, Salary, and Take-home are server-authoritative regulated calculators. They fail closed until their official sources, fixtures, and effective-dated rules are independently reviewed and published. See `docs/employment-rule-publication.md` for the release procedure and `docs/employment-rule-sources.md` for the source dossier.
+
 ## Docker Deployment
 
 Set a strong `POSTGRES_PASSWORD` in `.env`. Build and start PostgreSQL, the web application, and the Nginx edge proxy:

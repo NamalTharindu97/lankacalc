@@ -233,9 +233,9 @@ describe("static calculators", () => {
     ["fuel-consumption", fuelConsumptionCalculator, { distance: "500", distanceUnit: "kilometre", fuelVolume: "40", volumeUnit: "litre" }, { kilometresPerLitre: "12.5", litresPerHundredKilometres: "8" }],
     ["fuel-consumption", fuelConsumptionCalculator, { distance: "300", distanceUnit: "mile", fuelVolume: "10", volumeUnit: "us-gallon" }, { kilometresPerLitre: "12.754", litresPerHundredKilometres: "7.84" }],
     ["fuel-consumption", fuelConsumptionCalculator, { distance: "100", distanceUnit: "mile", fuelVolume: "5", volumeUnit: "imperial-gallon" }, { kilometresPerLitre: "7.08", litresPerHundredKilometres: "14.124" }],
-  ])("matches the approved fixture through the domain and API for %s", (key, calculator, input, expected) => {
+  ])("matches the approved fixture through the domain and API for %s", async (key, calculator, input, expected) => {
     const direct = calculator.calculate(input);
-    const api = executeCalculationRequest(key, input);
+    const api = await executeCalculationRequest(key, input);
 
     expect(direct.result).toMatchObject(expected);
     expect(api).toEqual({ status: 200, body: direct });

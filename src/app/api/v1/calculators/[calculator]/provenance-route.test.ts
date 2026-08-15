@@ -39,4 +39,18 @@ describe("calculator provenance routes", () => {
     );
     expect(yearZero.status).toBe(422);
   });
+
+  it("fails closed when regulated provenance is unavailable", async () => {
+    const rulesResponse = await getRules(
+      new Request("https://example.test/api/v1/calculators/salary/rules?asOfDate=1900-01-01"),
+      context("salary"),
+    );
+    const sourcesResponse = await getSources(
+      new Request("https://example.test/api/v1/calculators/salary/sources?asOfDate=1900-01-01"),
+      context("salary"),
+    );
+    expect(rulesResponse.status).toBe(503);
+    expect(sourcesResponse.status).toBe(503);
+    await expect(rulesResponse.json()).resolves.toMatchObject({ error: { code: "RULE_UNAVAILABLE" } });
+  });
 });

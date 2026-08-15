@@ -18,7 +18,14 @@ type ApiError = {
 };
 
 function today(): string {
-  return new Date().toISOString().slice(0, 10);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Colombo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 function initialValues(fields: readonly CalculatorField[]): Record<string, string> {
@@ -140,6 +147,11 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
             return;
           }
 
+          if (definition.execution !== "browser") {
+            setFormError("This regulated calculator requires the calculation service.");
+            return;
+          }
+
           setResult(definition.calculate(values));
         } catch (error) {
           if (error instanceof ZodError) {
@@ -257,7 +269,7 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
               <div className="result-notes">
                 <h3>Sources</h3>
                 {result.sources.map((source) => (
-                  <p key={source.url}><a href={source.url} rel="noreferrer" target="_blank">{source.authority}: {source.title}</a> (verified {source.verifiedAt})</p>
+                  <p key={source.url}><a href={source.url} rel="noreferrer" target="_blank">{source.authority}: {source.title}</a>{source.publishedOn ? ` (published ${source.publishedOn})` : ""}{source.retrievedAt ? `, retrieved ${source.retrievedAt}` : ""}, verified {source.verifiedAt}</p>
                 ))}
               </div>
             ) : null}

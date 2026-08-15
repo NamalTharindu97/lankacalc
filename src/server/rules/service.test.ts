@@ -3,9 +3,11 @@ import { createHash, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
+import type { RegulatedCalculatorDefinition } from "@/domain/calculators/types";
 import { getDatabase } from "@/server/db/client";
 import * as schema from "@/server/db/schema";
 import type { JsonValue } from "@/server/rules/json";
+import { resolveRegulatedProvenance } from "@/server/rules/runtime";
 import { RulePlatform, type RuleHandler } from "@/server/rules/service";
 import {
   checkSourceLink,
@@ -148,6 +150,33 @@ describe.sequential("rule and source platform", () => {
       .resolves.toMatchObject({ status: "published" });
     await expect(platform.resolve(definition.id, "2025-05-01")).resolves.toMatchObject({ version: "1.0.0" });
     await expect(platform.resolve(definition.id, "2025-07-01")).resolves.toMatchObject({ version: "1.0.1" });
+    const runtimeCalculator = {
+      key: "runtime-test",
+      name: "Runtime test",
+      shortName: "Runtime",
+      summary: "Runtime test calculator",
+      category: "Test",
+      classification: "regulated",
+      version: "1.0.0",
+      accent: "ink",
+      fields: [],
+      execution: "server",
+      ruleDependencies: [{ name: "contribution", key: ruleKey, scope: "default" }],
+      getAsOfDate: () => "2025-05-01",
+      calculate: () => { throw new Error("Not used by this test."); },
+    } satisfies RegulatedCalculatorDefinition;
+    await expect(resolveRegulatedProvenance(runtimeCalculator, "2025-05-01", database, { [ruleKey]: handler }))
+      .resolves.toMatchObject({
+        payloads: { contribution: { rate: 0.08 } },
+        rules: [{ key: ruleKey, version: "1.0.0" }],
+        sources: [expect.objectContaining({ authority: "Test Authority", verifiedAt: expect.any(String) })],
+        verifiedAt: expect.any(String),
+      });
+    await expect(resolveRegulatedProvenance(runtimeCalculator, "2025-07-01", database, { [ruleKey]: handler }))
+      .resolves.toMatchObject({
+        payloads: { contribution: { rate: 0.09 } },
+        rules: [{ key: ruleKey, version: "1.0.1" }],
+      });
     await expect(platform.getHistory(correction.id)).resolves.toMatchObject({
       events: [{ type: "reviewed" }, { type: "published" }],
       fixtures: [{ passed: true }],
