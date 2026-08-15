@@ -6,9 +6,11 @@ import {
   calculateApit,
   calculateEpf,
   calculateEtf,
+  calculateNetToGross,
   calculateSalary,
   epfPayloadSchema,
   etfPayloadSchema,
+  netToGrossInputSchema,
   salaryPayloadsSchema,
 } from "@/domain/calculators/employment";
 import { decimalInput } from "@/domain/calculators/input";
@@ -320,4 +322,108 @@ export const takeHomeCalculator = defineRegulatedCalculator({
   ruleDependencies: [apitRule, epfRule, etfRule],
   getAsOfDate: (input) => input.asOfDate,
   run: (input, payloads) => runSalaryCalculation(takeHomeMetadata, input, payloads, true),
+});
+
+const netToGrossMetadata = {
+  key: "net-to-gross",
+  name: "Net-to-gross calculator",
+  shortName: "Net-to-gross",
+  summary: "Find the gross monthly salary needed for a target take-home.",
+  category: "Employment",
+  classification: "regulated",
+  version: "1.0.0",
+  accent: "blue",
+  fields: [
+    { name: "asOfDate", label: "Calculation date", type: "date", required: true, min: "2025-04-01", max: "9999-12-31" },
+    { name: "targetTakeHomePay", label: "Target monthly take-home pay", type: "number", required: true, min: 0, max: maximumMonthlyEarnings, maxDecimalPlaces: 0, step: 1, suffix: "LKR" },
+    {
+      name: "apitOnlyEarnings",
+      label: "APIT-only earnings in the needed salary",
+      type: "number",
+      required: true,
+      min: 0,
+      max: maximumMonthlyEarnings,
+      maxDecimalPlaces: 0,
+      step: 1,
+      suffix: "LKR",
+      description: "The portion of the salary outside the EPF/ETF base. Use zero when the whole salary is fund-eligible.",
+    },
+    scenarioField,
+  ],
+} satisfies CalculatorMetadata;
+
+const netToGrossRequestSchema = z.object({
+  asOfDate: asOfDateSchema,
+  targetTakeHomePay: wholeRupees,
+  apitOnlyEarnings: wholeRupees,
+  supportedScenario,
+}).strict();
+
+export const netToGrossCalculator = defineRegulatedCalculator({
+  ...netToGrossMetadata,
+  schema: netToGrossRequestSchema,
+  ruleDependencies: [apitRule, epfRule],
+  getAsOfDate: (input) => input.asOfDate,
+  run(input, payloads) {
+    const inversion = calculateNetToGross(
+      { targetTakeHomePay: input.targetTakeHomePay, apitOnlyEarnings: input.apitOnlyEarnings },
+      {
+        apit: apitPayloadSchema.parse(payloads.apit),
+        epf: epfPayloadSchema.parse(payloads.epf),
+      },
+    );
+
+    if (!inversion.converged) {
+      return baseResult(netToGrossMetadata, {
+        asOfDate: input.asOfDate,
+        normalizedInputs: input,
+        result: {
+          convergence: "not-converged",
+          targetTakeHomePay: input.targetTakeHomePay,
+          maxAchievableTakeHomePay: inversion.maxAchievableTakeHomePay,
+        },
+        breakdown: [
+          { label: "Target monthly take-home", value: money(decimal(input.targetTakeHomePay)), unit: "LKR" },
+          { label: "Maximum achievable take-home at the supported salary bound", value: inversion.maxAchievableTakeHomePay, unit: "LKR" },
+        ],
+        assumptions: ["The supported salary bound is LKR 1,000,000,000,000 per month."],
+        warnings: [...commonWarnings, "The requested take-home exceeds the maximum achievable within the supported salary bound."],
+      });
+    }
+
+    return baseResult(netToGrossMetadata, {
+      asOfDate: input.asOfDate,
+      normalizedInputs: input,
+      result: {
+        requiredGrossPay: inversion.requiredGrossPay ?? "",
+        fundBase: inversion.fundBase ?? "",
+        apitOnlyEarnings: input.apitOnlyEarnings,
+        apit: inversion.apit ?? "",
+        employeeEpf: inversion.employeeEpf ?? "",
+        computedTakeHomePay: inversion.computedTakeHomePay ?? "",
+        excessOverTarget: inversion.excessOverTarget ?? "",
+        resolvedBracketRatePercent: inversion.resolvedBracketRatePercent ?? "",
+        bracketsEvaluated: inversion.bracketsEvaluated,
+        convergence: "minimum-gross",
+      },
+      breakdown: [
+        { label: "Target monthly take-home", value: money(decimal(input.targetTakeHomePay)), unit: "LKR" },
+        { label: "Required gross monthly salary", value: inversion.requiredGrossPay ?? "", unit: "LKR" },
+        { label: "EPF/ETF base of the required salary", value: inversion.fundBase ?? "", unit: "LKR" },
+        { label: "Less APIT on the required salary", value: inversion.apit ?? "", unit: "LKR" },
+        { label: "Less employee EPF", value: inversion.employeeEpf ?? "", unit: "LKR" },
+        { label: "Achieved take-home pay", value: inversion.computedTakeHomePay ?? "", unit: "LKR" },
+        { label: "Rounding surplus above target", value: inversion.excessOverTarget ?? "", unit: "LKR" },
+      ],
+      assumptions: [
+        "The result is the minimum whole-rupee salary that achieves the target.",
+        "The result depends on the entered APIT-only split and inherits the approved take-home component formulas.",
+      ],
+      warnings: [
+        ...commonWarnings,
+        "Whole-rupee rounding means a few gross amounts satisfy the same target; the minimum is returned.",
+        "Confirm the APIT-only amount before relying on the required salary; a different split changes it.",
+      ],
+    });
+  },
 });
