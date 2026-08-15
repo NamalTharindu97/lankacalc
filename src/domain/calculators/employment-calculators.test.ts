@@ -6,6 +6,7 @@ import {
   etfCalculator,
   gratuityCalculator,
   netToGrossCalculator,
+  overtimeCalculator,
   salaryCalculator,
   takeHomeCalculator,
 } from "@/domain/calculators/employment-calculators";
@@ -37,9 +38,22 @@ const gratuityPayloads = {
   },
 } as const;
 
+const overtimePayloads = {
+  ...payloads,
+  overtime: {
+    normalDailyHours: "8",
+    normalWeeklyHours: "45",
+    weekdayMultiplier: "1.5",
+    restDayMultiplier: "1.5",
+    maximumWeeklyOvertimeHours: "12",
+    hourlyRateDivisors: { statutoryMonthly: "240", conventionMonthly: "200" },
+    rounding: "half-up-cent",
+  },
+} as const;
+
 describe("regulated employment calculator definitions", () => {
-  it("registers all seven calculators for server execution", () => {
-    for (const key of ["apit", "epf", "etf", "salary", "take-home", "net-to-gross", "gratuity"]) {
+  it("registers all eight calculators for server execution", () => {
+    for (const key of ["apit", "epf", "etf", "salary", "take-home", "net-to-gross", "gratuity", "overtime"]) {
       expect(getCalculator(key)).toMatchObject({ key, classification: "regulated", execution: "server" });
     }
   });
@@ -278,5 +292,53 @@ describe("regulated employment calculator definitions", () => {
       notExcludedByAct: "confirmed",
       supportedScenario: "confirmed",
     }, gratuityPayloads)).toThrow("Select an answer for each statutory condition");
+  });
+
+  it("computes overtime at the statutory hourly rate and multiplier", () => {
+    expect(overtimeCalculator.calculate({
+      asOfDate: "2026-08-14",
+      monthlyRemuneration: "100000",
+      hourlyRateBasis: "statutory-240",
+      weekdayOvertimeHours: "12",
+      restDayOvertimeHours: "4",
+      supportedScenario: "confirmed",
+    }, overtimePayloads)).toMatchObject({
+      calculator: "overtime",
+      asOfDate: "2026-08-14",
+      result: {
+        hourlyRate: "416.67",
+        hourlyRateDivisor: 240,
+        weekdayMultiplier: "1.5",
+        restDayMultiplier: "1.5",
+        weekdayOvertimePay: "7500.00",
+        restDayOvertimePay: "2500.00",
+        totalOvertimePay: "10000.00",
+        totalOvertimeHours: "16.0",
+        averageWeeklyOvertimeHours: "3.69",
+        weeklyCapExceeded: "no",
+      },
+    });
+  });
+
+  it("flags the weekly cap and rejects non-half-hour steps", () => {
+    expect(overtimeCalculator.calculate({
+      asOfDate: "2026-08-14",
+      monthlyRemuneration: "60000",
+      hourlyRateBasis: "convention-200",
+      weekdayOvertimeHours: "60",
+      restDayOvertimeHours: "0",
+      supportedScenario: "confirmed",
+    }, overtimePayloads)).toMatchObject({
+      result: { weeklyCapExceeded: "possible" },
+    });
+
+    expect(() => overtimeCalculator.calculate({
+      asOfDate: "2026-08-14",
+      monthlyRemuneration: "60000",
+      hourlyRateBasis: "statutory-240",
+      weekdayOvertimeHours: "0.6",
+      restDayOvertimeHours: "0",
+      supportedScenario: "confirmed",
+    }, overtimePayloads)).toThrow("Enter overtime hours in steps of half an hour.");
   });
 });

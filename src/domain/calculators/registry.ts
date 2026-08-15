@@ -12,6 +12,7 @@ import {
   etfCalculator,
   gratuityCalculator,
   netToGrossCalculator,
+  overtimeCalculator,
   salaryCalculator,
   takeHomeCalculator,
 } from "@/domain/calculators/employment-calculators";
@@ -31,6 +32,7 @@ const calculators = [
   takeHomeCalculator,
   netToGrossCalculator,
   gratuityCalculator,
+  overtimeCalculator,
 ] satisfies CalculatorDefinition[];
 
 export function createCalculatorRegistry(definitions: CalculatorDefinition[]) {
