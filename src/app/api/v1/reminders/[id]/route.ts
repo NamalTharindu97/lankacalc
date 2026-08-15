@@ -22,5 +22,6 @@ export async function PATCH(request: Request, context: RouteContext) {
 export async function DELETE(request: Request, context: RouteContext) {
   const { id } = await context.params;
   const response = await deleteReminder(request.headers, id);
+  if (response.status === 204) return new Response(null, { status: 204 });
   return NextResponse.json(response.body, { status: response.status });
 }
