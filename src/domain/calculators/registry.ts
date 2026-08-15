@@ -3,6 +3,7 @@ import {
   areaCalculator,
   compoundInterestCalculator,
   fuelConsumptionCalculator,
+  loanAffordabilityCalculator,
   loanEmiCalculator,
   percentageCalculator,
 } from "@/domain/calculators/static-calculators";
@@ -25,6 +26,7 @@ const calculators = [
   compoundInterestCalculator,
   areaCalculator,
   loanEmiCalculator,
+  loanAffordabilityCalculator,
   fuelConsumptionCalculator,
   apitCalculator,
   epfCalculator,
