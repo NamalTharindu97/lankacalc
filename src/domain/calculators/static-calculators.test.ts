@@ -5,6 +5,7 @@ import {
   areaCalculator,
   compoundInterestCalculator,
   fuelConsumptionCalculator,
+  loanAffordabilityCalculator,
   loanEmiCalculator,
   percentageCalculator,
 } from "@/domain/calculators/static-calculators";
@@ -98,6 +99,115 @@ describe("static calculators", () => {
     expect(calculation.result.totalInterest).toBe("0.00");
   });
 
+  it("estimates a max loan when the debt-to-income cap binds", () => {
+    const calculation = loanAffordabilityCalculator.calculate({
+      monthlyIncome: "200000",
+      monthlyLivingExpenses: "80000",
+      existingMonthlyDebtPayments: "20000",
+      affordabilityRatioPercent: "35",
+      loanTermMonths: 60,
+      annualRatePercent: "12",
+      stressRatePremiumPercent: "2",
+    });
+
+    expect(calculation.result).toEqual({
+      verdict: "debt-ratio-limited",
+      availableMonthlySurplus: "100000.00",
+      debtCapacity: "50000.00",
+      affordableNewPayment: "50000.00",
+      maxLoanAtEnteredRate: "2247751.92",
+      maxLoanAtStressedRate: "2148850.82",
+      stressImpact: "-98901.10",
+      affordabilityRatioPercent: "35",
+      loanTermMonths: 60,
+      annualRatePercent: "12",
+      stressedRatePercent: "14",
+    });
+  });
+
+  it("inverts a zero-rate loan directly from the payment", () => {
+    const calculation = loanAffordabilityCalculator.calculate({
+      monthlyIncome: "100000",
+      monthlyLivingExpenses: "70000",
+      existingMonthlyDebtPayments: "5000",
+      affordabilityRatioPercent: "50",
+      loanTermMonths: 24,
+      annualRatePercent: "0",
+      stressRatePremiumPercent: "2",
+    });
+
+    expect(calculation.result).toMatchObject({
+      verdict: "surplus-limited",
+      availableMonthlySurplus: "25000.00",
+      debtCapacity: "45000.00",
+      affordableNewPayment: "25000.00",
+      maxLoanAtEnteredRate: "600000.00",
+      maxLoanAtStressedRate: "587678.54",
+      stressImpact: "-12321.46",
+      stressedRatePercent: "2",
+    });
+  });
+
+  it("reports no capacity when expenses and debts exceed income", () => {
+    const calculation = loanAffordabilityCalculator.calculate({
+      monthlyIncome: "100000",
+      monthlyLivingExpenses: "110000",
+      existingMonthlyDebtPayments: "5000",
+      affordabilityRatioPercent: "35",
+      loanTermMonths: 60,
+      annualRatePercent: "12",
+      stressRatePremiumPercent: "2",
+    });
+
+    expect(calculation.result).toMatchObject({
+      verdict: "negative-surplus",
+      availableMonthlySurplus: "-15000.00",
+      affordableNewPayment: "0.00",
+      maxLoanAtEnteredRate: "0.00",
+      maxLoanAtStressedRate: "0.00",
+    });
+    expect(calculation.warnings.join(" ")).toContain("no new borrowing is estimated");
+  });
+
+  it("reports exhausted debt capacity when existing debt uses the cap", () => {
+    const calculation = loanAffordabilityCalculator.calculate({
+      monthlyIncome: "100000",
+      monthlyLivingExpenses: "30000",
+      existingMonthlyDebtPayments: "40000",
+      affordabilityRatioPercent: "35",
+      loanTermMonths: 60,
+      annualRatePercent: "12",
+      stressRatePremiumPercent: "2",
+    });
+
+    expect(calculation.result).toMatchObject({
+      verdict: "debt-capacity-exhausted",
+      availableMonthlySurplus: "30000.00",
+      debtCapacity: "-5000.00",
+      affordableNewPayment: "0.00",
+      maxLoanAtEnteredRate: "0.00",
+    });
+  });
+
+  it("removes the stress impact when the premium is zero", () => {
+    const calculation = loanAffordabilityCalculator.calculate({
+      monthlyIncome: "150000",
+      monthlyLivingExpenses: "40000",
+      existingMonthlyDebtPayments: "10000",
+      affordabilityRatioPercent: "40",
+      loanTermMonths: 120,
+      annualRatePercent: "15",
+      stressRatePremiumPercent: "0",
+    });
+
+    expect(calculation.result).toMatchObject({
+      maxLoanAtEnteredRate: "3099142.36",
+      maxLoanAtStressedRate: "3099142.36",
+      stressImpact: "0.00",
+      stressedRatePercent: "15",
+    });
+  });
+
   it("never produces a negative final installment for a tiny long-term loan", () => {
     const calculation = loanEmiCalculator.calculate({
       principal: "6.00",
@@ -178,6 +288,11 @@ describe("static calculators", () => {
     [loanEmiCalculator, { principal: "0", annualRatePercent: "1", termMonths: 12 }],
     [loanEmiCalculator, { principal: "1", annualRatePercent: "100.000001", termMonths: 12 }],
     [loanEmiCalculator, { principal: "1", annualRatePercent: "1", termMonths: 1200.5 }],
+    [loanAffordabilityCalculator, { monthlyIncome: "-1", monthlyLivingExpenses: "0", existingMonthlyDebtPayments: "0", affordabilityRatioPercent: "35", loanTermMonths: 12, annualRatePercent: "1", stressRatePremiumPercent: "2" }],
+    [loanAffordabilityCalculator, { monthlyIncome: "100000.5", monthlyLivingExpenses: "0", existingMonthlyDebtPayments: "0", affordabilityRatioPercent: "35", loanTermMonths: 12, annualRatePercent: "1", stressRatePremiumPercent: "2" }],
+    [loanAffordabilityCalculator, { monthlyIncome: "100000", monthlyLivingExpenses: "0", existingMonthlyDebtPayments: "0", affordabilityRatioPercent: "100.001", loanTermMonths: 12, annualRatePercent: "1", stressRatePremiumPercent: "2" }],
+    [loanAffordabilityCalculator, { monthlyIncome: "100000", monthlyLivingExpenses: "0", existingMonthlyDebtPayments: "0", affordabilityRatioPercent: "35", loanTermMonths: 12, annualRatePercent: "100.000001", stressRatePremiumPercent: "2" }],
+    [loanAffordabilityCalculator, { monthlyIncome: "100000", monthlyLivingExpenses: "0", existingMonthlyDebtPayments: "0", affordabilityRatioPercent: "35", loanTermMonths: 1200.5, annualRatePercent: "1", stressRatePremiumPercent: "2" }],
     [fuelConsumptionCalculator, { distance: "0", distanceUnit: "kilometre", fuelVolume: "1", volumeUnit: "litre" }],
     [fuelConsumptionCalculator, { distance: "1", distanceUnit: "kilometre", fuelVolume: "1000000.000001", volumeUnit: "litre" }],
   ])("rejects out-of-contract numeric boundaries for %#", (calculator, input) => {
@@ -193,6 +308,8 @@ describe("static calculators", () => {
     [areaCalculator, { shape: "circle", unit: "metre", radius: "1000000000" }],
     [loanEmiCalculator, { principal: "0.01", annualRatePercent: "0", termMonths: 1 }],
     [loanEmiCalculator, { principal: "1000000000000", annualRatePercent: "100", termMonths: 1200 }],
+    [loanAffordabilityCalculator, { monthlyIncome: "0", monthlyLivingExpenses: "0", existingMonthlyDebtPayments: "0", affordabilityRatioPercent: "0", loanTermMonths: 1, annualRatePercent: "0", stressRatePremiumPercent: "0" }],
+    [loanAffordabilityCalculator, { monthlyIncome: "1000000000000", monthlyLivingExpenses: "0", existingMonthlyDebtPayments: "0", affordabilityRatioPercent: "100", loanTermMonths: 1200, annualRatePercent: "100", stressRatePremiumPercent: "100" }],
     [fuelConsumptionCalculator, { distance: "0.000001", distanceUnit: "kilometre", fuelVolume: "1000000", volumeUnit: "litre" }],
     [fuelConsumptionCalculator, { distance: "10000000", distanceUnit: "mile", fuelVolume: "0.000001", volumeUnit: "us-gallon" }],
   ])("accepts inclusive numeric boundaries for %#", (calculator, input) => {
@@ -230,6 +347,8 @@ describe("static calculators", () => {
     ["area", areaCalculator, { shape: "rectangle", unit: "foot", length: "1", width: "1" }, { area: "1", squareMetres: "0.092903" }],
     ["loan-emi", loanEmiCalculator, { principal: "1000000", annualRatePercent: "12", termMonths: 12 }, { monthlyPayment: "88848.79", finalPayment: "88848.77", totalPayment: "1066185.46", totalInterest: "66185.46" }],
     ["loan-emi", loanEmiCalculator, { principal: "120000", annualRatePercent: "0", termMonths: 12 }, { monthlyPayment: "10000.00", finalPayment: "10000.00", totalPayment: "120000.00", totalInterest: "0.00" }],
+    ["loan-affordability", loanAffordabilityCalculator, { monthlyIncome: "200000", monthlyLivingExpenses: "80000", existingMonthlyDebtPayments: "20000", affordabilityRatioPercent: "35", loanTermMonths: 60, annualRatePercent: "12", stressRatePremiumPercent: "2" }, { verdict: "debt-ratio-limited", affordableNewPayment: "50000.00", maxLoanAtEnteredRate: "2247751.92", maxLoanAtStressedRate: "2148850.82", stressImpact: "-98901.10" }],
+    ["loan-affordability", loanAffordabilityCalculator, { monthlyIncome: "100000", monthlyLivingExpenses: "70000", existingMonthlyDebtPayments: "5000", affordabilityRatioPercent: "50", loanTermMonths: 24, annualRatePercent: "0", stressRatePremiumPercent: "2" }, { verdict: "surplus-limited", maxLoanAtEnteredRate: "600000.00", maxLoanAtStressedRate: "587678.54" }],
     ["fuel-consumption", fuelConsumptionCalculator, { distance: "500", distanceUnit: "kilometre", fuelVolume: "40", volumeUnit: "litre" }, { kilometresPerLitre: "12.5", litresPerHundredKilometres: "8" }],
     ["fuel-consumption", fuelConsumptionCalculator, { distance: "300", distanceUnit: "mile", fuelVolume: "10", volumeUnit: "us-gallon" }, { kilometresPerLitre: "12.754", litresPerHundredKilometres: "7.84" }],
     ["fuel-consumption", fuelConsumptionCalculator, { distance: "100", distanceUnit: "mile", fuelVolume: "5", volumeUnit: "imperial-gallon" }, { kilometresPerLitre: "7.08", litresPerHundredKilometres: "14.124" }],

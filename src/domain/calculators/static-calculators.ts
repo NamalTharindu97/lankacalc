@@ -1,3 +1,4 @@
+import Decimal from "decimal.js";
 import { z } from "zod";
 
 import { decimal, money, moneyRoundedDown, rounded } from "@/domain/calculators/decimal";
@@ -445,6 +446,169 @@ export const loanEmiCalculator = defineCalculator({
         "The interest rate remains fixed for the full term.",
       ],
       warnings: ["Fees, insurance, taxes, and lender-specific rounding are not included."],
+    });
+  },
+});
+
+const wholeRupeeLkrInput = decimalInput({
+  min: 0,
+  max: 1_000_000_000_000,
+  maxDecimalPlaces: 0,
+});
+
+const loanAffordabilityMetadata = {
+  key: "loan-affordability",
+  name: "Loan affordability calculator",
+  shortName: "Loan affordability",
+  summary: "Estimate how much you could borrow from monthly income, debts, and expenses.",
+  category: "Money",
+  classification: "configurable",
+  version: "1.0.0",
+  accent: "rose",
+  fields: [
+    { name: "monthlyIncome", label: "Monthly take-home income", type: "number", required: true, min: 0, max: 1_000_000_000_000, maxDecimalPlaces: 0, step: 1, suffix: "LKR" },
+    { name: "monthlyLivingExpenses", label: "Monthly living expenses", type: "number", required: true, min: 0, max: 1_000_000_000_000, maxDecimalPlaces: 0, step: 1, suffix: "LKR" },
+    {
+      name: "existingMonthlyDebtPayments",
+      label: "Existing monthly debt payments",
+      type: "number",
+      required: true,
+      min: 0,
+      max: 1_000_000_000_000,
+      maxDecimalPlaces: 0,
+      step: 1,
+      suffix: "LKR",
+      description: "Existing loan installments, credit card minimums, and other scheduled debt payments.",
+    },
+    {
+      name: "affordabilityRatioPercent",
+      label: "Debt-to-income cap",
+      type: "number",
+      required: true,
+      min: 0,
+      max: 100,
+      maxDecimalPlaces: 2,
+      step: 0.01,
+      suffix: "%",
+      defaultValue: 35,
+      description: "The share of monthly income that total debt payments may use.",
+    },
+    { name: "loanTermMonths", label: "Desired loan term", type: "number", required: true, min: 1, max: 1200, maxDecimalPlaces: 0, step: 1, suffix: "months" },
+    { name: "annualRatePercent", label: "Expected nominal annual rate", type: "number", required: true, min: 0, max: 100, maxDecimalPlaces: 6, step: 0.000001, suffix: "%" },
+    {
+      name: "stressRatePremiumPercent",
+      label: "Interest-rate stress premium",
+      type: "number",
+      required: true,
+      min: 0,
+      max: 100,
+      maxDecimalPlaces: 2,
+      step: 0.01,
+      suffix: "%",
+      defaultValue: 2,
+      description: "Added to the entered rate to show how much loan size falls if rates rise.",
+    },
+  ],
+} as const satisfies CalculatorMetadata;
+
+const loanAffordabilitySchema = z.object({
+  monthlyIncome: wholeRupeeLkrInput,
+  monthlyLivingExpenses: wholeRupeeLkrInput,
+  existingMonthlyDebtPayments: wholeRupeeLkrInput,
+  affordabilityRatioPercent: decimalInput({ min: 0, max: 100, maxDecimalPlaces: 2 }),
+  loanTermMonths: integerInput({ min: 1, max: 1200 }),
+  annualRatePercent: decimalInput({ min: 0, max: 100, maxDecimalPlaces: 6 }),
+  stressRatePremiumPercent: decimalInput({ min: 0, max: 100, maxDecimalPlaces: 2 }),
+});
+
+function invertFixedRateEmi(payment: Decimal, annualRatePercent: string, months: number): Decimal {
+  const monthlyRate = decimal(annualRatePercent).div(1200);
+  if (monthlyRate.isZero()) {
+    return payment.mul(months);
+  }
+
+  const growth = decimal(1).plus(monthlyRate).pow(months);
+  return payment.mul(growth.minus(1)).div(monthlyRate.mul(growth));
+}
+
+export const loanAffordabilityCalculator = defineCalculator({
+  ...loanAffordabilityMetadata,
+  schema: loanAffordabilitySchema,
+  run(input) {
+    const income = decimal(input.monthlyIncome);
+    const expenses = decimal(input.monthlyLivingExpenses);
+    const existingDebt = decimal(input.existingMonthlyDebtPayments);
+    const ratio = decimal(input.affordabilityRatioPercent).div(100);
+
+    const surplus = income.minus(expenses).minus(existingDebt);
+    const debtCapacity = income.mul(ratio).minus(existingDebt);
+
+    let verdict: string;
+    let affordablePayment = decimal("0");
+    if (surplus.isNegative()) {
+      verdict = "negative-surplus";
+    } else if (debtCapacity.isNegative()) {
+      verdict = "debt-capacity-exhausted";
+    } else if (surplus.lessThanOrEqualTo(debtCapacity)) {
+      verdict = "surplus-limited";
+      affordablePayment = surplus;
+    } else {
+      verdict = "debt-ratio-limited";
+      affordablePayment = debtCapacity;
+    }
+
+    const annualRate = decimal(input.annualRatePercent);
+    const stressedRate = annualRate.plus(input.stressRatePremiumPercent);
+
+    const maxLoan = invertFixedRateEmi(affordablePayment, input.annualRatePercent, input.loanTermMonths);
+    const maxLoanAtStressedRate = invertFixedRateEmi(affordablePayment, stressedRate.toString(), input.loanTermMonths);
+    const stressImpact = maxLoanAtStressedRate.minus(maxLoan);
+
+    const warnings = [
+      "This is an estimate, not a loan approval, credit decision, or financial advice.",
+      "Lenders use their own income definitions, debt measures, credit scores, collateral, and underwriting.",
+      "Fees, insurance, taxes, and lender-specific rounding are not included.",
+    ];
+    if (verdict === "negative-surplus") {
+      warnings.push("Existing living expenses and debt payments exceed monthly income; no new borrowing is estimated.");
+    } else if (verdict === "debt-capacity-exhausted") {
+      warnings.push("Existing debt payments already use the entire debt-to-income cap; no new borrowing is estimated.");
+    }
+
+    return staticResult(loanAffordabilityMetadata, {
+      asOfDate: null,
+      normalizedInputs: input,
+      result: {
+        verdict,
+        availableMonthlySurplus: money(surplus),
+        debtCapacity: money(debtCapacity),
+        affordableNewPayment: money(affordablePayment),
+        maxLoanAtEnteredRate: money(maxLoan),
+        maxLoanAtStressedRate: money(maxLoanAtStressedRate),
+        stressImpact: money(stressImpact),
+        affordabilityRatioPercent: input.affordabilityRatioPercent,
+        loanTermMonths: input.loanTermMonths,
+        annualRatePercent: input.annualRatePercent,
+        stressedRatePercent: stressedRate.toString(),
+      },
+      breakdown: [
+        { label: "Monthly take-home income", value: money(income), unit: "LKR" },
+        { label: "Less monthly living expenses", value: money(expenses), unit: "LKR" },
+        { label: "Less existing monthly debt payments", value: money(existingDebt), unit: "LKR" },
+        { label: "Available monthly surplus", value: money(surplus), unit: "LKR" },
+        { label: "Debt-to-income allowance", value: money(debtCapacity), unit: "LKR" },
+        { label: "Affordable new monthly payment", value: money(affordablePayment), unit: "LKR" },
+        { label: "Maximum loan at the entered rate", value: money(maxLoan), unit: "LKR" },
+        { label: "Maximum loan at the stressed rate", value: money(maxLoanAtStressedRate), unit: "LKR" },
+        { label: "Stress impact on loan size", value: money(stressImpact), unit: "LKR" },
+      ],
+      assumptions: [
+        "All amounts and rates are self-entered assumptions.",
+        "Total monthly debt payments are capped at the entered share of monthly income.",
+        "The max loan inverts a fixed-rate installment at the entered nominal annual rate over the full term.",
+        "The stress case raises only the interest rate; income, expenses, debts, and term are unchanged.",
+      ],
+      warnings,
     });
   },
 });
