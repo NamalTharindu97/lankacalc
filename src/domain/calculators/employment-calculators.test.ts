@@ -8,6 +8,7 @@ import {
   netToGrossCalculator,
   overtimeCalculator,
   salaryCalculator,
+  salaryIncrementCalculator,
   takeHomeCalculator,
 } from "@/domain/calculators/employment-calculators";
 import { getCalculator } from "@/domain/calculators/registry";
@@ -52,8 +53,8 @@ const overtimePayloads = {
 } as const;
 
 describe("regulated employment calculator definitions", () => {
-  it("registers all eight calculators for server execution", () => {
-    for (const key of ["apit", "epf", "etf", "salary", "take-home", "net-to-gross", "gratuity", "overtime"]) {
+  it("registers all nine calculators for server execution", () => {
+    for (const key of ["apit", "epf", "etf", "salary", "take-home", "net-to-gross", "gratuity", "overtime", "salary-increment"]) {
       expect(getCalculator(key)).toMatchObject({ key, classification: "regulated", execution: "server" });
     }
   });
@@ -340,5 +341,49 @@ describe("regulated employment calculator definitions", () => {
       restDayOvertimeHours: "0",
       supportedScenario: "confirmed",
     }, overtimePayloads)).toThrow("Enter overtime hours in steps of half an hour.");
+  });
+
+  it("compares gross and take-home impact of a salary increment through the common result contract", () => {
+    expect(salaryIncrementCalculator.calculate({
+      asOfDate: "2026-08-14",
+      basicPay: "200000",
+      additionalFundEarnings: "50000",
+      apitOnlyEarnings: "0",
+      incrementType: "percentage",
+      incrementValue: "10",
+      supportedScenario: "confirmed",
+    }, payloads)).toMatchObject({
+      calculator: "salary-increment",
+      asOfDate: "2026-08-14",
+      result: {
+        newBasicPay: "220000.00",
+        incrementAmount: "20000.00",
+        incrementPercent: "10.00",
+        currentGrossPay: "250000.00",
+        currentTakeHomePay: "222000.00",
+        incrementedGrossPay: "270000.00",
+        incrementedTakeHomePay: "236800.00",
+        grossIncrease: "20000.00",
+        takeHomeIncrease: "14800.00",
+        apitIncrease: "3600.00",
+        employeeEpfIncrease: "1600.00",
+        employerEpfIncrease: "2400.00",
+        employerEtfIncrease: "600.00",
+      },
+      ruleVersions: [],
+      sources: [],
+    });
+  });
+
+  it("rejects a fractional amount increment at the request boundary", () => {
+    expect(() => salaryIncrementCalculator.calculate({
+      asOfDate: "2026-08-14",
+      basicPay: "100000",
+      additionalFundEarnings: "0",
+      apitOnlyEarnings: "0",
+      incrementType: "amount",
+      incrementValue: "1500.5",
+      supportedScenario: "confirmed",
+    }, payloads)).toThrow("Enter an increment amount as a whole number of rupees.");
   });
 });

@@ -10,6 +10,7 @@ import {
   calculateNetToGross,
   calculateOvertime,
   calculateSalary,
+  calculateSalaryIncrement,
   epfPayloadSchema,
   etfPayloadSchema,
   gratuityPayloadSchema,
@@ -669,6 +670,128 @@ export const overtimeCalculator = defineRegulatedCalculator({
           : "The twelve-hour weekly cap is checked on an average-month basis and cannot verify per-week compliance.",
         "Executives and daily-, weekly-, or fortnightly-rated employees are out of scope.",
       ],
+    });
+  },
+});
+
+const salaryIncrementFields: CalculatorMetadata["fields"] = [
+  { name: "asOfDate", label: "Calculation date", type: "date", required: true, min: "2025-04-01", max: "9999-12-31" },
+  { name: "basicPay", label: "Current basic monthly pay", type: "number", required: true, min: 0, max: maximumMonthlyEarnings, maxDecimalPlaces: 0, step: 1, suffix: "LKR" },
+  { name: "additionalFundEarnings", label: "Current additional EPF/ETF-eligible earnings", type: "number", required: true, min: 0, max: maximumMonthlyEarnings, maxDecimalPlaces: 0, step: 1, suffix: "LKR", description: "For example, already-classified COLA, holiday pay, meal allowance, or commission." },
+  { name: "apitOnlyEarnings", label: "Current additional APIT-only earnings", type: "number", required: true, min: 0, max: maximumMonthlyEarnings, maxDecimalPlaces: 0, step: 1, suffix: "LKR", description: "For example, already-classified regular overtime or taxable cash allowances excluded from the fund base." },
+  {
+    name: "incrementType",
+    label: "Increment type",
+    type: "select",
+    required: true,
+    description: "The increment applies to the basic pay only; other earnings are unchanged.",
+    options: [
+      { label: "Select an increment type", value: "" },
+      { label: "Percentage of basic pay", value: "percentage" },
+      { label: "Fixed monthly amount", value: "amount" },
+    ],
+  },
+  { name: "incrementValue", label: "Increment", type: "number", required: true, min: 0, max: maximumMonthlyEarnings, maxDecimalPlaces: 2, step: 0.01, suffix: "% or LKR", description: "A percentage up to 1000, or a fixed whole-rupee monthly amount." },
+  scenarioField,
+];
+
+const salaryIncrementRequestSchema = z.object({
+  asOfDate: asOfDateSchema,
+  basicPay: wholeRupees,
+  additionalFundEarnings: wholeRupees,
+  apitOnlyEarnings: wholeRupees,
+  incrementType: z.enum(["percentage", "amount"], { error: "Select an increment type." }),
+  incrementValue: decimalInput({ min: 0, max: maximumMonthlyEarnings, maxDecimalPlaces: 2 }),
+  supportedScenario,
+}).strict().refine(
+  (value) => value.incrementType === "percentage" || decimal(value.incrementValue).isInteger(),
+  "Enter an increment amount as a whole number of rupees.",
+);
+
+const salaryIncrementMetadata = {
+  key: "salary-increment",
+  name: "Salary increment calculator",
+  shortName: "Salary increment",
+  summary: "Compare the gross and take-home impact of a salary increment.",
+  category: "Employment",
+  classification: "regulated",
+  version: "1.0.0",
+  accent: "ink",
+  fields: salaryIncrementFields,
+} satisfies CalculatorMetadata;
+
+export const salaryIncrementCalculator = defineRegulatedCalculator({
+  ...salaryIncrementMetadata,
+  schema: salaryIncrementRequestSchema,
+  ruleDependencies: [apitRule, epfRule, etfRule],
+  getAsOfDate: (input) => input.asOfDate,
+  run(input, payloads) {
+    const increment = calculateSalaryIncrement(
+      {
+        basicPay: input.basicPay,
+        additionalFundEarnings: input.additionalFundEarnings,
+        apitOnlyEarnings: input.apitOnlyEarnings,
+        incrementType: input.incrementType,
+        incrementValue: input.incrementValue,
+      },
+      salaryPayloadsSchema.parse(payloads),
+    );
+
+    const warnings = [...commonWarnings];
+    if (increment.noBasePercent) {
+      warnings.push("A percentage cannot be derived when the current basic pay is zero.");
+    } else if (increment.increases.apit !== "0.00") {
+      warnings.push("A raise crossing an APIT band yields a smaller take-home increase than the gross increase.");
+    }
+
+    return baseResult(salaryIncrementMetadata, {
+      asOfDate: input.asOfDate,
+      normalizedInputs: input,
+      result: {
+        newBasicPay: increment.newBasicPay,
+        incrementAmount: increment.incrementAmount,
+        incrementPercent: increment.incrementPercent,
+        currentGrossPay: increment.current.grossPay,
+        currentTakeHomePay: increment.current.takeHomePay,
+        currentApit: increment.current.apit,
+        currentEmployeeEpf: increment.current.employeeEpf,
+        currentEmployerEpf: increment.current.employerEpf,
+        currentEmployerEtf: increment.current.employerEtf,
+        incrementedGrossPay: increment.incremented.grossPay,
+        incrementedTakeHomePay: increment.incremented.takeHomePay,
+        incrementedApit: increment.incremented.apit,
+        incrementedEmployeeEpf: increment.incremented.employeeEpf,
+        incrementedEmployerEpf: increment.incremented.employerEpf,
+        incrementedEmployerEtf: increment.incremented.employerEtf,
+        grossIncrease: increment.increases.gross,
+        takeHomeIncrease: increment.increases.takeHome,
+        apitIncrease: increment.increases.apit,
+        employeeEpfIncrease: increment.increases.employeeEpf,
+        employerEpfIncrease: increment.increases.employerEpf,
+        employerEtfIncrease: increment.increases.employerEtf,
+      },
+      breakdown: [
+        { label: "Current basic pay", value: money(decimal(input.basicPay)), unit: "LKR" },
+        { label: "Increment type", value: input.incrementType === "percentage" ? "Percentage of basic pay" : "Fixed monthly amount" },
+        { label: "Increment applied to basic pay", value: increment.incrementAmount, unit: "LKR" },
+        { label: "New basic pay", value: increment.newBasicPay, unit: "LKR" },
+        { label: "Current gross pay", value: increment.current.grossPay, unit: "LKR" },
+        { label: "Incremented gross pay", value: increment.incremented.grossPay, unit: "LKR" },
+        { label: "Gross increase", value: increment.increases.gross, unit: "LKR" },
+        { label: "Current take-home pay", value: increment.current.takeHomePay, unit: "LKR" },
+        { label: "Incremented take-home pay", value: increment.incremented.takeHomePay, unit: "LKR" },
+        { label: "Take-home increase", value: increment.increases.takeHome, unit: "LKR" },
+        { label: "APIT increase", value: increment.increases.apit, unit: "LKR" },
+        { label: "Employee EPF increase", value: increment.increases.employeeEpf, unit: "LKR" },
+        { label: "Employer EPF increase", value: increment.increases.employerEpf, unit: "LKR" },
+        { label: "Employer ETF increase", value: increment.increases.employerEtf, unit: "LKR" },
+      ],
+      assumptions: [
+        "The increment applies to the basic pay only; other earnings are unchanged.",
+        "Percentage increments round the new basic pay to the nearest rupee.",
+        "The comparison inherits the approved take-home component formulas.",
+      ],
+      warnings,
     });
   },
 });

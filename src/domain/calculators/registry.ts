@@ -14,6 +14,7 @@ import {
   netToGrossCalculator,
   overtimeCalculator,
   salaryCalculator,
+  salaryIncrementCalculator,
   takeHomeCalculator,
 } from "@/domain/calculators/employment-calculators";
 import type { CalculatorDefinition, CalculatorMetadata } from "@/domain/calculators/types";
@@ -33,6 +34,7 @@ const calculators = [
   netToGrossCalculator,
   gratuityCalculator,
   overtimeCalculator,
+  salaryIncrementCalculator,
 ] satisfies CalculatorDefinition[];
 
 export function createCalculatorRegistry(definitions: CalculatorDefinition[]) {
