@@ -8,10 +8,12 @@ import {
   calculateEtf,
   calculateGratuity,
   calculateNetToGross,
+  calculateOvertime,
   calculateSalary,
   epfPayloadSchema,
   etfPayloadSchema,
   gratuityPayloadSchema,
+  overtimePayloadSchema,
   salaryPayloadsSchema,
 } from "@/domain/calculators/employment";
 import { decimalInput, integerInput } from "@/domain/calculators/input";
@@ -30,6 +32,7 @@ const apitRule: RuleDependency = { name: "apit", key: "apit-primary-regular-mont
 const epfRule: RuleDependency = { name: "epf", key: "epf-standard-contribution", scope: "standard" };
 const etfRule: RuleDependency = { name: "etf", key: "etf-standard-contribution", scope: "standard" };
 const gratuityRule: RuleDependency = { name: "gratuity", key: "gratuity-payment-act-employment-1983-03-18", scope: "standard" };
+const overtimeRule: RuleDependency = { name: "overtime", key: "overtime-shop-office-employment-1954-08-09", scope: "standard" };
 
 const asOfDateSchema = z.string().regex(dateOnlyPattern, "Enter a valid calculation date.").refine((value) => {
   const date = new Date(`${value}T00:00:00Z`);
@@ -546,6 +549,125 @@ export const gratuityCalculator = defineRegulatedCalculator({
           ? "Eligibility conditions are user-confirmed and are not verified by the tool."
           : `${notEligibleLabels[notEligibleReason]}; no statutory gratuity is payable.`,
         "Daily, contract, and piece-rated workmen are out of scope.",
+      ],
+    });
+  },
+});
+
+const overtimeHours = decimalInput({ min: 0, max: 744, maxDecimalPlaces: 1 }).refine(
+  (value) => decimal(value).mul(2).isInteger(),
+  "Enter overtime hours in steps of half an hour.",
+);
+
+const overtimeMetadata = {
+  key: "overtime",
+  name: "Overtime calculator",
+  shortName: "Overtime",
+  summary: "Estimate overtime pay for work beyond normal hours.",
+  category: "Employment",
+  classification: "regulated",
+  version: "1.0.0",
+  accent: "gold",
+  fields: [
+    { name: "asOfDate", label: "Calculation month date", type: "date", required: true, min: "1954-08-09", max: "9999-12-31" },
+    {
+      name: "monthlyRemuneration",
+      label: "Monthly remuneration",
+      type: "number",
+      required: true,
+      min: 0,
+      max: maximumMonthlyEarnings,
+      maxDecimalPlaces: 0,
+      step: 1,
+      suffix: "LKR",
+      description: "The ordinary monthly remuneration (including cost-of-living allowance) on which the hourly rate is computed.",
+    },
+    {
+      name: "hourlyRateBasis",
+      label: "Hourly-rate basis",
+      type: "select",
+      required: true,
+      description: "The statute divides the monthly remuneration by 240; many payslips use the Labour Department 200-hour convention.",
+      options: [
+        { label: "Select a basis", value: "" },
+        { label: "Monthly remuneration ÷ 240 (statutory)", value: "statutory-240" },
+        { label: "Monthly remuneration ÷ 200 (convention)", value: "convention-200" },
+      ],
+    },
+    { name: "weekdayOvertimeHours", label: "Weekday overtime hours", type: "number", required: true, min: 0, max: 744, maxDecimalPlaces: 1, step: 0.5, suffix: "hours" },
+    { name: "restDayOvertimeHours", label: "Weekly day-off overtime hours", type: "number", required: true, min: 0, max: 744, maxDecimalPlaces: 1, step: 0.5, suffix: "hours" },
+    scenarioField,
+  ],
+} satisfies CalculatorMetadata;
+
+const overtimeRequestSchema = z.object({
+  asOfDate: asOfDateSchema,
+  monthlyRemuneration: wholeRupees,
+  hourlyRateBasis: z.enum(["statutory-240", "convention-200"], { error: "Select an hourly-rate basis." }),
+  weekdayOvertimeHours: overtimeHours,
+  restDayOvertimeHours: overtimeHours,
+  supportedScenario,
+}).strict();
+
+export const overtimeCalculator = defineRegulatedCalculator({
+  ...overtimeMetadata,
+  schema: overtimeRequestSchema,
+  ruleDependencies: [overtimeRule],
+  getAsOfDate: (input) => input.asOfDate,
+  run(input, payloads) {
+    const overtime = calculateOvertime(
+      {
+        monthlyRemuneration: input.monthlyRemuneration,
+        hourlyRateBasis: input.hourlyRateBasis,
+        weekdayOvertimeHours: input.weekdayOvertimeHours,
+        restDayOvertimeHours: input.restDayOvertimeHours,
+      },
+      overtimePayloadSchema.parse(payloads.overtime),
+    );
+
+    const basisLabel = input.hourlyRateBasis === "statutory-240"
+      ? "Monthly remuneration ÷ 240 (statutory)"
+      : "Monthly remuneration ÷ 200 (convention)";
+
+    return baseResult(overtimeMetadata, {
+      asOfDate: input.asOfDate,
+      normalizedInputs: input,
+      result: {
+        hourlyRate: overtime.hourlyRate,
+        hourlyRateDivisor: overtime.hourlyRateDivisor,
+        weekdayMultiplier: overtime.weekdayMultiplier,
+        restDayMultiplier: overtime.restDayMultiplier,
+        weekdayOvertimePay: overtime.weekdayOvertimePay,
+        restDayOvertimePay: overtime.restDayOvertimePay,
+        totalOvertimePay: overtime.totalOvertimePay,
+        totalOvertimeHours: overtime.totalOvertimeHours,
+        averageWeeklyOvertimeHours: overtime.averageWeeklyOvertimeHours,
+        weeklyCapExceeded: overtime.weeklyCapExceeded,
+      },
+      breakdown: [
+        { label: "Monthly remuneration", value: money(decimal(input.monthlyRemuneration)), unit: "LKR" },
+        { label: "Hourly-rate basis", value: basisLabel },
+        { label: "Ordinary hourly rate", value: overtime.hourlyRate, unit: "LKR" },
+        { label: `Weekday overtime at ${overtime.weekdayMultiplier}x`, value: overtime.weekdayOvertimePay, unit: "LKR" },
+        { label: `Weekly day-off overtime at ${overtime.restDayMultiplier}x`, value: overtime.restDayOvertimePay, unit: "LKR" },
+        { label: "Total overtime pay", value: overtime.totalOvertimePay, unit: "LKR" },
+      ],
+      assumptions: [
+        "The calculation covers a monthly-rated shop or office employee under the Shop and Office Employees Act.",
+        "Overtime is paid at not less than 1.5 times the normal hourly rate.",
+        overtime.hourlyRateDivisor === 240
+          ? "The statutory hourly rate is the monthly remuneration divided by 240."
+          : "The 200-hour divisor is a Labour Department inspection convention, not a section 11 rule.",
+        "Overtime pay is rounded to the nearest cent as a calculator convention.",
+        "The twelve-hour weekly cap is an informational average-month check.",
+      ],
+      warnings: [
+        ...commonWarnings,
+        "Public-holiday work under the Act is compensated by an extra day's wage or an alternative holiday and is not part of this cash calculation.",
+        overtime.weeklyCapExceeded === "possible"
+          ? "Average weekly overtime exceeds the twelve-hour cap; verify per-week compliance separately."
+          : "The twelve-hour weekly cap is checked on an average-month basis and cannot verify per-week compliance.",
+        "Executives and daily-, weekly-, or fortnightly-rated employees are out of scope.",
       ],
     });
   },
