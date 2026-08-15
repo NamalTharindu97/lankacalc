@@ -301,4 +301,18 @@ describe("reminder API", () => {
     const unique = new Set(rows.map((row) => row.offsetDays));
     expect(unique.size).toBe(3);
   });
+
+  it("returns a bodyless 204 when a reminder is deleted through the route", async () => {
+    const { DELETE } = await import("@/app/api/v1/reminders/[id]/route");
+    const headers = await signUp();
+    const { reminderId } = await createDueTomorrowReminder(headers, [1]);
+
+    const response = await DELETE(
+      new Request(`http://127.0.0.1:3001/api/v1/reminders/${reminderId}`, { method: "DELETE", headers }),
+      { params: Promise.resolve({ id: reminderId }) },
+    );
+    expect(response.status).toBe(204);
+    expect(response.body).toBeNull();
+    expect(await getReminder(headers, reminderId)).toMatchObject({ status: 404 });
+  });
 });
