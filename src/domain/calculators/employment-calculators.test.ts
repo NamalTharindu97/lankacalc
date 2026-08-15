@@ -5,6 +5,7 @@ import {
   epfCalculator,
   etfCalculator,
   gratuityCalculator,
+  jobOfferCalculator,
   netToGrossCalculator,
   overtimeCalculator,
   salaryCalculator,
@@ -53,8 +54,8 @@ const overtimePayloads = {
 } as const;
 
 describe("regulated employment calculator definitions", () => {
-  it("registers all nine calculators for server execution", () => {
-    for (const key of ["apit", "epf", "etf", "salary", "take-home", "net-to-gross", "gratuity", "overtime", "salary-increment"]) {
+  it("registers all ten calculators for server execution", () => {
+    for (const key of ["apit", "epf", "etf", "salary", "take-home", "net-to-gross", "gratuity", "overtime", "salary-increment", "job-offer"]) {
       expect(getCalculator(key)).toMatchObject({ key, classification: "regulated", execution: "server" });
     }
   });
@@ -385,5 +386,62 @@ describe("regulated employment calculator definitions", () => {
       incrementValue: "1500.5",
       supportedScenario: "confirmed",
     }, payloads)).toThrow("Enter an increment amount as a whole number of rupees.");
+  });
+
+  it("compares two job offers through the common result contract", () => {
+    expect(jobOfferCalculator.calculate({
+      asOfDate: "2026-08-14",
+      currentBasicPay: "100000",
+      currentAdditionalFundEarnings: "0",
+      currentApitOnlyEarnings: "0",
+      currentAnnualBonus: "120000",
+      currentAnnualTravelCost: "120000",
+      currentAnnualWorkFromHomeSaving: "0",
+      newBasicPay: "150000",
+      newAdditionalFundEarnings: "0",
+      newApitOnlyEarnings: "0",
+      newAnnualBonus: "120000",
+      newAnnualTravelCost: "60000",
+      newAnnualWorkFromHomeSaving: "12000",
+      supportedScenario: "confirmed",
+    }, payloads)).toMatchObject({
+      calculator: "job-offer",
+      asOfDate: "2026-08-14",
+      result: {
+        currentMonthlyGrossPay: "110000.00",
+        newMonthlyGrossPay: "160000.00",
+        currentAnnualTakeHomePay: "1224000.00",
+        newAnnualTakeHomePay: "1768800.00",
+        annualTakeHomeDifference: "544800.00",
+        annualBonusDifference: "0.00",
+        annualTravelCostDifference: "-60000.00",
+        annualWorkFromHomeSavingDifference: "12000.00",
+        additionalAnnualTax: "7200.00",
+        employerContributionDifference: "90000.00",
+        realAnnualFinancialImprovement: "616800.00",
+        recommendation: "new-job",
+      },
+      ruleVersions: [],
+      sources: [],
+    });
+  });
+
+  it("rejects a job pair whose combined monthly salary exceeds the bound", () => {
+    expect(() => jobOfferCalculator.calculate({
+      asOfDate: "2026-08-14",
+      currentBasicPay: "900000000000",
+      currentAdditionalFundEarnings: "200000000000",
+      currentApitOnlyEarnings: "0",
+      currentAnnualBonus: "0",
+      currentAnnualTravelCost: "0",
+      currentAnnualWorkFromHomeSaving: "0",
+      newBasicPay: "0",
+      newAdditionalFundEarnings: "0",
+      newApitOnlyEarnings: "0",
+      newAnnualBonus: "0",
+      newAnnualTravelCost: "0",
+      newAnnualWorkFromHomeSaving: "0",
+      supportedScenario: "confirmed",
+    }, payloads)).toThrow("The combined monthly salary of each job must stay within the supported bound.");
   });
 });

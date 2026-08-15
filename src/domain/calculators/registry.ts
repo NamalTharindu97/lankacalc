@@ -12,6 +12,7 @@ import {
   epfCalculator,
   etfCalculator,
   gratuityCalculator,
+  jobOfferCalculator,
   netToGrossCalculator,
   overtimeCalculator,
   salaryCalculator,
@@ -37,6 +38,7 @@ const calculators = [
   gratuityCalculator,
   overtimeCalculator,
   salaryIncrementCalculator,
+  jobOfferCalculator,
 ] satisfies CalculatorDefinition[];
 
 export function createCalculatorRegistry(definitions: CalculatorDefinition[]) {
