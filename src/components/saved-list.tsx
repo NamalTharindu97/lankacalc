@@ -11,6 +11,12 @@ export type SavedItem = {
   createdAt: string;
 };
 
+type ReportState =
+  | { status: "idle" }
+  | { status: "generating" }
+  | { status: "ready"; downloadUrl: string }
+  | { status: "failed"; error: string };
+
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat("en-LK", {
     timeZone: "Asia/Colombo",
@@ -24,6 +30,7 @@ export function SavedList({ items }: { items: SavedItem[] }) {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renamingName, setRenamingName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [reportState, setReportState] = useState<Record<string, ReportState>>({});
 
   async function rename(id: string) {
     const response = await fetch(`/api/v1/saved-calculations/${id}`, {
@@ -68,6 +75,41 @@ export function SavedList({ items }: { items: SavedItem[] }) {
     URL.revokeObjectURL(url);
   }
 
+  async function generateReport(id: string) {
+    setReportState((current) => ({ ...current, [id]: { status: "generating" } }));
+    try {
+      const created = await fetch(`/api/v1/saved-calculations/${id}/report`, { method: "POST" });
+      if (!created.ok) throw new Error();
+      const report = (await created.json()) as { id: string };
+
+      const deadline = Date.now() + 60_000;
+      while (Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        const response = await fetch(`/api/v1/reports/${report.id}`);
+        if (!response.ok) throw new Error();
+        const meta = (await response.json()) as { status: string; downloadUrl: string | null; errorMessage?: string };
+        if (meta.status === "ready" && meta.downloadUrl) {
+          const downloadUrl = meta.downloadUrl;
+          setReportState((current) => ({ ...current, [id]: { status: "ready", downloadUrl } }));
+          return;
+        }
+        if (meta.status === "failed") {
+          setReportState((current) => ({
+            ...current,
+            [id]: { status: "failed", error: meta.errorMessage ?? "The report could not be generated." },
+          }));
+          return;
+        }
+      }
+      throw new Error();
+    } catch {
+      setReportState((current) => ({
+        ...current,
+        [id]: { status: "failed", error: "The report could not be generated." },
+      }));
+    }
+  }
+
   if (items.length === 0) {
     return (
       <section className="saved-page">
@@ -88,55 +130,77 @@ export function SavedList({ items }: { items: SavedItem[] }) {
       </div>
 
       <ul className="saved-list">
-        {items.map((item) => (
-          <li className="saved-row" key={item.id}>
-            {renamingId === item.id ? (
-              <form
-                className="saved-rename"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void rename(item.id);
-                }}
-              >
-                <div className="input-shell">
-                  <input
-                    aria-label="New name"
-                    autoFocus
-                    maxLength={160}
-                    onChange={(event) => setRenamingName(event.target.value)}
-                    required
-                    type="text"
-                    value={renamingName}
-                  />
-                </div>
-                <button className="save-submit" type="submit">Rename</button>
-                <button className="text-button" onClick={() => setRenamingId(null)} type="button">Cancel</button>
-              </form>
-            ) : (
-              <>
-                <div className="saved-details">
-                  <strong>{item.name}</strong>
-                  <span>{item.calculatorKey} · saved {formatDate(item.createdAt)}</span>
-                </div>
-                <div className="saved-actions">
-                  <Link className="text-button" href={`/calculators/${item.calculatorKey}`}>Open</Link>
-                  <button
-                    className="text-button"
-                    onClick={() => {
-                      setRenamingName(item.name);
-                      setRenamingId(item.id);
-                    }}
-                    type="button"
-                  >
-                    Rename
-                  </button>
-                  <button className="text-button" onClick={() => void exportItem(item.id)} type="button">Export</button>
-                  <button className="text-button danger" onClick={() => void remove(item.id)} type="button">Delete</button>
-                </div>
-              </>
-            )}
-          </li>
-        ))}
+        {items.map((item) => {
+          const report = reportState[item.id];
+          return (
+            <li className="saved-row" key={item.id}>
+              {renamingId === item.id ? (
+                <form
+                  className="saved-rename"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void rename(item.id);
+                  }}
+                >
+                  <div className="input-shell">
+                    <input
+                      aria-label="New name"
+                      autoFocus
+                      maxLength={160}
+                      onChange={(event) => setRenamingName(event.target.value)}
+                      required
+                      type="text"
+                      value={renamingName}
+                    />
+                  </div>
+                  <button className="save-submit" type="submit">Rename</button>
+                  <button className="text-button" onClick={() => setRenamingId(null)} type="button">Cancel</button>
+                </form>
+              ) : (
+                <>
+                  <div className="saved-details">
+                    <strong>{item.name}</strong>
+                    <span>{item.calculatorKey} · saved {formatDate(item.createdAt)}</span>
+                  </div>
+                  <div className="saved-actions">
+                    <Link className="text-button" href={`/calculators/${item.calculatorKey}`}>Open</Link>
+                    <button
+                      className="text-button"
+                      onClick={() => {
+                        setRenamingName(item.name);
+                        setRenamingId(item.id);
+                      }}
+                      type="button"
+                    >
+                      Rename
+                    </button>
+                    <button className="text-button" onClick={() => void exportItem(item.id)} type="button">Export</button>
+                    {report?.status === "generating" ? (
+                      <span className="report-status">Preparing report…</span>
+                    ) : report?.status === "ready" ? (
+                      <a
+                        className="text-button"
+                        download
+                        href={report.downloadUrl}
+                        rel="noreferrer"
+                      >
+                        Download PDF
+                      </a>
+                    ) : (
+                      <button className="text-button" onClick={() => void generateReport(item.id)} type="button">
+                        Report
+                      </button>
+                    )}
+                    <button className="text-button danger" onClick={() => void remove(item.id)} type="button">Delete</button>
+                  </div>
+                  {report?.status === "failed" ? (
+                    <p className="report-error" role="alert">{report.error}</p>
+                  ) : null}
+                </>
+              )}
+            </li>
+          );
+        })}
       </ul>
 
       {error ? <div className="form-error" role="alert">{error}</div> : null}

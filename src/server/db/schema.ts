@@ -2,6 +2,7 @@ import {
   boolean,
   char,
   check,
+  customType,
   date,
   index,
   integer,
@@ -17,6 +18,18 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+
+const bytea = customType<{ data: Buffer; driverData: Uint8Array }>({
+  dataType() {
+    return "bytea";
+  },
+  toDriver(value: Buffer) {
+    return new Uint8Array(value);
+  },
+  fromDriver(value: Uint8Array) {
+    return Buffer.from(value);
+  },
+});
 
 export const calculatorClassification = pgEnum("calculator_classification", [
   "static",
@@ -52,6 +65,13 @@ export const publicationEventType = pgEnum("publication_event_type", [
   "scheduled",
   "published",
   "retired",
+]);
+
+export const reportStatus = pgEnum("report_status", [
+  "queued",
+  "generating",
+  "ready",
+  "failed",
 ]);
 
 export const calculatorDefinitions = pgTable(
@@ -375,6 +395,40 @@ export const calculationSnapshots = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index("calculation_snapshots_saved_idx").on(table.savedCalculationId)],
+);
+
+export const reports = pgTable(
+  "reports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    savedCalculationId: uuid("saved_calculation_id")
+      .notNull()
+      .references(() => savedCalculations.id, { onDelete: "cascade" }),
+    status: reportStatus("status").default("queued").notNull(),
+    format: varchar("format", { length: 16 }).default("pdf").notNull(),
+    reportVersion: varchar("report_version", { length: 40 }).notNull(),
+    title: varchar("title", { length: 200 }).notNull(),
+    fileName: varchar("file_name", { length: 255 }).notNull(),
+    snapshot: jsonb("snapshot").notNull(),
+    pdf: bytea("pdf"),
+    pdfSize: integer("pdf_size"),
+    pdfChecksum: char("pdf_checksum", { length: 64 }),
+    downloadExpiresAt: timestamp("download_expires_at", { withTimezone: true }),
+    lastDownloadedAt: timestamp("last_downloaded_at", { withTimezone: true }),
+    errorMessage: text("error_message"),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).defaultNow().notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("reports_user_created_idx").on(table.userId, table.createdAt),
+    index("reports_saved_idx").on(table.savedCalculationId),
+    index("reports_status_idx").on(table.status),
+  ],
 );
 
 export const ruleValidationFixtures = pgTable(
