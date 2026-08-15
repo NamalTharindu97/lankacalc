@@ -41,7 +41,9 @@ async function waitForStatus(reportId: string, expected: "ready" | "failed", tim
   while (Date.now() < deadline) {
     const row = await database.query.reports.findFirst({ where: eq(schema.reports.id, reportId) });
     if (row?.status === expected) return;
-    if (row?.status === "failed" || row?.status === "ready") return;
+    if (row?.status && row.status !== "queued" && row.status !== "generating") {
+      throw new Error(`Report reached ${row.status} but ${expected} was expected.`);
+    }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   throw new Error(`Report did not reach ${expected} in time.`);

@@ -28,6 +28,9 @@ export function AccountControls({ initialUser }: AccountControlsProperties) {
         <Link className="account-link" href="/saved">
           Saved
         </Link>
+        <Link className="account-link" href="/reminders">
+          Reminders
+        </Link>
         <span className="account-name">{user.name}</span>
         <button className="text-button" onClick={handleSignOut} type="button">
           Sign out

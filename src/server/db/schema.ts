@@ -397,6 +397,125 @@ export const calculationSnapshots = pgTable(
   (table) => [index("calculation_snapshots_saved_idx").on(table.savedCalculationId)],
 );
 
+export const reminderStatus = pgEnum("reminder_status", [
+  "active",
+  "cancelled",
+  "delivered",
+  "failed",
+]);
+
+export const deliveryStatus = pgEnum("delivery_status", [
+  "pending",
+  "claimed",
+  "sent",
+  "skipped",
+  "failed",
+]);
+
+export const attemptOutcome = pgEnum("attempt_outcome", [
+  "success",
+  "transient_failure",
+  "permanent_failure",
+  "skipped",
+]);
+
+export const reminders = pgTable(
+  "reminders",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 200 }).notNull(),
+    obligationDate: date("obligation_date").notNull(),
+    timezone: varchar("timezone", { length: 64 }).notNull().default("Asia/Colombo"),
+    note: varchar("note", { length: 1000 }),
+    actionUrl: varchar("action_url", { length: 500 }),
+    status: reminderStatus("status").default("active").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("reminders_user_created_idx").on(table.userId, table.createdAt),
+    index("reminders_status_idx").on(table.status),
+  ],
+);
+
+export const notificationPreferences = pgTable(
+  "notification_preferences",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    emailEnabled: boolean("email_enabled").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+);
+
+export const scheduledDeliveries = pgTable(
+  "scheduled_deliveries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    reminderId: uuid("reminder_id")
+      .notNull()
+      .references(() => reminders.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    offsetDays: integer("offset_days").notNull(),
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull(),
+    status: deliveryStatus("status").default("pending").notNull(),
+    attempts: integer("attempts").default(0).notNull(),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    detail: text("detail"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("scheduled_deliveries_reminder_offset_unique").on(table.reminderId, table.offsetDays),
+    index("scheduled_deliveries_due_idx").on(table.status, table.scheduledFor),
+    index("scheduled_deliveries_retry_idx").on(table.status, table.nextAttemptAt),
+    index("scheduled_deliveries_claim_idx").on(table.status, table.updatedAt),
+  ],
+);
+
+export const deliveryAttempts = pgTable(
+  "delivery_attempts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    deliveryId: uuid("delivery_id")
+      .notNull()
+      .references(() => scheduledDeliveries.id, { onDelete: "cascade" }),
+    reminderId: uuid("reminder_id")
+      .notNull()
+      .references(() => reminders.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: varchar("provider", { length: 40 }).notNull(),
+    attemptedAt: timestamp("attempted_at", { withTimezone: true }).defaultNow().notNull(),
+    outcome: attemptOutcome("outcome"),
+    detail: text("detail"),
+  },
+  (table) => [index("delivery_attempts_delivery_idx").on(table.deliveryId)],
+);
+
+export const unsubscribeRecords = pgTable(
+  "unsubscribe_records",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reason: varchar("reason", { length: 200 }),
+    source: varchar("source", { length: 20 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("unsubscribe_records_user_idx").on(table.userId)],
+);
+
 export const reports = pgTable(
   "reports",
   {
