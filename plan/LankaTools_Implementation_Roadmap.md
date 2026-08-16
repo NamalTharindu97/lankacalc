@@ -446,7 +446,7 @@ Status: the loan-schedule calculator (classification configurable) supports user
 - Official tariff source
 - Historical calculation
 
-Status: the standard CEB domestic tariff (categories 0-60, 61-180, and above 180, with fixed charges and a 2.5% SSCL) is implemented as a regulated calculator with an approved candidate specification, golden fixtures, and `docs/electricity-rule-sources.md`, and the `electricity-domestic-standard` dev rule is provisioned and published in the local database. Non-domestic customer categories and effective-dated rule versioning remain.
+Status: the standard CEB domestic tariff (categories 0-60, 61-180, and above 180, with fixed charges and a 2.5% SSCL) is implemented as a regulated calculator with an approved candidate specification, golden fixtures, and `docs/electricity-rule-sources.md`, and the `electricity-domestic-standard` dev rule is provisioned and published in the local database. The non-domestic categories (religious, general purpose, government, industrial, hotel, street lighting, agriculture, and EVCS; Rate 1/2/3 supply classes with VDMC two-tier, block, and time-of-use structures) have been researched and recorded as a candidate matrix with sources in `docs/electricity-rule-sources.md`; implementation remains blocked pending transcription verification against the official PUCSL tariff table image and independent review. Effective-dated rule versioning also remains.
 
 ### 10.3 Vehicle Import
 
@@ -1115,7 +1115,7 @@ A product track is complete only when:
 | LankaCalc static foundation | Stage 0 | Complete |
 | LankaCalc regulated employment | Stages 1-2 | Complete |
 | WorkMoney | Stage 3 | Complete |
-| LankaCalc remaining families | Stage 5 | In progress (10.6 business tax and 10.5 construction code-complete; 10.1 lending incl. observed CBSL AWPR rates and the CBSL motor-vehicle LTV cap check, 10.2 electricity domestic, 10.3 vehicle import, and 10.4 fuel/solar implemented; data- and source-gated increments remain) |
+| LankaCalc remaining families | Stage 5 | In progress (10.6 business tax and 10.5 construction code-complete; 10.1 lending incl. observed CBSL AWPR rates and the CBSL motor-vehicle LTV cap check, 10.2 electricity domestic with non-domestic tariffs researched, 10.3 vehicle import, and 10.4 fuel/solar implemented; data- and source-gated increments remain) |
 | GovGuide | Stage 6 | Planned |
 | LankaDeadline | Stages 4 and 6 | Planned |
 | ComplaintLK | Stage 6 | Planned |
@@ -1167,6 +1167,7 @@ The next implementation work should occur in this exact order:
 17. [x] Provision the `sscl-lk-2026` dev rule; the independent review gate for regulated business tax publication remains.
 18. [x] Implement platform-observed bank rates (10.1) for the loan-schedule calculator: resolve the CBSL AWPR by calculation date with source and observation-date provenance, provision the `observed-lending-rates-lk-2026` dev rule, and record sources in `docs/lending-rule-sources.md`; licensed finance company lease rates remain pending.
 19. [x] Add the CBSL motor-vehicle loan-to-value cap check (10.1) to the lease calculator: resolve the cap by vehicle category and calculation date per CBSL Act Directions No. 02 of 2025, provision the `vehicle-lease-ltv-lk-2026` dev rule, warn when the effective LTV exceeds the cap, and record sources in `docs/lending-rule-sources.md`.
+20. [x] Research the CEB non-domestic electricity tariffs (10.2): record the candidate Rate 1/2/3 tariff matrices effective 11 May 2026, the April 2026 base for historical versioning, the 18% application scope, and the modeling implications (category/class selection, VDMC two-tier, time-of-use and demand charges) in `docs/electricity-rule-sources.md`; implementation is blocked pending official-table transcription verification and independent review.
 
 No later product track should interrupt this sequence unless product research changes the selected first vertical.
 
