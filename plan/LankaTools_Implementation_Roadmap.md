@@ -444,7 +444,7 @@ Status: in progress. Construction quantity calculators (10.5) and the Business A
 - Official tariff source
 - Historical calculation
 
-Status: the standard CEB domestic tariff (categories 0-60, 61-180, and above 180, with fixed charges and a 2.5% SSCL) is implemented as a regulated calculator with an approved candidate specification, golden fixtures, and `docs/electricity-rule-sources.md`. Non-domestic customer categories and effective-dated rule versioning remain.
+Status: the standard CEB domestic tariff (categories 0-60, 61-180, and above 180, with fixed charges and a 2.5% SSCL) is implemented as a regulated calculator with an approved candidate specification, golden fixtures, and `docs/electricity-rule-sources.md`, and the `electricity-domestic-standard` dev rule is provisioned and published in the local database. Non-domestic customer categories and effective-dated rule versioning remain.
 
 ### 10.3 Vehicle Import
 
@@ -485,7 +485,7 @@ All construction tools require typed units, wastage assumptions, openings/exclus
 
 ### 10.6 Business And Tax
 
-Status: code-complete as a first slice. The product specification (`docs/business-and-tax-product-spec.md`) and five regulated calculators are implemented: `business-income-tax`, `vat-liability`, `withholding-tax`, `freelance-tax-estimate`, and `sscl-check`. The `business-income-tax`, `vat-liability`, `withholding-tax`, and `freelance-tax-estimate` dev rules are published in the local database; the `sscl-lk-2026` dev rule is not yet provisioned. Production publication of every regulated rule remains gated by independent source, formula, and rounding review.
+Status: code-complete as a first slice. The product specification (`docs/business-and-tax-product-spec.md`) and five regulated calculators are implemented: `business-income-tax`, `vat-liability`, `withholding-tax`, `freelance-tax-estimate`, and `sscl-check`. All five dev rules, including `sscl-lk-2026`, are provisioned and published in the local database. Production publication of every regulated rule remains gated by independent source, formula, and rounding review.
 
 Do not implement generic names without product specifications. First define:
 
@@ -1160,7 +1160,7 @@ The next implementation work should occur in this exact order:
 14. [x] Implement the electricity domestic standard tariff (10.2) as a regulated calculator with the candidate spec, golden fixtures, and `docs/electricity-rule-sources.md`; effective-dated rule versioning and non-domestic categories remain.
 15. [x] Implement the lending and leasing feature increments (10.1): configurable rates, fees and insurance, early payment, and lease deposits/residuals/balloons; platform-observed bank rates with source and date remain.
 16. [ ] Complete dated-exemption coverage for vehicle import (10.3); the fuel user price override and solar financing/payback are implemented.
-17. [ ] Provision the `sscl-lk-2026` dev rule and run the independent review gate for regulated business tax publication.
+17. [x] Provision the `sscl-lk-2026` dev rule; the independent review gate for regulated business tax publication remains.
 
 No later product track should interrupt this sequence unless product research changes the selected first vertical.
 
