@@ -421,7 +421,7 @@ Exit criteria:
 
 ## 10. Stage 5: Remaining LankaCalc Families
 
-Status: in progress. Construction quantity calculators (10.5) and the Business And Tax family (10.6) are code-complete. The lending family (10.1) is implemented including configurable rates, fees and insurance, early payment, and lease deposits/residuals/balloons; the electricity domestic standard tariff (10.2) is implemented with an approved candidate specification, fixtures, and a source dossier. The remaining increments are data- and source-gated: platform-observed bank rates with source and date (10.1), full non-domestic customer categories and historical tariff versioning (10.2), dated Customs exemptions (10.3), and solar financing/payback (10.4). Production rule publication remains gated by independent source, formula, and rounding review.
+Status: in progress. Construction quantity calculators (10.5) and the Business And Tax family (10.6) are code-complete. The lending family (10.1) is implemented including configurable rates, fees and insurance, early payment, and lease deposits/residuals/balloons; the electricity domestic standard tariff (10.2) is implemented with an approved candidate specification, fixtures, and a source dossier; fuel and solar (10.4) are implemented including the user price override and financing/payback. The remaining increments are data- and source-gated: platform-observed bank rates with source and date (10.1), full non-domestic customer categories and historical tariff versioning (10.2), and dated Customs exemptions (10.3). Production rule publication remains gated by independent source, formula, and rounding review.
 
 ### 10.1 Lending And Leasing
 
@@ -467,6 +467,8 @@ Status: the standard CEB domestic tariff (categories 0-60, 61-180, and above 180
 - Financing
 - Grid tariff/export assumption
 - Degradation and payback
+
+Status: implemented. The fuel cost calculator (`fuel-cost`) supports dated official prices with a custom price override, and the solar cost calculator (`solar-cost`) supports location-based generation, system cost, net-accounting savings, simple payback, and optional financing.
 
 ### 10.5 Construction Quantity Calculators
 
@@ -1157,7 +1159,7 @@ The next implementation work should occur in this exact order:
 13. [x] Research and implement the Business And Tax regulated family (10.6): business income tax, VAT, withholding tax, freelance tax estimate, and SSCL check.
 14. [x] Implement the electricity domestic standard tariff (10.2) as a regulated calculator with the candidate spec, golden fixtures, and `docs/electricity-rule-sources.md`; effective-dated rule versioning and non-domestic categories remain.
 15. [x] Implement the lending and leasing feature increments (10.1): configurable rates, fees and insurance, early payment, and lease deposits/residuals/balloons; platform-observed bank rates with source and date remain.
-16. [ ] Complete dated-exemption coverage for vehicle import (10.3) and solar financing/payback (10.4); the fuel user price override is implemented.
+16. [ ] Complete dated-exemption coverage for vehicle import (10.3); the fuel user price override and solar financing/payback are implemented.
 17. [ ] Provision the `sscl-lk-2026` dev rule and run the independent review gate for regulated business tax publication.
 
 No later product track should interrupt this sequence unless product research changes the selected first vertical.
