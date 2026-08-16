@@ -421,6 +421,8 @@ Exit criteria:
 
 ## 10. Stage 5: Remaining LankaCalc Families
 
+Status: in progress. Construction quantity calculators (10.5) and the Business And Tax family (10.6) are code-complete. The lending family (10.1) is implemented including configurable rates, fees and insurance, early payment, and lease deposits/residuals/balloons; the electricity domestic standard tariff (10.2) is implemented with an approved candidate specification, fixtures, and a source dossier. The remaining increments are data- and source-gated: platform-observed bank rates with source and date (10.1), full non-domestic customer categories and historical tariff versioning (10.2), dated Customs exemptions (10.3), and solar financing/payback (10.4). Production rule publication remains gated by independent source, formula, and rounding review.
+
 ### 10.1 Lending And Leasing
 
 - Full loan amortization schedule
@@ -441,6 +443,8 @@ Exit criteria:
 - Effective tariff dates
 - Official tariff source
 - Historical calculation
+
+Status: the standard CEB domestic tariff (categories 0-60, 61-180, and above 180, with fixed charges and a 2.5% SSCL) is implemented as a regulated calculator with an approved candidate specification, golden fixtures, and `docs/electricity-rule-sources.md`. Non-domestic customer categories and effective-dated rule versioning remain.
 
 ### 10.3 Vehicle Import
 
@@ -478,6 +482,8 @@ Implement independently from live material prices:
 All construction tools require typed units, wastage assumptions, openings/exclusions, and safety disclaimers.
 
 ### 10.6 Business And Tax
+
+Status: code-complete as a first slice. The product specification (`docs/business-and-tax-product-spec.md`) and five regulated calculators are implemented: `business-income-tax`, `vat-liability`, `withholding-tax`, `freelance-tax-estimate`, and `sscl-check`. The `business-income-tax`, `vat-liability`, `withholding-tax`, and `freelance-tax-estimate` dev rules are published in the local database; the `sscl-lk-2026` dev rule is not yet provisioned. Production publication of every regulated rule remains gated by independent source, formula, and rounding review.
 
 Do not implement generic names without product specifications. First define:
 
@@ -1103,7 +1109,7 @@ A product track is complete only when:
 | LankaCalc static foundation | Stage 0 | Complete |
 | LankaCalc regulated employment | Stages 1-2 | Complete |
 | WorkMoney | Stage 3 | Complete |
-| LankaCalc remaining families | Stage 5 | Planned |
+| LankaCalc remaining families | Stage 5 | In progress (10.6 business tax and 10.5 construction code-complete; 10.1 lending and 10.2 electricity domestic implemented; data- and source-gated increments remain) |
 | GovGuide | Stage 6 | Planned |
 | LankaDeadline | Stages 4 and 6 | Planned |
 | ComplaintLK | Stage 6 | Planned |
@@ -1147,7 +1153,12 @@ The next implementation work should occur in this exact order:
 9. [x] Implement source revisions, verification events, and versioned rules.
 10. [x] Build the protected rule administration workflow.
 11. [x] Implement APIT, EPF, ETF, salary, and take-home calculators.
- 12. [x] Add optional accounts only when saved WorkMoney scenarios begin.
+12. [x] Add optional accounts only when saved WorkMoney scenarios begin.
+13. [x] Research and implement the Business And Tax regulated family (10.6): business income tax, VAT, withholding tax, freelance tax estimate, and SSCL check.
+14. [x] Implement the electricity domestic standard tariff (10.2) as a regulated calculator with the candidate spec, golden fixtures, and `docs/electricity-rule-sources.md`; effective-dated rule versioning and non-domestic categories remain.
+15. [x] Implement the lending and leasing feature increments (10.1): configurable rates, fees and insurance, early payment, and lease deposits/residuals/balloons; platform-observed bank rates with source and date remain.
+16. [ ] Complete dated-exemption coverage for vehicle import (10.3) and solar financing/payback (10.4); the fuel user price override is implemented.
+17. [ ] Provision the `sscl-lk-2026` dev rule and run the independent review gate for regulated business tax publication.
 
 No later product track should interrupt this sequence unless product research changes the selected first vertical.
 
