@@ -115,7 +115,9 @@ describe("report API", () => {
     expect(row!.lastDownloadedAt).not.toBeNull();
 
     const tampered = new URL(url.toString());
-    tampered.searchParams.set("sig", `${url.searchParams.get("sig")!.slice(0, -1)}0`);
+    const signature = url.searchParams.get("sig")!;
+    const flipped = signature[0] === "0" ? "1" : "0";
+    tampered.searchParams.set("sig", `${flipped}${signature.slice(1)}`);
     expect((await downloadReport(headers, reportId, tampered.searchParams)).status).toBe(403);
 
     expect((await downloadReport(headers, reportId, new URLSearchParams())).status).toBe(403);
