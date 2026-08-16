@@ -6,10 +6,10 @@ import { decimalInput, integerInput, optionalDecimalInput } from "@/domain/calcu
 import {
   observedLendingRatesPayloadSchema,
   resolveObservedRate,
+  resolveVehicleLeaseLtvCap,
   type ObservedLendingRate,
 } from "@/domain/calculators/lending/observed-rates";
 import {
-  defineCalculator,
   defineRegulatedCalculator,
   type BreakdownItem,
   type CalculatorMetadata,
@@ -315,98 +315,203 @@ const leaseMetadata = {
   key: "lease",
   name: "Lease calculator",
   shortName: "Lease",
-  summary: "Estimate monthly lease payments for an asset from deposit, rate, fees, residual, and term.",
+  summary: "Estimate monthly lease payments for an asset from deposit, rate, fees, residual, and term, with the option to check the deal against the CBSL vehicle loan-to-value cap.",
   category: "Money",
-  classification: "static",
-  version: "1.0.0",
+  classification: "configurable",
+  version: "1.1.0",
   accent: "rose",
   fields: [
+    { name: "asOfDate", label: "Calculation date", type: "date", required: true, min: "2025-07-18", max: "9999-12-31" },
+    { name: "rateSource", label: "Rate and cap source", type: "select", required: true, defaultValue: "user", options: [
+      { label: "Enter my own rate", value: "user" },
+      { label: "Check the CBSL vehicle loan-to-value cap", value: "platform" },
+    ] },
     { name: "assetValue", label: "Asset value", type: "number", required: true, min: 0.01, max: 1_000_000_000_000, maxDecimalPlaces: 2, step: 0.01, suffix: "LKR" },
     { name: "deposit", label: "Deposit", type: "number", required: true, min: 0, max: 1_000_000_000_000, maxDecimalPlaces: 2, step: 0.01, suffix: "LKR", description: "Upfront payment that reduces the financed amount." },
     { name: "residualValue", label: "Residual value (balloon)", type: "number", required: true, min: 0, max: 1_000_000_000_000, maxDecimalPlaces: 2, step: 0.01, suffix: "LKR", description: "The amount still owed at the end of the term, paid as a final balloon." },
     { name: "annualRatePercent", label: "Nominal annual interest rate", type: "number", required: true, min: 0, max: 100, maxDecimalPlaces: 6, step: 0.000001, suffix: "%" },
     { name: "termMonths", label: "Lease term", type: "number", required: true, min: 1, max: 1200, maxDecimalPlaces: 0, step: 1, suffix: "months" },
     { name: "processingFeePercent", label: "Processing fee", type: "number", required: true, min: 0, max: 100, maxDecimalPlaces: 2, step: 0.01, suffix: "% of asset", defaultValue: 0 },
+    { name: "vehicleClass", label: "Vehicle class", type: "select", required: true, defaultValue: "motor-car", visibleWhen: { field: "rateSource", equals: "platform" }, options: [
+      { label: "Motor car, SUV or van", value: "motor-car" },
+      { label: "Three wheeler", value: "three-wheeler" },
+      { label: "Commercial vehicle or light truck", value: "commercial" },
+      { label: "Other vehicle", value: "other" },
+    ] },
+    { name: "vehicleUsedMoreThanOneYear", label: "Registered and used in Sri Lanka for more than one year", type: "select", required: true, defaultValue: "no", visibleWhen: { field: "rateSource", equals: "platform" }, options: [
+      { label: "No", value: "no" },
+      { label: "Yes", value: "yes" },
+    ] },
   ],
 } as const satisfies CalculatorMetadata;
 
 const leaseSchema = z
   .object({
+    asOfDate: asOfDateSchema,
+    rateSource: rateSourceSchema.default("user"),
     assetValue: lkrAmount,
     deposit: lkrNonNegative,
     residualValue: lkrNonNegative,
     annualRatePercent: nominalRatePercent,
     termMonths: termMonths,
     processingFeePercent: feePercent,
+    vehicleClass: z.enum(["motor-car", "three-wheeler", "commercial", "other"]).optional(),
+    vehicleUsedMoreThanOneYear: z.enum(["yes", "no"]).default("no"),
   })
-  .refine(
-    (input) =>
+  .superRefine((input, context) => {
+    if (input.rateSource === "platform" && input.vehicleClass === undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["vehicleClass"],
+        message: "Choose the vehicle class for the CBSL loan-to-value cap check.",
+      });
+    }
+    if (
       decimal(input.assetValue)
         .minus(decimal(input.deposit))
         .minus(decimal(input.residualValue))
-        .greaterThan(0),
-    {
-      message: "Deposit and residual value together must be less than the asset value.",
-      path: ["deposit"],
-    },
-  );
+        .lessThanOrEqualTo(0)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Deposit and residual value together must be less than the asset value.",
+        path: ["deposit"],
+      });
+    }
+  });
 
-export const leaseCalculator = defineCalculator({
+const vehicleLeaseLtvRule: RuleDependency = {
+  name: "vehicleLeaseLtv",
+  key: "vehicle-lease-ltv-lk-2026",
+  scope: "lk",
+};
+
+type LeaseInput = {
+  asOfDate: string;
+  rateSource: "user" | "platform";
+  assetValue: string;
+  deposit: string;
+  residualValue: string;
+  annualRatePercent: string;
+  termMonths: number;
+  processingFeePercent: string;
+  vehicleClass?: "motor-car" | "three-wheeler" | "commercial" | "other";
+  vehicleUsedMoreThanOneYear: "yes" | "no";
+};
+
+export function calculateLease(input: LeaseInput, rawLtvCaps: unknown): CalculationResult {
+  const financedAmount = decimal(input.assetValue)
+    .minus(decimal(input.deposit))
+    .minus(decimal(input.residualValue));
+  const monthlyRate = decimal(input.annualRatePercent).div(1200);
+  const unroundedMonthly = monthlyRate.isZero()
+    ? financedAmount.div(input.termMonths)
+    : financedAmount
+        .mul(monthlyRate)
+        .mul(decimal(1).plus(monthlyRate).pow(input.termMonths))
+        .div(decimal(1).plus(monthlyRate).pow(input.termMonths).minus(1));
+  const monthlyPayment = decimal(money(unroundedMonthly));
+  const totalInstallments = monthlyPayment.mul(input.termMonths);
+  const totalInterest = totalInstallments.minus(financedAmount);
+  const processingFeeAmount = decimal(input.assetValue).mul(input.processingFeePercent).div(100);
+  const totalCost = decimal(input.deposit)
+    .plus(processingFeeAmount)
+    .plus(totalInstallments)
+    .plus(decimal(input.residualValue));
+
+  const result: Record<string, string | number> = {
+    financedAmount: money(financedAmount),
+    monthlyPayment: money(monthlyPayment),
+    balloonPayment: money(decimal(input.residualValue)),
+    totalInstallments: money(totalInstallments),
+    totalInterest: money(totalInterest),
+    processingFeeAmount: money(processingFeeAmount),
+    totalCost: money(totalCost),
+  };
+
+  const breakdown: BreakdownItem[] = [
+    { label: "Financed amount", value: money(financedAmount), unit: "LKR" },
+    { label: "Monthly lease payment", value: money(monthlyPayment), unit: "LKR" },
+    { label: "Balloon payment", value: money(decimal(input.residualValue)), unit: "LKR" },
+    { label: "Total installments", value: money(totalInstallments), unit: "LKR" },
+    { label: "Total interest", value: money(totalInterest), unit: "LKR" },
+    { label: "Processing fee", value: money(processingFeeAmount), unit: "LKR" },
+    { label: "Total cost", value: money(totalCost), unit: "LKR" },
+  ];
+
+  const assumptions = [
+    "The entered rate is a nominal annual rate divided by 12 for monthly calculations.",
+    "Every month pays the same rounded installment; the residual is due as a final balloon and is not amortized.",
+    "The processing fee is paid upfront and is not financed into the lease.",
+  ];
+
+  const warnings = [
+    "This is an estimate, not lease approval, financial advice, or a lessor quotation.",
+    "Taxes, penalties, insurance charges, and lessor-specific rounding are not included.",
+  ];
+
+  let normalizedInputs: Record<string, string | number> = {
+    ...input,
+    financedAmount: money(financedAmount),
+  };
+
+  if (input.rateSource === "platform") {
+    const payload = observedLendingRatesPayloadSchema.parse(rawLtvCaps);
+    const cap = resolveVehicleLeaseLtvCap(payload, {
+      asOfDate: input.asOfDate,
+      vehicleClass: input.vehicleClass ?? "motor-car",
+      vehicleUsedMoreThanOneYear: input.vehicleUsedMoreThanOneYear,
+    });
+    const effectiveLtv = decimal(1)
+      .minus(decimal(input.deposit).div(decimal(input.assetValue)))
+      .mul(100);
+    const effectiveLtvPercent = money(effectiveLtv);
+
+    result.rateSource = "platform";
+    result.vehicleClass = input.vehicleClass ?? "motor-car";
+    result.vehicleUsedMoreThanOneYear = input.vehicleUsedMoreThanOneYear;
+    result.effectiveLtvPercent = effectiveLtvPercent;
+    result.maxLtvPercent = cap.value;
+    result.rateLabel = cap.label;
+    result.rateObservationDate = cap.observedOn;
+    result.rateAuthority = "Central Bank of Sri Lanka";
+
+    breakdown.push(
+      { label: "Effective loan-to-value", value: `${effectiveLtvPercent}%`, unit: "" },
+      { label: cap.label, value: `${cap.value}%`, unit: `as of ${cap.observedOn}` },
+    );
+    assumptions.push(
+      "The effective loan-to-value is the financed portion before the balloon (asset value minus deposit) divided by the asset value.",
+      `The ${cap.label} cap is resolved from the latest published CBSL observation on or before the calculation date; the entered rate still drives the payment math.`,
+    );
+    if (effectiveLtv.greaterThan(decimal(cap.value))) {
+      warnings.push(
+        "The effective loan-to-value is above the CBSL cap for this vehicle category; a regulated lender may require a higher deposit before advancing the lease.",
+      );
+    }
+    normalizedInputs = {
+      ...normalizedInputs,
+      effectiveLtvPercent,
+      maxLtvPercent: cap.value,
+    };
+  }
+
+  return lendingResult(leaseMetadata, {
+    asOfDate: input.asOfDate,
+    normalizedInputs,
+    result,
+    breakdown,
+    assumptions,
+    warnings,
+  });
+}
+
+export const leaseCalculator = defineRegulatedCalculator({
   ...leaseMetadata,
   schema: leaseSchema,
-  run(input) {
-    const financedAmount = decimal(input.assetValue)
-      .minus(decimal(input.deposit))
-      .minus(decimal(input.residualValue));
-    const monthlyRate = decimal(input.annualRatePercent).div(1200);
-    const unroundedMonthly = monthlyRate.isZero()
-      ? financedAmount.div(input.termMonths)
-      : financedAmount
-          .mul(monthlyRate)
-          .mul(decimal(1).plus(monthlyRate).pow(input.termMonths))
-          .div(decimal(1).plus(monthlyRate).pow(input.termMonths).minus(1));
-    const monthlyPayment = decimal(money(unroundedMonthly));
-    const totalInstallments = monthlyPayment.mul(input.termMonths);
-    const totalInterest = totalInstallments.minus(financedAmount);
-    const processingFeeAmount = decimal(input.assetValue).mul(input.processingFeePercent).div(100);
-    const totalCost = decimal(input.deposit)
-      .plus(processingFeeAmount)
-      .plus(totalInstallments)
-      .plus(decimal(input.residualValue));
-
-    return lendingResult(leaseMetadata, {
-      asOfDate: null,
-      normalizedInputs: {
-        ...input,
-        financedAmount: money(financedAmount),
-      },
-      result: {
-        financedAmount: money(financedAmount),
-        monthlyPayment: money(monthlyPayment),
-        balloonPayment: money(decimal(input.residualValue)),
-        totalInstallments: money(totalInstallments),
-        totalInterest: money(totalInterest),
-        processingFeeAmount: money(processingFeeAmount),
-        totalCost: money(totalCost),
-      },
-      breakdown: [
-        { label: "Financed amount", value: money(financedAmount), unit: "LKR" },
-        { label: "Monthly lease payment", value: money(monthlyPayment), unit: "LKR" },
-        { label: "Balloon payment", value: money(decimal(input.residualValue)), unit: "LKR" },
-        { label: "Total installments", value: money(totalInstallments), unit: "LKR" },
-        { label: "Total interest", value: money(totalInterest), unit: "LKR" },
-        { label: "Processing fee", value: money(processingFeeAmount), unit: "LKR" },
-        { label: "Total cost", value: money(totalCost), unit: "LKR" },
-      ],
-      assumptions: [
-        "The entered rate is a nominal annual rate divided by 12 for monthly calculations.",
-        "Every month pays the same rounded installment; the residual is due as a final balloon and is not amortized.",
-        "The processing fee is paid upfront and is not financed into the lease.",
-      ],
-      warnings: [
-        "This is an estimate, not lease approval, financial advice, or a lessor quotation.",
-        "Taxes, penalties, insurance charges, and lessor-specific rounding are not included.",
-      ],
-    });
+  ruleDependencies: [vehicleLeaseLtvRule],
+  getAsOfDate: (input) => input.asOfDate,
+  run(input, payloads) {
+    return calculateLease(input, payloads.vehicleLeaseLtv);
   },
 });

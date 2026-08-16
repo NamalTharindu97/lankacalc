@@ -300,6 +300,49 @@ const observedLendingRatesPayload = {
   ],
 } as const;
 
+const vehicleLeaseLtvPayload = {
+  authority: "cbsl",
+  effectiveFrom: "2025-07-18",
+  rounding: "two-decimal-percent",
+  rates: [
+    {
+      rateType: "max-motor-vehicle-ltv",
+      category: "motor-car",
+      label: "Motor cars, SUVs and vans (DMT class B, other than light trucks and single cabs)",
+      value: "60",
+      observedOn: "2025-07-18",
+    },
+    {
+      rateType: "max-motor-vehicle-ltv",
+      category: "three-wheeler",
+      label: "Three wheelers (DMT class B1)",
+      value: "50",
+      observedOn: "2025-07-18",
+    },
+    {
+      rateType: "max-motor-vehicle-ltv",
+      category: "commercial",
+      label: "Commercial vehicles and light trucks (DMT classes C1, C, CE, D1, D, DE, G1, G, J)",
+      value: "80",
+      observedOn: "2025-07-18",
+    },
+    {
+      rateType: "max-motor-vehicle-ltv",
+      category: "other",
+      label: "Other vehicles (DMT classes A1, A and single cabs under B)",
+      value: "70",
+      observedOn: "2025-07-18",
+    },
+    {
+      rateType: "max-motor-vehicle-ltv",
+      category: "used",
+      label: "Registered vehicles used in Sri Lanka for more than one year after first registration",
+      value: "70",
+      observedOn: "2025-07-18",
+    },
+  ],
+} as const;
+
 const devRules: DevRuleInput[] = [
   {
     key: "electricity-domestic-standard",
@@ -721,6 +764,95 @@ const devRules: DevRuleInput[] = [
           ["rateType", "awpr"],
           ["value", "8.99"],
           ["observedOn", "2026-01-31"],
+        ],
+      },
+    ],
+  },
+  {
+    key: "vehicle-lease-ltv-lk-2026",
+    calculatorKey: "lease",
+    scope: "lk",
+    name: "CBSL motor-vehicle loan-to-value caps",
+    description: "CBSL Act Directions No. 02 of 2025 maximum loan-to-value ratios for motor-vehicle finance leases and credit, effective 2025-07-18.",
+    version: "1.0.0",
+    effectiveFrom: "2025-07-18",
+    payload: vehicleLeaseLtvPayload as unknown as JsonValue,
+    sources: [
+      {
+        key: "cbsl-act-directions-02-2025",
+        authority: "Central Bank of Sri Lanka",
+        title: "CBSL Act Directions No. 02 of 2025: Loan to Value Ratios for Credit Facilities Granted in Respect of Motor Vehicles",
+        url: "https://www.cbsl.gov.lk/sites/default/files/cbslweb_documents/laws/cdg/CBSL_Act_Directions_No_2_of_2025.pdf",
+        publishedOn: "2025-07-17",
+      },
+      {
+        key: "cbsl-ltv-faq-2025",
+        authority: "Central Bank of Sri Lanka",
+        title: "Frequently Asked Questions on Central Bank Act Directions on LTV Ratios for Credit Facilities Granted in Respect of Motor Vehicles",
+        url: "https://www.cbsl.gov.lk/sites/default/files/cbslweb_documents/laws/cdg/faq_on_loan_to_value_ratios_for_credit_facilities_granted_in_respect_of_motor_vehicles_e.pdf",
+      },
+    ],
+    fixtures: [
+      {
+        name: "motor car cap",
+        input: {
+          asOfDate: "2026-08-16",
+          vehicleClass: "motor-car",
+          vehicleUsedMoreThanOneYear: "no",
+        } as unknown as JsonValue,
+        expected: [
+          ["rateType", "max-motor-vehicle-ltv"],
+          ["category", "motor-car"],
+          ["value", "60"],
+          ["observedOn", "2025-07-18"],
+        ],
+      },
+      {
+        name: "three-wheeler cap",
+        input: {
+          asOfDate: "2026-08-16",
+          vehicleClass: "three-wheeler",
+          vehicleUsedMoreThanOneYear: "no",
+        } as unknown as JsonValue,
+        expected: [
+          ["value", "50"],
+          ["category", "three-wheeler"],
+        ],
+      },
+      {
+        name: "commercial vehicle cap",
+        input: {
+          asOfDate: "2026-08-16",
+          vehicleClass: "commercial",
+          vehicleUsedMoreThanOneYear: "no",
+        } as unknown as JsonValue,
+        expected: [
+          ["value", "80"],
+          ["category", "commercial"],
+        ],
+      },
+      {
+        name: "other vehicle cap",
+        input: {
+          asOfDate: "2026-08-16",
+          vehicleClass: "other",
+          vehicleUsedMoreThanOneYear: "no",
+        } as unknown as JsonValue,
+        expected: [
+          ["value", "70"],
+          ["category", "other"],
+        ],
+      },
+      {
+        name: "used for more than one year flat cap",
+        input: {
+          asOfDate: "2026-08-16",
+          vehicleClass: "motor-car",
+          vehicleUsedMoreThanOneYear: "yes",
+        } as unknown as JsonValue,
+        expected: [
+          ["value", "70"],
+          ["category", "used"],
         ],
       },
     ],
