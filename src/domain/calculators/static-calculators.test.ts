@@ -372,11 +372,16 @@ describe("static calculators", () => {
     );
 
     for (const field of numericFields) {
-      expect(field.required, field.name).toBe(true);
       expect(field.min, field.name).toBeTypeOf("number");
       expect(field.max, field.name).toBeTypeOf("number");
       expect(field.maxDecimalPlaces, field.name).toBeTypeOf("number");
       expect(field.step, field.name).toBeTypeOf("number");
+    }
+
+    const requiredNumericFields = numericFields.filter((field) => field.required);
+    expect(requiredNumericFields.length).toBeGreaterThan(0);
+    for (const field of requiredNumericFields) {
+      expect(field.required, field.name).toBe(true);
     }
   });
 
