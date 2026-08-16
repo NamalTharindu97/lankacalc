@@ -77,6 +77,12 @@ function hiddenField(
   if (visibleWhen.notEquals !== undefined && values[visibleWhen.field] === visibleWhen.notEquals) {
     return true;
   }
+  if (visibleWhen.in !== undefined && !visibleWhen.in.includes(values[visibleWhen.field])) {
+    return true;
+  }
+  if (visibleWhen.notIn !== undefined && visibleWhen.notIn.includes(values[visibleWhen.field])) {
+    return true;
+  }
   return false;
 }
 
