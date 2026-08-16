@@ -36,6 +36,11 @@ import {
   vatLiabilityInputSchema,
   vatLiabilityPayloadSchema,
 } from "@/domain/calculators/business-tax/vat-liability";
+import {
+  calculateWithholdingTax,
+  withholdingTaxInputSchema,
+  withholdingTaxPayloadSchema,
+} from "@/domain/calculators/business-tax/withholding-tax";
 import type { JsonValue } from "@/server/rules/json";
 import { RulePlatform, type RuleHandler } from "@/server/rules/service";
 
@@ -151,6 +156,20 @@ export const ruleHandlers: Readonly<Record<string, RuleHandler>> = {
         calculateVatLiability(
           vatLiabilityInputSchema.parse(input),
           vatLiabilityPayloadSchema.parse(payload),
+        ),
+      );
+    },
+  },
+  "withholding-tax-lk-2026": {
+    payloadSchemaVersion: "1",
+    validatePayload(payload) {
+      withholdingTaxPayloadSchema.parse(payload);
+    },
+    calculate(input, payload) {
+      return result(
+        calculateWithholdingTax(
+          withholdingTaxInputSchema.parse(input),
+          withholdingTaxPayloadSchema.parse(payload),
         ),
       );
     },

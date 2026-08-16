@@ -38,6 +38,7 @@ import { solarCostCalculator } from "@/domain/calculators/solar-calculators";
 import {
   businessIncomeTaxCalculator,
   vatLiabilityCalculator,
+  withholdingTaxCalculator,
 } from "@/domain/calculators/business-tax-calculators";
 import type { CalculatorDefinition, CalculatorMetadata } from "@/domain/calculators/types";
 
@@ -73,6 +74,7 @@ const calculators = [
   solarCostCalculator,
   businessIncomeTaxCalculator,
   vatLiabilityCalculator,
+  withholdingTaxCalculator,
 ] satisfies CalculatorDefinition[];
 
 export function createCalculatorRegistry(definitions: CalculatorDefinition[]) {
