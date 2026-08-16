@@ -7,6 +7,10 @@ import {
   epfPayloadSchema,
   etfPayloadSchema,
 } from "@/domain/calculators/employment";
+import {
+  calculateDomesticElectricityBill,
+  electricityDomesticPayloadSchema,
+} from "@/domain/calculators/energy/electricity";
 import type { JsonValue } from "@/server/rules/json";
 import { RulePlatform, type RuleHandler } from "@/server/rules/service";
 
@@ -40,6 +44,20 @@ export const ruleHandlers: Readonly<Record<string, RuleHandler>> = {
     },
     calculate(input, payload) {
       return result(calculateEtf(input as never, etfPayloadSchema.parse(payload)));
+    },
+  },
+  "electricity-domestic-standard": {
+    payloadSchemaVersion: "1",
+    validatePayload(payload) {
+      electricityDomesticPayloadSchema.parse(payload);
+    },
+    calculate(input, payload) {
+      return result(
+        calculateDomesticElectricityBill(
+          input as never,
+          electricityDomesticPayloadSchema.parse(payload),
+        ),
+      );
     },
   },
 };

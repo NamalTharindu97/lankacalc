@@ -354,3 +354,30 @@ calculator.lease.warning.estimate
 calculator.lease.warning.exclusions
 ```
 
+## Electricity
+
+```text
+calculator.electricity.name
+calculator.electricity.summary
+calculator.electricity.input.asOfDate
+calculator.electricity.input.unitsConsumed
+calculator.electricity.input.billingDays
+calculator.electricity.output.category
+calculator.electricity.output.energyCharge
+calculator.electricity.output.fixedCharge
+calculator.electricity.output.tariffCharge
+calculator.electricity.output.sscLRatePercent
+calculator.electricity.output.sscLAmount
+calculator.electricity.output.totalPayable
+calculator.electricity.assumption.proration
+calculator.electricity.assumption.fixedTier
+calculator.electricity.assumption.sscl
+calculator.electricity.assumption.vatIncluded
+calculator.electricity.warning.estimate
+calculator.electricity.warning.officialBill
+calculator.electricity.warning.exclusions
+calculator.electricity.error.precision
+calculator.electricity.error.ruleUnavailable
+```
+
+
