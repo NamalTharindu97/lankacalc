@@ -63,6 +63,34 @@ function humanize(value: string): string {
     .replace(/^./, (letter) => letter.toUpperCase());
 }
 
+function hiddenField(
+  field: CalculatorField,
+  values: Record<string, string>,
+): boolean {
+  const visibleWhen = field.visibleWhen;
+  if (visibleWhen === undefined) {
+    return false;
+  }
+  if (visibleWhen.equals !== undefined && values[visibleWhen.field] !== visibleWhen.equals) {
+    return true;
+  }
+  if (visibleWhen.notEquals !== undefined && values[visibleWhen.field] === visibleWhen.notEquals) {
+    return true;
+  }
+  return false;
+}
+
+function submissionValues(
+  fields: readonly CalculatorField[],
+  values: Record<string, string>,
+): Record<string, string> {
+  return Object.fromEntries(
+    fields
+      .filter((field) => !hiddenField(field, values))
+      .map((field) => [field.name, values[field.name]]),
+  );
+}
+
 function InputField({
   field,
   value,
@@ -148,7 +176,7 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
         body: JSON.stringify({
           name,
           calculatorKey: calculator.key,
-          input: values,
+          input: submissionValues(calculator.fields, values),
           result,
         }),
       });
@@ -227,7 +255,7 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
         const response = await fetch(`/api/v1/calculations/${calculator.key}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(values),
+          body: JSON.stringify(submissionValues(calculator.fields, values)),
         });
         const body = (await response.json()) as CalculationResult | ApiError;
 
@@ -261,7 +289,7 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
 
         <div className="fields">
           {calculator.fields.map((field) => {
-            if (field.visibleWhen && values[field.visibleWhen.field] !== field.visibleWhen.equals) {
+            if (hiddenField(field, values)) {
               return null;
             }
 
