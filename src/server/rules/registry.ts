@@ -21,6 +21,11 @@ import {
   fuelCostInputSchema,
   fuelPumpPricePayloadSchema,
 } from "@/domain/calculators/fuel/fuel-cost";
+import {
+  calculateSolarCost,
+  solarAssumptionsPayloadSchema,
+  solarCostInputSchema,
+} from "@/domain/calculators/solar/solar-cost";
 import type { JsonValue } from "@/server/rules/json";
 import { RulePlatform, type RuleHandler } from "@/server/rules/service";
 
@@ -94,6 +99,20 @@ export const ruleHandlers: Readonly<Record<string, RuleHandler>> = {
         calculateFuelCost(
           fuelCostInputSchema.parse(input),
           fuelPumpPricePayloadSchema.parse(payload),
+        ),
+      );
+    },
+  },
+  "solar-assumptions-lk-2026": {
+    payloadSchemaVersion: "1",
+    validatePayload(payload) {
+      solarAssumptionsPayloadSchema.parse(payload);
+    },
+    calculate(input, payload) {
+      return result(
+        calculateSolarCost(
+          solarCostInputSchema.parse(input),
+          solarAssumptionsPayloadSchema.parse(payload),
         ),
       );
     },
