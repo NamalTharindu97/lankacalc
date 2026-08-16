@@ -456,7 +456,7 @@ Status: the standard CEB domestic tariff (categories 0-60, 61-180, and above 180
 - Official Customs and gazette sources
 - Warning for cases requiring professional confirmation
 
-Status: the seven NITG 2026 Chapter 87 excise schedules and the standard CID/surcharge/VAT/SSCL stack are implemented, and the S.P.D. surcharge LC-establishment exemption (LC on or before 2026-05-15; shipped-on-board on or before 2026-11-15) is implemented as the first dated exemption. Broader concession schemes and the disabled-persons concession remain source- and review-gated.
+Status: the seven NITG 2026 Chapter 87 excise schedules and the standard CID/surcharge/VAT/SSCL stack are implemented, the S.P.D. surcharge LC-establishment exemption (LC on or before 2026-05-15; shipped-on-board on or before 2026-11-15) is implemented as the first dated exemption, and the `vehicle-import-excise-nitg-2026` dev rule is provisioned and published in the local database. Broader concession schemes and the disabled-persons concession remain source- and review-gated.
 
 ### 10.4 Fuel And Solar
 
@@ -1161,7 +1161,7 @@ The next implementation work should occur in this exact order:
 13. [x] Research and implement the Business And Tax regulated family (10.6): business income tax, VAT, withholding tax, freelance tax estimate, and SSCL check.
 14. [x] Implement the electricity domestic standard tariff (10.2) as a regulated calculator with the candidate spec, golden fixtures, and `docs/electricity-rule-sources.md`; effective-dated rule versioning and non-domestic categories remain.
 15. [x] Implement the lending and leasing feature increments (10.1): configurable rates, fees and insurance, early payment, and lease deposits/residuals/balloons; platform-observed bank rates with source and date remain.
-16. [ ] Complete dated-exemption coverage for vehicle import (10.3); the fuel user price override and solar financing/payback are implemented.
+16. [x] Provision the `vehicle-import-excise-nitg-2026` dev rule in the local database; dated-exemption coverage is complete and production publication remains review-gated.
 17. [x] Provision the `sscl-lk-2026` dev rule; the independent review gate for regulated business tax publication remains.
 
 No later product track should interrupt this sequence unless product research changes the selected first vertical.
