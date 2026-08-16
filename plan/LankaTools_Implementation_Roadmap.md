@@ -433,7 +433,7 @@ Status: in progress. Construction quantity calculators (10.5) and the Business A
 - User-entered versus platform-observed bank rates
 - Rate observation source and date
 
-Status: the loan-schedule calculator (classification configurable) supports user-entered rates and platform-observed CBSL AWPR rates resolved by calculation date with source and observation-date provenance, backed by the `observed-lending-rates-lk-2026` dev rule and `docs/lending-rule-sources.md`. Licensed finance company rate observations for the lease calculator remain, pending sourced rate series.
+Status: the loan-schedule calculator (classification configurable) supports user-entered rates and platform-observed CBSL AWPR rates resolved by calculation date with source and observation-date provenance, backed by the `observed-lending-rates-lk-2026` dev rule and `docs/lending-rule-sources.md`. The lease calculator now also offers a platform cap check against the CBSL motor-vehicle loan-to-value caps (CBSL Act Directions No. 02 of 2025, effective 2025-07-18) via the `vehicle-lease-ltv-lk-2026` dev rule, with an effective-LTV breakdown and an above-cap warning. Licensed finance company rate observations for the lease calculator remain, pending sourced rate series.
 
 ### 10.2 Electricity
 
@@ -1115,7 +1115,7 @@ A product track is complete only when:
 | LankaCalc static foundation | Stage 0 | Complete |
 | LankaCalc regulated employment | Stages 1-2 | Complete |
 | WorkMoney | Stage 3 | Complete |
-| LankaCalc remaining families | Stage 5 | In progress (10.6 business tax and 10.5 construction code-complete; 10.1 lending incl. observed CBSL AWPR rates, 10.2 electricity domestic, 10.3 vehicle import, and 10.4 fuel/solar implemented; data- and source-gated increments remain) |
+| LankaCalc remaining families | Stage 5 | In progress (10.6 business tax and 10.5 construction code-complete; 10.1 lending incl. observed CBSL AWPR rates and the CBSL motor-vehicle LTV cap check, 10.2 electricity domestic, 10.3 vehicle import, and 10.4 fuel/solar implemented; data- and source-gated increments remain) |
 | GovGuide | Stage 6 | Planned |
 | LankaDeadline | Stages 4 and 6 | Planned |
 | ComplaintLK | Stage 6 | Planned |
@@ -1166,6 +1166,7 @@ The next implementation work should occur in this exact order:
 16. [x] Provision the `vehicle-import-excise-nitg-2026` dev rule in the local database; dated-exemption coverage is complete and production publication remains review-gated.
 17. [x] Provision the `sscl-lk-2026` dev rule; the independent review gate for regulated business tax publication remains.
 18. [x] Implement platform-observed bank rates (10.1) for the loan-schedule calculator: resolve the CBSL AWPR by calculation date with source and observation-date provenance, provision the `observed-lending-rates-lk-2026` dev rule, and record sources in `docs/lending-rule-sources.md`; licensed finance company lease rates remain pending.
+19. [x] Add the CBSL motor-vehicle loan-to-value cap check (10.1) to the lease calculator: resolve the cap by vehicle category and calculation date per CBSL Act Directions No. 02 of 2025, provision the `vehicle-lease-ltv-lk-2026` dev rule, warn when the effective LTV exceeds the cap, and record sources in `docs/lending-rule-sources.md`.
 
 No later product track should interrupt this sequence unless product research changes the selected first vertical.
 

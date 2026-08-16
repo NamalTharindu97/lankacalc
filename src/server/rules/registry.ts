@@ -55,6 +55,8 @@ import {
   observedLendingRatesPayloadSchema,
   observedRateAsOfInputSchema,
   resolveObservedRate,
+  resolveVehicleLeaseLtvCap,
+  vehicleLeaseLtvInputSchema,
 } from "@/domain/calculators/lending/observed-rates";
 import type { JsonValue } from "@/server/rules/json";
 import { RulePlatform, type RuleHandler } from "@/server/rules/service";
@@ -144,6 +146,20 @@ export const ruleHandlers: Readonly<Record<string, RuleHandler>> = {
           observedLendingRatesPayloadSchema.parse(payload),
           observedRateAsOfInputSchema.parse(input).asOfDate,
           "awpr",
+        ),
+      );
+    },
+  },
+  "vehicle-lease-ltv-lk-2026": {
+    payloadSchemaVersion: "1",
+    validatePayload(payload) {
+      observedLendingRatesPayloadSchema.parse(payload);
+    },
+    calculate(input, payload) {
+      return result(
+        resolveVehicleLeaseLtvCap(
+          observedLendingRatesPayloadSchema.parse(payload),
+          vehicleLeaseLtvInputSchema.parse(input),
         ),
       );
     },
