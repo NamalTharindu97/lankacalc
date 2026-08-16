@@ -11,6 +11,11 @@ import {
   calculateDomesticElectricityBill,
   electricityDomesticPayloadSchema,
 } from "@/domain/calculators/energy/electricity";
+import {
+  calculateVehicleImportDuty,
+  vehicleImportInputSchema,
+} from "@/domain/calculators/vehicle-import/vehicle-import";
+import { vehicleImportPayloadSchema } from "@/domain/calculators/vehicle-import/rates";
 import type { JsonValue } from "@/server/rules/json";
 import { RulePlatform, type RuleHandler } from "@/server/rules/service";
 
@@ -56,6 +61,20 @@ export const ruleHandlers: Readonly<Record<string, RuleHandler>> = {
         calculateDomesticElectricityBill(
           input as never,
           electricityDomesticPayloadSchema.parse(payload),
+        ),
+      );
+    },
+  },
+  "vehicle-import-excise-nitg-2026": {
+    payloadSchemaVersion: "1",
+    validatePayload(payload) {
+      vehicleImportPayloadSchema.parse(payload);
+    },
+    calculate(input, payload) {
+      return result(
+        calculateVehicleImportDuty(
+          vehicleImportInputSchema.parse(input),
+          vehicleImportPayloadSchema.parse(payload),
         ),
       );
     },

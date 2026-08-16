@@ -69,6 +69,13 @@ export function optionalDecimalInput(options: DecimalInputOptions = {}) {
   );
 }
 
+export function optionalIntegerInput(options: Omit<DecimalInputOptions, "positive"> = {}) {
+  return z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    integerInput(options).optional(),
+  );
+}
+
 export function integerInput(options: Omit<DecimalInputOptions, "positive"> = {}) {
   return decimalInput(options).transform((value, context) => {
     const parsed = new Decimal(value);

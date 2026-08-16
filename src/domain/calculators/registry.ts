@@ -32,6 +32,7 @@ import {
   loanScheduleCalculator,
 } from "@/domain/calculators/lending-calculators";
 import { electricityBillCalculator } from "@/domain/calculators/electricity-calculators";
+import { vehicleImportDutyCalculator } from "@/domain/calculators/vehicle-import-calculators";
 import type { CalculatorDefinition, CalculatorMetadata } from "@/domain/calculators/types";
 
 const calculators = [
@@ -61,6 +62,7 @@ const calculators = [
   salaryIncrementCalculator,
   jobOfferCalculator,
   electricityBillCalculator,
+  vehicleImportDutyCalculator,
 ] satisfies CalculatorDefinition[];
 
 export function createCalculatorRegistry(definitions: CalculatorDefinition[]) {
