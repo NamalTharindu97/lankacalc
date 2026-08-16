@@ -421,7 +421,7 @@ Exit criteria:
 
 ## 10. Stage 5: Remaining LankaCalc Families
 
-Status: in progress. Construction quantity calculators (10.5) and the Business And Tax family (10.6) are code-complete. The lending family (10.1) is implemented including configurable rates, fees and insurance, early payment, and lease deposits/residuals/balloons; the electricity domestic standard tariff (10.2) is implemented with an approved candidate specification, fixtures, and a source dossier; fuel and solar (10.4) are implemented including the user price override and financing/payback; vehicle import (10.3) is implemented with the dated LC surcharge exemption and the provisioned dev rule. The remaining increments are data- and source-gated: platform-observed bank rates with source and date (10.1), full non-domestic customer categories and historical tariff versioning (10.2), and broader vehicle-import concessions (10.3). Production rule publication remains gated by independent source, formula, and rounding review.
+Status: in progress. Construction quantity calculators (10.5) and the Business And Tax family (10.6) are code-complete. The lending family (10.1) is implemented including configurable rates, fees and insurance, early payment, lease deposits/residuals/balloons, and platform-observed bank rates with source and date via the CBSL AWPR rule; the electricity domestic standard tariff (10.2) is implemented with an approved candidate specification, fixtures, and a source dossier; fuel and solar (10.4) are implemented including the user price override and financing/payback; vehicle import (10.3) is implemented with the dated LC surcharge exemption and the provisioned dev rule. The remaining increments are data- and source-gated: full non-domestic customer categories and historical tariff versioning (10.2), broader vehicle-import concessions (10.3), and licensed finance company lease rate observations (10.1). Production rule publication remains gated by independent source, formula, and rounding review.
 
 ### 10.1 Lending And Leasing
 
@@ -432,6 +432,8 @@ Status: in progress. Construction quantity calculators (10.5) and the Business A
 - Lease deposits, residuals, balloons, and charges
 - User-entered versus platform-observed bank rates
 - Rate observation source and date
+
+Status: the loan-schedule calculator (classification configurable) supports user-entered rates and platform-observed CBSL AWPR rates resolved by calculation date with source and observation-date provenance, backed by the `observed-lending-rates-lk-2026` dev rule and `docs/lending-rule-sources.md`. Licensed finance company rate observations for the lease calculator remain, pending sourced rate series.
 
 ### 10.2 Electricity
 
@@ -1113,7 +1115,7 @@ A product track is complete only when:
 | LankaCalc static foundation | Stage 0 | Complete |
 | LankaCalc regulated employment | Stages 1-2 | Complete |
 | WorkMoney | Stage 3 | Complete |
-| LankaCalc remaining families | Stage 5 | In progress (10.6 business tax and 10.5 construction code-complete; 10.1 lending and 10.2 electricity domestic implemented; data- and source-gated increments remain) |
+| LankaCalc remaining families | Stage 5 | In progress (10.6 business tax and 10.5 construction code-complete; 10.1 lending incl. observed CBSL AWPR rates, 10.2 electricity domestic, 10.3 vehicle import, and 10.4 fuel/solar implemented; data- and source-gated increments remain) |
 | GovGuide | Stage 6 | Planned |
 | LankaDeadline | Stages 4 and 6 | Planned |
 | ComplaintLK | Stage 6 | Planned |
@@ -1160,9 +1162,10 @@ The next implementation work should occur in this exact order:
 12. [x] Add optional accounts only when saved WorkMoney scenarios begin.
 13. [x] Research and implement the Business And Tax regulated family (10.6): business income tax, VAT, withholding tax, freelance tax estimate, and SSCL check.
 14. [x] Implement the electricity domestic standard tariff (10.2) as a regulated calculator with the candidate spec, golden fixtures, and `docs/electricity-rule-sources.md`; effective-dated rule versioning and non-domestic categories remain.
-15. [x] Implement the lending and leasing feature increments (10.1): configurable rates, fees and insurance, early payment, and lease deposits/residuals/balloons; platform-observed bank rates with source and date remain.
+15. [x] Implement the lending and leasing feature increments (10.1): configurable rates, fees and insurance, early payment, and lease deposits/residuals/balloons.
 16. [x] Provision the `vehicle-import-excise-nitg-2026` dev rule in the local database; dated-exemption coverage is complete and production publication remains review-gated.
 17. [x] Provision the `sscl-lk-2026` dev rule; the independent review gate for regulated business tax publication remains.
+18. [x] Implement platform-observed bank rates (10.1) for the loan-schedule calculator: resolve the CBSL AWPR by calculation date with source and observation-date provenance, provision the `observed-lending-rates-lk-2026` dev rule, and record sources in `docs/lending-rule-sources.md`; licensed finance company lease rates remain pending.
 
 No later product track should interrupt this sequence unless product research changes the selected first vertical.
 

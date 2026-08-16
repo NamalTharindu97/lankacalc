@@ -51,6 +51,11 @@ import {
   ssclCheckInputSchema,
   ssclCheckPayloadSchema,
 } from "@/domain/calculators/business-tax/sscl-check";
+import {
+  observedLendingRatesPayloadSchema,
+  observedRateAsOfInputSchema,
+  resolveObservedRate,
+} from "@/domain/calculators/lending/observed-rates";
 import type { JsonValue } from "@/server/rules/json";
 import { RulePlatform, type RuleHandler } from "@/server/rules/service";
 
@@ -124,6 +129,21 @@ export const ruleHandlers: Readonly<Record<string, RuleHandler>> = {
         calculateFuelCost(
           fuelCostInputSchema.parse(input),
           fuelPumpPricePayloadSchema.parse(payload),
+        ),
+      );
+    },
+  },
+  "observed-lending-rates-lk-2026": {
+    payloadSchemaVersion: "1",
+    validatePayload(payload) {
+      observedLendingRatesPayloadSchema.parse(payload);
+    },
+    calculate(input, payload) {
+      return result(
+        resolveObservedRate(
+          observedLendingRatesPayloadSchema.parse(payload),
+          observedRateAsOfInputSchema.parse(input).asOfDate,
+          "awpr",
         ),
       );
     },

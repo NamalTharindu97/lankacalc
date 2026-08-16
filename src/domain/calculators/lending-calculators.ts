@@ -2,13 +2,32 @@ import Decimal from "decimal.js";
 import { z } from "zod";
 
 import { decimal, money, moneyRoundedDown } from "@/domain/calculators/decimal";
-import { decimalInput, integerInput } from "@/domain/calculators/input";
+import { decimalInput, integerInput, optionalDecimalInput } from "@/domain/calculators/input";
+import {
+  observedLendingRatesPayloadSchema,
+  resolveObservedRate,
+  type ObservedLendingRate,
+} from "@/domain/calculators/lending/observed-rates";
 import {
   defineCalculator,
+  defineRegulatedCalculator,
   type BreakdownItem,
   type CalculatorMetadata,
   type CalculationResult,
+  type RuleDependency,
 } from "@/domain/calculators/types";
+
+const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/;
+
+const asOfDateSchema = z
+  .string()
+  .regex(dateOnlyPattern, "Enter a valid calculation date.")
+  .refine((value) => {
+    const date = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+  }, "Enter a valid calculation date.");
+
+const rateSourceSchema = z.enum(["user", "platform"]);
 
 function lendingResult(
   calculator: Pick<CalculatorMetadata, "key" | "version">,
@@ -101,14 +120,19 @@ const loanScheduleMetadata = {
   key: "loan-schedule",
   name: "Loan schedule calculator",
   shortName: "Loan schedule",
-  summary: "Estimate the full repayment picture for a fixed-rate loan, including fees, insurance, and an optional early payment.",
+  summary: "Estimate the full repayment picture for a fixed-rate loan, including fees, insurance, an optional early payment, and the option to use the platform-observed CBSL prime lending rate.",
   category: "Money",
-  classification: "static",
-  version: "1.0.0",
+  classification: "configurable",
+  version: "1.1.0",
   accent: "rose",
   fields: [
+    { name: "asOfDate", label: "Calculation date", type: "date", required: true, min: "2026-01-01", max: "9999-12-31" },
+    { name: "rateSource", label: "Interest rate source", type: "select", required: true, defaultValue: "user", options: [
+      { label: "Enter my own rate", value: "user" },
+      { label: "Use the CBSL prime lending rate (AWPR)", value: "platform" },
+    ] },
+    { name: "annualRatePercent", label: "Nominal annual interest rate", type: "number", required: true, min: 0, max: 100, maxDecimalPlaces: 6, step: 0.000001, suffix: "%", visibleWhen: { field: "rateSource", equals: "user" } },
     { name: "principal", label: "Loan amount", type: "number", required: true, min: 0.01, max: 1_000_000_000_000, maxDecimalPlaces: 2, step: 0.01, suffix: "LKR" },
-    { name: "annualRatePercent", label: "Nominal annual interest rate", type: "number", required: true, min: 0, max: 100, maxDecimalPlaces: 6, step: 0.000001, suffix: "%" },
     { name: "termMonths", label: "Loan term", type: "number", required: true, min: 1, max: 1200, maxDecimalPlaces: 0, step: 1, suffix: "months" },
     { name: "processingFeePercent", label: "Processing fee", type: "number", required: true, min: 0, max: 100, maxDecimalPlaces: 2, step: 0.01, suffix: "% of loan", defaultValue: 0 },
     { name: "monthlyInsurancePremium", label: "Monthly insurance premium", type: "number", required: true, min: 0, max: 100_000_000, maxDecimalPlaces: 2, step: 0.01, suffix: "LKR/month", defaultValue: 0 },
@@ -119,101 +143,171 @@ const loanScheduleMetadata = {
 
 const loanScheduleSchema = z
   .object({
+    asOfDate: asOfDateSchema,
+    rateSource: rateSourceSchema.default("user"),
     principal: lkrAmount,
-    annualRatePercent: nominalRatePercent,
+    annualRatePercent: optionalDecimalInput({ min: 0, max: 100, maxDecimalPlaces: 6 }),
     termMonths: termMonths,
     processingFeePercent: feePercent,
     monthlyInsurancePremium: decimalInput({ min: 0, max: 100_000_000, maxDecimalPlaces: 2 }),
     extraPaymentAmount: lkrNonNegative,
     extraPaymentMonth: integerInput({ min: 0, max: 1200 }),
   })
-  .refine(
-    (input) => input.extraPaymentMonth === 0 || input.extraPaymentMonth <= input.termMonths,
-    {
-      message: "The extra payment month must be within the loan term.",
-      path: ["extraPaymentMonth"],
-    },
-  );
+  .superRefine((input, context) => {
+    if (input.rateSource === "user" && input.annualRatePercent === undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["annualRatePercent"],
+        message: "Enter an interest rate or choose the platform-observed rate.",
+      });
+    }
+    if (input.extraPaymentMonth !== 0 && input.extraPaymentMonth > input.termMonths) {
+      context.addIssue({
+        code: "custom",
+        path: ["extraPaymentMonth"],
+        message: "The extra payment month must be within the loan term.",
+      });
+    }
+  });
 
-export const loanScheduleCalculator = defineCalculator({
+const observedLendingRatesRule: RuleDependency = {
+  name: "observedLendingRates",
+  key: "observed-lending-rates-lk-2026",
+  scope: "lk",
+};
+
+type LoanScheduleInput = {
+  asOfDate: string;
+  rateSource: "user" | "platform";
+  principal: string;
+  annualRatePercent?: string;
+  termMonths: number;
+  processingFeePercent: string;
+  monthlyInsurancePremium: string;
+  extraPaymentAmount: string;
+  extraPaymentMonth: number;
+};
+
+export function calculateLoanSchedule(
+  input: LoanScheduleInput,
+  rawObservedRates: unknown,
+): CalculationResult {
+  const observedRates = observedLendingRatesPayloadSchema.parse(rawObservedRates);
+  let appliedRatePercent = input.annualRatePercent;
+  let observed: ObservedLendingRate | undefined;
+  if (input.rateSource === "platform") {
+    observed = resolveObservedRate(observedRates, input.asOfDate, "awpr");
+    appliedRatePercent = observed.value;
+  }
+  const annualRatePercent = appliedRatePercent as string;
+  const principal = decimal(input.principal);
+  const monthlyRate = decimal(annualRatePercent).div(1200);
+  const payments = schedulePayments(principal, monthlyRate, input.termMonths);
+  const processingFeeAmount = principal.mul(input.processingFeePercent).div(100);
+  const totalInsurance = decimal(input.monthlyInsurancePremium).mul(input.termMonths);
+  const totalCost = payments.totalPayment.plus(processingFeeAmount).plus(totalInsurance);
+
+  const breakdown: BreakdownItem[] = [
+    { label: "Regular monthly installment", value: money(payments.monthlyPayment), unit: "LKR" },
+    { label: "Adjusted final installment", value: money(payments.finalPayment), unit: "LKR" },
+    { label: "Total interest", value: money(payments.totalInterest), unit: "LKR" },
+    { label: "Total repayment", value: money(payments.totalPayment), unit: "LKR" },
+    { label: "Processing fee", value: money(processingFeeAmount), unit: "LKR" },
+    { label: "Insurance premium total", value: money(totalInsurance), unit: "LKR" },
+    { label: "Total cost", value: money(totalCost), unit: "LKR" },
+  ];
+
+  const result: Record<string, string | number> = {
+    rateSource: input.rateSource,
+    appliedAnnualRatePercent: annualRatePercent,
+    monthlyPayment: money(payments.monthlyPayment),
+    finalPayment: money(payments.finalPayment),
+    totalPayment: money(payments.totalPayment),
+    totalInterest: money(payments.totalInterest),
+    processingFeeAmount: money(processingFeeAmount),
+    totalInsurance: money(totalInsurance),
+    totalCost: money(totalCost),
+  };
+
+  const assumptions = [
+    "The applied rate is a nominal annual rate divided by 12 for monthly calculations.",
+    "Regular installments are rounded to cents; the final installment is adjusted so displayed payments reconcile with the displayed total.",
+    "The processing fee and insurance premium are paid separately and are not financed into the loan.",
+  ];
+
+  const warnings = [
+    "This is an estimate, not loan approval, financial advice, or a lender quotation.",
+    "Lender day-count conventions, penalties, taxes, and lender-specific rounding are not included.",
+  ];
+
+  if (observed) {
+    result.rateLabel = observed.label;
+    result.rateObservationDate = observed.observedOn;
+    result.rateAuthority = "Central Bank of Sri Lanka";
+    breakdown.push({
+      label: observed.label,
+      value: `${observed.value}%`,
+      unit: `as of ${observed.observedOn}`,
+    });
+    assumptions.push(
+      `The ${observed.label} is resolved from the latest published CBSL observation on or before the calculation date.`,
+    );
+    warnings.push(
+      "The CBSL prime lending rate (AWPR) is a market benchmark, not a personal loan quote; the rate a lender offers you may be higher or lower.",
+    );
+  }
+
+  if (input.extraPaymentMonth >= 1 && decimal(input.extraPaymentAmount).greaterThan(0)) {
+    const scenario = simulateEarlyPayment(
+      principal,
+      monthlyRate,
+      input.termMonths,
+      payments.monthlyPayment,
+      decimal(input.extraPaymentAmount),
+      input.extraPaymentMonth,
+    );
+    const interestSaved = payments.totalInterest.minus(scenario.interestWithExtra);
+
+    result.extraPaymentAmount = money(decimal(input.extraPaymentAmount));
+    result.termMonthsWithExtraPayment = scenario.months;
+    result.termMonthsSaved = input.termMonths - scenario.months;
+    result.finalPaymentWithExtraPayment = money(scenario.lastPayment);
+    result.totalPaymentWithExtraPayment = money(scenario.totalWithExtra);
+    result.totalInterestWithExtraPayment = money(scenario.interestWithExtra);
+    result.interestSaved = money(interestSaved);
+
+    breakdown.push(
+      { label: "Extra payment", value: money(decimal(input.extraPaymentAmount)), unit: "LKR" },
+      { label: "Term with early payment", value: scenario.months, unit: "months" },
+      { label: "Term shortened", value: input.termMonths - scenario.months, unit: "months" },
+      { label: "Interest saved", value: money(interestSaved), unit: "LKR" },
+    );
+    assumptions.push(
+      "The extra payment reduces the principal in its chosen month while the regular payment stays unchanged, shortening the term.",
+      "The extra payment is capped at the outstanding balance, and the interest saved compares the standard schedule with the early-payment schedule using the rounded regular payment.",
+    );
+  }
+
+  return lendingResult(loanScheduleMetadata, {
+    asOfDate: input.asOfDate,
+    normalizedInputs: {
+      ...input,
+      annualRatePercent,
+    },
+    result,
+    breakdown,
+    assumptions,
+    warnings,
+  });
+}
+
+export const loanScheduleCalculator = defineRegulatedCalculator({
   ...loanScheduleMetadata,
   schema: loanScheduleSchema,
-  run(input) {
-    const principal = decimal(input.principal);
-    const monthlyRate = decimal(input.annualRatePercent).div(1200);
-    const payments = schedulePayments(principal, monthlyRate, input.termMonths);
-    const processingFeeAmount = principal.mul(input.processingFeePercent).div(100);
-    const totalInsurance = decimal(input.monthlyInsurancePremium).mul(input.termMonths);
-    const totalCost = payments.totalPayment.plus(processingFeeAmount).plus(totalInsurance);
-
-    const breakdown: BreakdownItem[] = [
-      { label: "Regular monthly installment", value: money(payments.monthlyPayment), unit: "LKR" },
-      { label: "Adjusted final installment", value: money(payments.finalPayment), unit: "LKR" },
-      { label: "Total interest", value: money(payments.totalInterest), unit: "LKR" },
-      { label: "Total repayment", value: money(payments.totalPayment), unit: "LKR" },
-      { label: "Processing fee", value: money(processingFeeAmount), unit: "LKR" },
-      { label: "Insurance premium total", value: money(totalInsurance), unit: "LKR" },
-      { label: "Total cost", value: money(totalCost), unit: "LKR" },
-    ];
-
-    const result: Record<string, string | number> = {
-      monthlyPayment: money(payments.monthlyPayment),
-      finalPayment: money(payments.finalPayment),
-      totalPayment: money(payments.totalPayment),
-      totalInterest: money(payments.totalInterest),
-      processingFeeAmount: money(processingFeeAmount),
-      totalInsurance: money(totalInsurance),
-      totalCost: money(totalCost),
-    };
-
-    const assumptions = [
-      "The entered rate is a nominal annual rate divided by 12 for monthly calculations.",
-      "Regular installments are rounded to cents; the final installment is adjusted so displayed payments reconcile with the displayed total.",
-      "The processing fee and insurance premium are paid separately and are not financed into the loan.",
-    ];
-
-    if (input.extraPaymentMonth >= 1 && decimal(input.extraPaymentAmount).greaterThan(0)) {
-      const scenario = simulateEarlyPayment(
-        principal,
-        monthlyRate,
-        input.termMonths,
-        payments.monthlyPayment,
-        decimal(input.extraPaymentAmount),
-        input.extraPaymentMonth,
-      );
-      const interestSaved = payments.totalInterest.minus(scenario.interestWithExtra);
-
-      result.extraPaymentAmount = money(decimal(input.extraPaymentAmount));
-      result.termMonthsWithExtraPayment = scenario.months;
-      result.termMonthsSaved = input.termMonths - scenario.months;
-      result.finalPaymentWithExtraPayment = money(scenario.lastPayment);
-      result.totalPaymentWithExtraPayment = money(scenario.totalWithExtra);
-      result.totalInterestWithExtraPayment = money(scenario.interestWithExtra);
-      result.interestSaved = money(interestSaved);
-
-      breakdown.push(
-        { label: "Extra payment", value: money(decimal(input.extraPaymentAmount)), unit: "LKR" },
-        { label: "Term with early payment", value: scenario.months, unit: "months" },
-        { label: "Term shortened", value: input.termMonths - scenario.months, unit: "months" },
-        { label: "Interest saved", value: money(interestSaved), unit: "LKR" },
-      );
-      assumptions.push(
-        "The extra payment reduces the principal in its chosen month while the regular payment stays unchanged, shortening the term.",
-        "The extra payment is capped at the outstanding balance, and the interest saved compares the standard schedule with the early-payment schedule using the rounded regular payment.",
-      );
-    }
-
-    return lendingResult(loanScheduleMetadata, {
-      asOfDate: null,
-      normalizedInputs: input,
-      result,
-      breakdown,
-      assumptions,
-      warnings: [
-        "This is an estimate, not loan approval, financial advice, or a lender quotation.",
-        "Lender day-count conventions, penalties, taxes, and lender-specific rounding are not included.",
-      ],
-    });
+  ruleDependencies: [observedLendingRatesRule],
+  getAsOfDate: (input) => input.asOfDate,
+  run(input, payloads) {
+    return calculateLoanSchedule(input, payloads.observedLendingRates);
   },
 });
 
