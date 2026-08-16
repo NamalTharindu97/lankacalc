@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import { getCalculator } from "@/domain/calculators/registry";
 import {
   businessIncomeTaxCalculator,
+  freelanceTaxEstimateCalculator,
+  ssclCheckCalculator,
   vatLiabilityCalculator,
   withholdingTaxCalculator,
 } from "@/domain/calculators/business-tax-calculators";
@@ -24,6 +26,18 @@ import {
   withholdingTaxPayloadSchema,
   type WithholdingTaxPayload,
 } from "@/domain/calculators/business-tax/withholding-tax";
+import {
+  calculateFreelanceTaxEstimate,
+  freelanceTaxEstimateInputSchema,
+  freelanceTaxEstimatePayloadSchema,
+  type FreelanceTaxEstimatePayload,
+} from "@/domain/calculators/business-tax/freelance-tax-estimate";
+import {
+  calculateSsclCheck,
+  ssclCheckInputSchema,
+  ssclCheckPayloadSchema,
+  type SsclCheckPayload,
+} from "@/domain/calculators/business-tax/sscl-check";
 
 const vatLiabilityPayload = {
   vatLiability: {
@@ -106,6 +120,65 @@ const interestInput = {
   paymentType: "interest",
   grossAmount: 200000,
   interestSelfDeclaration: undefined,
+} as const;
+
+const freelanceTaxEstimatePayload = {
+  freelanceTaxEstimate: {
+    authority: "ird-income-tax-2025",
+    effectiveFrom: "2025-04-01",
+    yearOfAssessment: "2025/26",
+    rounding: "nearest-rupee",
+    personalRelief: "1800000",
+    individualBrackets: [
+      { upTo: "1000000", ratePercent: "6" },
+      { upTo: "1500000", ratePercent: "18" },
+      { upTo: "2000000", ratePercent: "24" },
+      { upTo: "2500000", ratePercent: "30" },
+      { upTo: null, ratePercent: "36" },
+    ],
+    foreignCurrencyRemittedCapPercent: "15",
+  },
+} satisfies { freelanceTaxEstimate: FreelanceTaxEstimatePayload };
+
+const freelancerBaseInput = {
+  asOfDate: "2026-08-16",
+  businessIncome: 3000000,
+  allowableExpenses: 200000,
+  capitalAllowances: undefined,
+  personalReliefOverride: undefined,
+  foreignIncomeAmount: undefined,
+  foreignTaxPaid: undefined,
+} as const;
+
+const ssclCheckPayload = {
+  ssclCheck: {
+    authority: "sscl-act-2022-as-amended",
+    effectiveFrom: "2024-01-01",
+    rounding: "nearest-rupee",
+    ratePercent: "2.5",
+    liableFractions: {
+      importer: "100",
+      manufacturer: "85",
+      "service-provider": "100",
+      "financial-service": "100",
+      "land-improvement": "100",
+      "wholesale-retail-distributor": "25",
+      "wholesale-retail-other": "50",
+    },
+    registrationThresholds: [
+      { effectiveFrom: "2024-01-01", quarter: "15000000", annual: "60000000" },
+      { effectiveFrom: "2026-07-01", quarter: "9000000", annual: "36000000" },
+    ],
+    financialServicesExemptFrom: "2025-12-17",
+  },
+} satisfies { ssclCheck: SsclCheckPayload };
+
+const ssclBaseInput = {
+  asOfDate: "2026-08-16",
+  turnoverCategory: "manufacturer",
+  periodEndDate: "2026-06-30",
+  quarterlyTurnover: 10000000,
+  rollingFourQuarterTurnover: 50000000,
 } as const;
 
 describe("regulated business income tax calculator definition", () => {
@@ -920,5 +993,424 @@ describe("withholding tax schemas", () => {
       },
     };
     expect(() => withholdingTaxPayloadSchema.parse(bad)).toThrow();
+  });
+});
+
+describe("regulated freelance tax estimate calculator definition", () => {
+  it("registers the calculator for server execution", () => {
+    expect(getCalculator("freelance-tax-estimate")).toMatchObject({
+      key: "freelance-tax-estimate",
+      classification: "regulated",
+      execution: "server",
+    });
+  });
+
+  it("exposes the freelance tax estimate rule dependency", () => {
+    expect(freelanceTaxEstimateCalculator.ruleDependencies).toEqual([
+      { name: "freelanceTaxEstimate", key: "freelance-tax-estimate-lk-2026", scope: "lk" },
+    ]);
+  });
+
+  it("presents the result through the common result contract", () => {
+    const result = freelanceTaxEstimateCalculator.calculate(
+      { ...freelancerBaseInput },
+      freelanceTaxEstimatePayload,
+    );
+
+    expect(result).toMatchObject({
+      calculator: "freelance-tax-estimate",
+      asOfDate: "2026-08-16",
+      ruleVersions: [],
+      sources: [],
+      result: {
+        taxpayerCategoryLabel: "Freelancer / service exporter (individual)",
+        yearOfAssessment: "2025/26",
+        taxableIncome: "1000000",
+        incomeTax: "60000.00",
+      },
+    });
+    expect(result.breakdown.length).toBeGreaterThan(0);
+    expect(result.assumptions.length).toBeGreaterThan(0);
+    expect(result.warnings.length).toBeGreaterThan(0);
+  });
+});
+
+describe("freelance tax estimate engine", () => {
+  it("applies official relief and the first individual band without a foreign path", () => {
+    const result = calculateFreelanceTaxEstimate(
+      { ...freelancerBaseInput },
+      freelanceTaxEstimatePayload.freelanceTaxEstimate,
+    );
+
+    expect(result).toMatchObject({
+      taxableIncomeBeforeRelief: "2800000",
+      taxableIncome: "1000000",
+      foreignIncomePortion: "0",
+      domesticPortion: "1000000",
+      foreignTaxCapped: "0.00",
+      capApplied: false,
+      foreignTaxCredit: "0.00",
+      incomeTax: "60000.00",
+      effectiveRatePercent: "6.00",
+    });
+  });
+
+  it("never increases the tax when all taxable income is foreign-currency-remitted", () => {
+    const result = calculateFreelanceTaxEstimate(
+      { ...freelancerBaseInput, foreignIncomeAmount: 2000000 },
+      freelanceTaxEstimatePayload.freelanceTaxEstimate,
+    );
+
+    expect(result).toMatchObject({
+      taxableIncome: "1000000",
+      foreignIncomePortion: "1000000",
+      domesticPortion: "0",
+      foreignTaxNormal: "60000.00",
+      foreignTaxCapped: "60000.00",
+      capApplied: false,
+      incomeTax: "60000.00",
+    });
+  });
+
+  it("caps a top-bracket foreign slice at 15%", () => {
+    const result = calculateFreelanceTaxEstimate(
+      { ...freelancerBaseInput, businessIncome: 5000000, foreignIncomeAmount: 500000 },
+      freelanceTaxEstimatePayload.freelanceTaxEstimate,
+    );
+
+    expect(result).toMatchObject({
+      taxableIncome: "3000000",
+      domesticPortion: "2500000",
+      foreignIncomePortion: "500000",
+      foreignTaxNormal: "180000.00",
+      foreignTaxCapped: "75000.00",
+      capApplied: true,
+      unroundedTax: "495000.00",
+      incomeTax: "495000.00",
+      effectiveRatePercent: "16.50",
+    });
+  });
+
+  it("caps a mid-band foreign slice at 15%", () => {
+    const result = calculateFreelanceTaxEstimate(
+      {
+        ...freelancerBaseInput,
+        businessIncome: 4000000,
+        allowableExpenses: 0,
+        foreignIncomeAmount: 500000,
+      },
+      freelanceTaxEstimatePayload.freelanceTaxEstimate,
+    );
+
+    expect(result).toMatchObject({
+      taxableIncome: "2200000",
+      foreignIncomePortion: "500000",
+      foreignTaxNormal: "132000.00",
+      foreignTaxCapped: "75000.00",
+      capApplied: true,
+      incomeTax: "273000.00",
+    });
+  });
+
+  it("leaves a below-15% marginal slice unchanged", () => {
+    const result = calculateFreelanceTaxEstimate(
+      { ...freelancerBaseInput, allowableExpenses: 0, foreignIncomeAmount: 500000 },
+      freelanceTaxEstimatePayload.freelanceTaxEstimate,
+    );
+
+    expect(result).toMatchObject({
+      taxableIncome: "1200000",
+      foreignIncomePortion: "500000",
+      foreignTaxNormal: "54000.00",
+      foreignTaxCapped: "54000.00",
+      capApplied: false,
+      incomeTax: "96000.00",
+    });
+  });
+
+  it("allows a foreign tax credit up to the Sri Lankan tax on the foreign income", () => {
+    const result = calculateFreelanceTaxEstimate(
+      {
+        ...freelancerBaseInput,
+        businessIncome: 5000000,
+        foreignIncomeAmount: 500000,
+        foreignTaxPaid: 60000,
+      },
+      freelanceTaxEstimatePayload.freelanceTaxEstimate,
+    );
+
+    expect(result).toMatchObject({
+      foreignTaxCapped: "75000.00",
+      foreignTaxCredit: "60000.00",
+      creditApplied: true,
+      incomeTax: "435000.00",
+    });
+  });
+
+  it("limits the foreign tax credit to the Sri Lankan tax on the foreign income", () => {
+    const result = calculateFreelanceTaxEstimate(
+      {
+        ...freelancerBaseInput,
+        businessIncome: 5000000,
+        foreignIncomeAmount: 500000,
+        foreignTaxPaid: 100000,
+      },
+      freelanceTaxEstimatePayload.freelanceTaxEstimate,
+    );
+
+    expect(result).toMatchObject({
+      foreignTaxCapped: "75000.00",
+      foreignTaxCredit: "75000.00",
+      creditApplied: true,
+      incomeTax: "420000.00",
+    });
+  });
+
+  it("honours a personal relief override", () => {
+    const result = calculateFreelanceTaxEstimate(
+      { ...freelancerBaseInput, personalReliefOverride: 0 },
+      freelanceTaxEstimatePayload.freelanceTaxEstimate,
+    );
+
+    expect(result).toMatchObject({
+      personalReliefSource: "user",
+      taxableIncome: "2800000",
+      incomeTax: "528000.00",
+    });
+  });
+});
+
+describe("freelance tax estimate schemas", () => {
+  it("rejects foreign tax paid without foreign-currency-remitted income", () => {
+    expect(
+      freelanceTaxEstimateInputSchema.safeParse({
+        ...freelancerBaseInput,
+        foreignTaxPaid: 50000,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a foreign-currency-remitted income above the total business income", () => {
+    expect(
+      freelanceTaxEstimateInputSchema.safeParse({
+        ...freelancerBaseInput,
+        foreignIncomeAmount: 4000000,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an individual bracket table that is not strictly ascending", () => {
+    const bad = {
+      ...freelanceTaxEstimatePayload.freelanceTaxEstimate,
+      individualBrackets: [
+        { upTo: "1500000", ratePercent: "18" },
+        { upTo: "1000000", ratePercent: "6" },
+        { upTo: null, ratePercent: "36" },
+      ],
+    };
+    expect(() => freelanceTaxEstimatePayloadSchema.parse(bad)).toThrow();
+  });
+});
+
+describe("regulated SSCL check calculator definition", () => {
+  it("registers the calculator for server execution", () => {
+    expect(getCalculator("sscl-check")).toMatchObject({
+      key: "sscl-check",
+      classification: "regulated",
+      execution: "server",
+    });
+  });
+
+  it("exposes the SSCL rule dependency", () => {
+    expect(ssclCheckCalculator.ruleDependencies).toEqual([
+      { name: "ssclCheck", key: "sscl-lk-2026", scope: "lk" },
+    ]);
+  });
+
+  it("presents the result through the common result contract", () => {
+    const result = ssclCheckCalculator.calculate(
+      { ...ssclBaseInput },
+      ssclCheckPayload,
+    );
+
+    expect(result).toMatchObject({
+      calculator: "sscl-check",
+      asOfDate: "2026-08-16",
+      ruleVersions: [],
+      sources: [],
+      result: {
+        turnoverCategoryLabel: "Manufacturer of any article",
+        periodStartDate: "2026-04-01",
+        periodEndDate: "2026-06-30",
+        ratePercent: "2.5",
+        registrationStatus: "Not required",
+        ssclPayable: "0.00",
+      },
+    });
+    expect(result.breakdown.length).toBeGreaterThan(0);
+    expect(result.assumptions.length).toBeGreaterThan(0);
+    expect(result.warnings.length).toBeGreaterThan(0);
+  });
+});
+
+describe("SSCL check engine", () => {
+  it("does not estimate SSCL below the old registration thresholds", () => {
+    const result = calculateSsclCheck(
+      { ...ssclBaseInput },
+      ssclCheckPayload.ssclCheck,
+    );
+
+    expect(result).toMatchObject({
+      turnoverCategory: "manufacturer",
+      liableFractionPercent: "85",
+      liableTurnover: "8500000",
+      registrationStatus: "not-required",
+      deregistrationEligible: true,
+      ssclPayable: "0.00",
+    });
+  });
+
+  it("applies the 2.5% rate to the liable fraction when registration is required", () => {
+    const result = calculateSsclCheck(
+      { ...ssclBaseInput, quarterlyTurnover: 20000000 },
+      ssclCheckPayload.ssclCheck,
+    );
+
+    expect(result).toMatchObject({
+      registrationStatus: "required",
+      liableTurnover: "17000000",
+      ssclPayable: "425000.00",
+    });
+  });
+
+  it("treats importers as mandatory registrants at full turnover regardless of threshold", () => {
+    const result = calculateSsclCheck(
+      { ...ssclBaseInput, turnoverCategory: "importer", quarterlyTurnover: 4000000 },
+      ssclCheckPayload.ssclCheck,
+    );
+
+    expect(result).toMatchObject({
+      registrationStatus: "mandatory",
+      liableFractionPercent: "100",
+      liableTurnover: "4000000",
+      ssclPayable: "100000.00",
+      deregistrationEligible: false,
+    });
+  });
+
+  it("uses the lowered thresholds for quarters from 2026-07-01", () => {
+    const result = calculateSsclCheck(
+      {
+        ...ssclBaseInput,
+        turnoverCategory: "wholesale-retail-distributor",
+        periodEndDate: "2026-09-30",
+        quarterlyTurnover: 8000000,
+        rollingFourQuarterTurnover: 40000000,
+      },
+      ssclCheckPayload.ssclCheck,
+    );
+
+    expect(result).toMatchObject({
+      periodStartDate: "2026-07-01",
+      liableFractionPercent: "25",
+      registrationStatus: "required",
+      liableTurnover: "2000000",
+      ssclPayable: "50000.00",
+    });
+  });
+
+  it("exempts financial services subject to 20.5% VAT from the exemption date onward", () => {
+    const result = calculateSsclCheck(
+      {
+        ...ssclBaseInput,
+        turnoverCategory: "financial-service",
+        periodEndDate: "2026-06-30",
+        quarterlyTurnover: 100000000,
+        rollingFourQuarterTurnover: undefined,
+      },
+      ssclCheckPayload.ssclCheck,
+    );
+
+    expect(result).toMatchObject({
+      exemptionApplied: true,
+      liableTurnover: "0",
+      registrationStatus: "exempt",
+      deregistrationEligible: false,
+      ssclPayable: "0.00",
+    });
+  });
+
+  it("still subjects financial services to the old rules before the exemption date", () => {
+    const result = calculateSsclCheck(
+      {
+        ...ssclBaseInput,
+        turnoverCategory: "financial-service",
+        periodEndDate: "2025-09-30",
+        quarterlyTurnover: 10000000,
+        rollingFourQuarterTurnover: 30000000,
+      },
+      ssclCheckPayload.ssclCheck,
+    );
+
+    expect(result).toMatchObject({
+      periodStartDate: "2025-07-01",
+      exemptionApplied: false,
+      registrationStatus: "not-required",
+      ssclPayable: "0.00",
+    });
+  });
+
+  it("reports the annual-threshold leg as indeterminate when the four-quarter turnover is missing", () => {
+    const result = calculateSsclCheck(
+      { ...ssclBaseInput, rollingFourQuarterTurnover: undefined },
+      ssclCheckPayload.ssclCheck,
+    );
+
+    expect(result).toMatchObject({
+      registrationStatus: "indeterminate",
+      ssclPayable: "0.00",
+    });
+  });
+});
+
+describe("SSCL check schemas", () => {
+  it("rejects a period that does not end on the last day of a quarter", () => {
+    expect(
+      ssclCheckInputSchema.safeParse({
+        ...ssclBaseInput,
+        periodEndDate: "2026-07-15",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a missing quarterly turnover for a non-financial category", () => {
+    expect(
+      ssclCheckInputSchema.safeParse({
+        ...ssclBaseInput,
+        quarterlyTurnover: undefined,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("allows a financial-service input without quarterly turnover", () => {
+    expect(
+      ssclCheckInputSchema.safeParse({
+        ...ssclBaseInput,
+        turnoverCategory: "financial-service",
+        quarterlyTurnover: undefined,
+        rollingFourQuarterTurnover: undefined,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects a registration threshold schedule that is not strictly ascending", () => {
+    const bad = {
+      ...ssclCheckPayload.ssclCheck,
+      registrationThresholds: [
+        { effectiveFrom: "2026-07-01", quarter: "9000000", annual: "36000000" },
+        { effectiveFrom: "2024-01-01", quarter: "15000000", annual: "60000000" },
+      ],
+    };
+    expect(() => ssclCheckPayloadSchema.parse(bad)).toThrow();
   });
 });

@@ -37,6 +37,8 @@ import { fuelCostCalculator } from "@/domain/calculators/fuel-calculators";
 import { solarCostCalculator } from "@/domain/calculators/solar-calculators";
 import {
   businessIncomeTaxCalculator,
+  freelanceTaxEstimateCalculator,
+  ssclCheckCalculator,
   vatLiabilityCalculator,
   withholdingTaxCalculator,
 } from "@/domain/calculators/business-tax-calculators";
@@ -73,6 +75,8 @@ const calculators = [
   fuelCostCalculator,
   solarCostCalculator,
   businessIncomeTaxCalculator,
+  freelanceTaxEstimateCalculator,
+  ssclCheckCalculator,
   vatLiabilityCalculator,
   withholdingTaxCalculator,
 ] satisfies CalculatorDefinition[];

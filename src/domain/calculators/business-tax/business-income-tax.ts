@@ -129,7 +129,7 @@ const categoryLabels: Record<TaxpayerCategory, string> = {
   company: "Company",
 };
 
-function individualBands(
+export function individualBands(
   taxableIncome: Money,
   brackets: ReadonlyArray<{ upTo: string | null; ratePercent: string }>,
 ): TaxBandContribution[] {
