@@ -27,6 +27,10 @@ import {
   steelCalculator,
   tileQuantityCalculator,
 } from "@/domain/calculators/construction-calculators";
+import {
+  leaseCalculator,
+  loanScheduleCalculator,
+} from "@/domain/calculators/lending-calculators";
 import type { CalculatorDefinition, CalculatorMetadata } from "@/domain/calculators/types";
 
 const calculators = [
@@ -42,6 +46,8 @@ const calculators = [
   roofMaterialCalculator,
   loanEmiCalculator,
   loanAffordabilityCalculator,
+  loanScheduleCalculator,
+  leaseCalculator,
   fuelConsumptionCalculator,
   apitCalculator,
   epfCalculator,
