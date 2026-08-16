@@ -35,7 +35,10 @@ import { electricityBillCalculator } from "@/domain/calculators/electricity-calc
 import { vehicleImportDutyCalculator } from "@/domain/calculators/vehicle-import-calculators";
 import { fuelCostCalculator } from "@/domain/calculators/fuel-calculators";
 import { solarCostCalculator } from "@/domain/calculators/solar-calculators";
-import { businessIncomeTaxCalculator } from "@/domain/calculators/business-tax-calculators";
+import {
+  businessIncomeTaxCalculator,
+  vatLiabilityCalculator,
+} from "@/domain/calculators/business-tax-calculators";
 import type { CalculatorDefinition, CalculatorMetadata } from "@/domain/calculators/types";
 
 const calculators = [
@@ -69,6 +72,7 @@ const calculators = [
   fuelCostCalculator,
   solarCostCalculator,
   businessIncomeTaxCalculator,
+  vatLiabilityCalculator,
 ] satisfies CalculatorDefinition[];
 
 export function createCalculatorRegistry(definitions: CalculatorDefinition[]) {

@@ -4,6 +4,11 @@ import {
   calculateBusinessIncomeTax,
 } from "@/domain/calculators/business-tax/business-income-tax";
 import {
+  calculateVatLiability,
+  vatLiabilityInputSchema,
+  vatLiabilityPayloadSchema,
+} from "@/domain/calculators/business-tax/vat-liability";
+import {
   defineRegulatedCalculator,
   type CalculationResult,
   type CalculatorMetadata,
@@ -134,6 +139,110 @@ export const businessIncomeTaxCalculator = defineRegulatedCalculator({
         "Rates, reliefs, and thresholds change each year of assessment; the result uses the rule effective for the date entered.",
         "The full statutory personal relief is applied by default; use the override if other income in your return consumes part of it.",
         "Losses carried forward, disallowed expenses, capital-gain interaction, and Commissioner-General discretion cases are not modelled.",
+        "Independent formula and accounting review is still required before this regulated rule is published for production use.",
+      ],
+    });
+  },
+});
+
+const vatLiabilityRule: RuleDependency = {
+  name: "vatLiability",
+  key: "vat-liability-lk-2026",
+  scope: "lk",
+};
+
+const supplierCategoryOptions = [
+  { label: "Select the supplier type", value: "" },
+  { label: "Goods and services supplier", value: "goods-services" },
+  { label: "Financial services supplier", value: "financial-services" },
+  { label: "Commercial importer / exporter", value: "importer-exporter" },
+  { label: "Non-resident digital service provider", value: "digital-service" },
+];
+
+const taxablePeriodOptions = [
+  { label: "Select the taxable period", value: "" },
+  { label: "Monthly", value: "monthly" },
+  { label: "Quarterly", value: "quarterly" },
+];
+
+const vatLiabilityMetadata = {
+  key: "vat-liability",
+  name: "VAT liability and registration check",
+  shortName: "VAT liability",
+  summary: "Estimate VAT payable for a taxable period and check VAT registration thresholds.",
+  category: "Business & Tax",
+  classification: "regulated",
+  version: "1.0.0",
+  accent: "blue",
+  fields: [
+    { name: "asOfDate", label: "Calculation date", type: "date", required: true, min: "2024-01-01", max: "9999-12-31" },
+    { name: "supplierCategory", label: "Supplier type", type: "select", required: true, options: supplierCategoryOptions, description: "Which kind of supplier you are. This selects the VAT rate and registration test that apply." },
+    { name: "taxablePeriod", label: "Taxable period", type: "select", required: true, options: taxablePeriodOptions, description: "Monthly or quarterly VAT return period." },
+    { name: "periodEndDate", label: "Period end date", type: "date", required: true, min: "2024-01-01", max: "9999-12-31", description: "The last day of the month or quarter the return covers. The rate is selected by the period start date." },
+    { name: "taxableSuppliesAmount", label: "Taxable supplies", type: "number", required: true, min: 0, max: 10_000_000_000, maxDecimalPlaces: 0, step: 1, suffix: "LKR", visibleWhen: { field: "supplierCategory", notEquals: "digital-service" }, description: "Total value of taxable supplies for the period, excluding VAT." },
+    { name: "inputTaxCreditAmount", label: "Input tax credit", type: "number", required: true, min: 0, max: 10_000_000_000, maxDecimalPlaces: 0, step: 1, suffix: "LKR", visibleWhen: { field: "supplierCategory", notEquals: "digital-service" }, description: "VAT paid on creditable purchases for the period." },
+    { name: "rolling12MonthTurnover", label: "Rolling 12-month turnover (optional)", type: "number", required: false, min: 0, max: 10_000_000_000, maxDecimalPlaces: 0, step: 1, suffix: "LKR", description: "Total taxable turnover over the last 12 months, used for the registration-threshold check. Leave blank if you are already registered." },
+  ],
+} satisfies CalculatorMetadata;
+
+export const vatLiabilityCalculator = defineRegulatedCalculator({
+  ...vatLiabilityMetadata,
+  schema: vatLiabilityInputSchema,
+  ruleDependencies: [vatLiabilityRule],
+  getAsOfDate: (input) => input.asOfDate,
+  run(input, payloads) {
+    const payload = vatLiabilityPayloadSchema.parse(payloads.vatLiability);
+    const calculation = calculateVatLiability(input, payload);
+
+    const resultFields: Record<string, string | number> = {
+      supplierCategory: calculation.supplierCategory,
+      supplierCategoryLabel: calculation.supplierCategoryLabel,
+      taxablePeriod: calculation.taxablePeriod,
+      periodStartDate: calculation.periodStartDate,
+      periodEndDate: calculation.periodEndDate,
+      ratePercent: calculation.ratePercent,
+      rateEffectiveFrom: calculation.rateEffectiveFrom,
+      taxableSuppliesAmount: calculation.taxableSuppliesAmount,
+      outputVat: calculation.outputVat,
+      inputTaxCredit: calculation.inputTaxCredit,
+      netVat: calculation.netVat,
+      vatPayable: calculation.vatPayable,
+      excessCredit: calculation.excessCredit,
+      registrationStatus: calculation.registrationStatus,
+      registrationReason: calculation.registrationReason,
+    };
+
+    const breakdown = [
+      { label: "Supplier type", value: calculation.supplierCategoryLabel },
+      { label: "Taxable period", value: calculation.taxablePeriod },
+      { label: "Period covered", value: `${calculation.periodStartDate} to ${calculation.periodEndDate}` },
+      { label: "VAT rate", value: calculation.ratePercent, unit: "%", expression: `Rate for periods commencing ${calculation.rateEffectiveFrom}` },
+      { label: "Taxable supplies", value: calculation.taxableSuppliesAmount, unit: "LKR", expression: "Value of taxable supplies excluding VAT" },
+      { label: "Output VAT", value: calculation.outputVat, unit: "LKR", expression: calculation.ratePercent === "n/a" ? "Not computed for a registration check" : `${calculation.taxableSuppliesAmount} × ${calculation.ratePercent}%` },
+      { label: "Input tax credit", value: calculation.inputTaxCredit, unit: "LKR", expression: "VAT on creditable purchases for the period" },
+      { label: "Net VAT", value: calculation.netVat, unit: "LKR", expression: `${calculation.outputVat} − ${calculation.inputTaxCredit}` },
+      { label: "VAT payable", value: calculation.vatPayable, unit: "LKR", expression: `Rounded to the nearest rupee (${payload.rounding})` },
+      { label: "Excess credit", value: calculation.excessCredit, unit: "LKR", expression: "Carried forward when net VAT is negative" },
+      { label: "Registration status", value: calculation.registrationStatus },
+      { label: "Registration check", value: calculation.registrationReason },
+    ];
+
+    return baseResult(vatLiabilityMetadata, {
+      asOfDate: input.asOfDate,
+      normalizedInputs: input,
+      result: resultFields,
+      breakdown,
+      assumptions: [
+        `VAT is charged at the rate for the taxable period start date: ${calculation.ratePercent}% (${calculation.rateEffectiveFrom}).`,
+        "Taxable supplies are the value of supplies excluding VAT; input tax credit is the VAT paid on creditable purchases in the period.",
+        "VAT payable is the excess of output VAT over input tax credit, rounded once to the nearest rupee.",
+        "The registration check compares period and rolling 12-month turnover against the thresholds in the rule.",
+      ],
+      warnings: [
+        "This is an estimate for self-assessment, not tax, legal, or accounting advice.",
+        "Exempt and zero-rated supplies, partial input credit apportionment, import VAT timing, and the SVAT refund mechanism are not modelled.",
+        "Rates, thresholds, and registration rules change; the result uses the rule effective for the date entered.",
+        "A registration decision must be confirmed with the Inland Revenue Department before acting on it.",
         "Independent formula and accounting review is still required before this regulated rule is published for production use.",
       ],
     });
