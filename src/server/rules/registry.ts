@@ -26,6 +26,11 @@ import {
   solarAssumptionsPayloadSchema,
   solarCostInputSchema,
 } from "@/domain/calculators/solar/solar-cost";
+import {
+  businessIncomeTaxInputSchema,
+  businessIncomeTaxPayloadSchema,
+  calculateBusinessIncomeTax,
+} from "@/domain/calculators/business-tax/business-income-tax";
 import type { JsonValue } from "@/server/rules/json";
 import { RulePlatform, type RuleHandler } from "@/server/rules/service";
 
@@ -113,6 +118,20 @@ export const ruleHandlers: Readonly<Record<string, RuleHandler>> = {
         calculateSolarCost(
           solarCostInputSchema.parse(input),
           solarAssumptionsPayloadSchema.parse(payload),
+        ),
+      );
+    },
+  },
+  "business-income-tax-lk-2026": {
+    payloadSchemaVersion: "1",
+    validatePayload(payload) {
+      businessIncomeTaxPayloadSchema.parse(payload);
+    },
+    calculate(input, payload) {
+      return result(
+        calculateBusinessIncomeTax(
+          businessIncomeTaxInputSchema.parse(input),
+          businessIncomeTaxPayloadSchema.parse(payload),
         ),
       );
     },
