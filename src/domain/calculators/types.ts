@@ -20,7 +20,13 @@ export type CalculatorField = {
   step?: number;
   suffix?: string;
   options?: Array<{ label: string; value: string }>;
-  visibleWhen?: { field: string; equals?: string; notEquals?: string };
+  visibleWhen?: {
+    field: string;
+    equals?: string;
+    notEquals?: string;
+    in?: string[];
+    notIn?: string[];
+  };
 };
 
 export type SourceReference = {

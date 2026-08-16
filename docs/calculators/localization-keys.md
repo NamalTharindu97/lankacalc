@@ -389,4 +389,40 @@ calculator.electricity.error.precision
 calculator.electricity.error.ruleUnavailable
 ```
 
+## Electricity Non-Domestic
+
+```text
+calculator.electricityNonDomestic.name
+calculator.electricityNonDomestic.summary
+calculator.electricityNonDomestic.input.asOfDate
+calculator.electricityNonDomestic.input.category
+calculator.electricityNonDomestic.input.unitsConsumed
+calculator.electricityNonDomestic.input.billingDays
+calculator.electricityNonDomestic.input.peakUnits
+calculator.electricityNonDomestic.input.dayUnits
+calculator.electricityNonDomestic.input.offPeakUnits
+calculator.electricityNonDomestic.input.billedDemandKva
+calculator.electricityNonDomestic.output.category
+calculator.electricityNonDomestic.output.structure
+calculator.electricityNonDomestic.output.tier
+calculator.electricityNonDomestic.output.energyCharge
+calculator.electricityNonDomestic.output.fixedCharge
+calculator.electricityNonDomestic.output.demandCharge
+calculator.electricityNonDomestic.output.tariffCharge
+calculator.electricityNonDomestic.output.sscLRatePercent
+calculator.electricityNonDomestic.output.sscLAmount
+calculator.electricityNonDomestic.output.totalPayable
+calculator.electricityNonDomestic.assumption.pucslTariff
+calculator.electricityNonDomestic.assumption.proration
+calculator.electricityNonDomestic.assumption.vdmc
+calculator.electricityNonDomestic.assumption.touWindows
+calculator.electricityNonDomestic.assumption.demand
+calculator.electricityNonDomestic.assumption.sscl
+calculator.electricityNonDomestic.assumption.vatIncluded
+calculator.electricityNonDomestic.warning.estimate
+calculator.electricityNonDomestic.warning.classification
+calculator.electricityNonDomestic.warning.exclusions
+calculator.electricityNonDomestic.error.ruleUnavailable
+```
+
 

@@ -9,7 +9,9 @@ import {
 } from "@/domain/calculators/employment";
 import {
   calculateDomesticElectricityBill,
+  calculateNonDomesticElectricityBill,
   electricityDomesticPayloadSchema,
+  electricityNonDomesticPayloadSchema,
 } from "@/domain/calculators/energy/electricity";
 import {
   calculateVehicleImportDuty,
@@ -103,6 +105,20 @@ export const ruleHandlers: Readonly<Record<string, RuleHandler>> = {
         calculateDomesticElectricityBill(
           input as never,
           electricityDomesticPayloadSchema.parse(payload),
+        ),
+      );
+    },
+  },
+  "electricity-non-domestic-standard": {
+    payloadSchemaVersion: "1",
+    validatePayload(payload) {
+      electricityNonDomesticPayloadSchema.parse(payload);
+    },
+    calculate(input, payload) {
+      return result(
+        calculateNonDomesticElectricityBill(
+          input as never,
+          electricityNonDomesticPayloadSchema.parse(payload),
         ),
       );
     },
