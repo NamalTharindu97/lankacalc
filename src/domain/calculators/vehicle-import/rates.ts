@@ -38,6 +38,16 @@ const vehicleAgeRatesSchema = z
     "Age-rate schedules must define a rate for every vehicle age band.",
   );
 
+const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/;
+
+const surchargeExemptionSchema = z
+  .object({
+    instrument: z.string().min(1).max(300),
+    lcEstablishedOnOrBefore: z.string().regex(dateOnlyPattern),
+    shippedOnBoardOnOrBefore: z.string().regex(dateOnlyPattern),
+  })
+  .strict();
+
 const luxuryRateStringSchema = nonnegativeDecimalStringSchema.refine(
   (rate) => decimal(rate).lessThanOrEqualTo(2),
   "Expected a luxury tax rate between 0 and 200%.",
@@ -109,6 +119,7 @@ export const vehicleImportPayloadSchema = z
     effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     cidRate: rateStringSchema,
     surchargeRate: rateStringSchema,
+    surchargeExemption: surchargeExemptionSchema.optional(),
     vatRate: rateStringSchema,
     ssclRate: rateStringSchema,
     vatBaseCifMultiplier: nonnegativeDecimalStringSchema,
