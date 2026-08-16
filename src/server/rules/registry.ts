@@ -41,6 +41,16 @@ import {
   withholdingTaxInputSchema,
   withholdingTaxPayloadSchema,
 } from "@/domain/calculators/business-tax/withholding-tax";
+import {
+  calculateFreelanceTaxEstimate,
+  freelanceTaxEstimateInputSchema,
+  freelanceTaxEstimatePayloadSchema,
+} from "@/domain/calculators/business-tax/freelance-tax-estimate";
+import {
+  calculateSsclCheck,
+  ssclCheckInputSchema,
+  ssclCheckPayloadSchema,
+} from "@/domain/calculators/business-tax/sscl-check";
 import type { JsonValue } from "@/server/rules/json";
 import { RulePlatform, type RuleHandler } from "@/server/rules/service";
 
@@ -170,6 +180,34 @@ export const ruleHandlers: Readonly<Record<string, RuleHandler>> = {
         calculateWithholdingTax(
           withholdingTaxInputSchema.parse(input),
           withholdingTaxPayloadSchema.parse(payload),
+        ),
+      );
+    },
+  },
+  "freelance-tax-estimate-lk-2026": {
+    payloadSchemaVersion: "1",
+    validatePayload(payload) {
+      freelanceTaxEstimatePayloadSchema.parse(payload);
+    },
+    calculate(input, payload) {
+      return result(
+        calculateFreelanceTaxEstimate(
+          freelanceTaxEstimateInputSchema.parse(input),
+          freelanceTaxEstimatePayloadSchema.parse(payload),
+        ),
+      );
+    },
+  },
+  "sscl-lk-2026": {
+    payloadSchemaVersion: "1",
+    validatePayload(payload) {
+      ssclCheckPayloadSchema.parse(payload);
+    },
+    calculate(input, payload) {
+      return result(
+        calculateSsclCheck(
+          ssclCheckInputSchema.parse(input),
+          ssclCheckPayloadSchema.parse(payload),
         ),
       );
     },

@@ -14,6 +14,16 @@ import {
   withholdingTaxPayloadSchema,
 } from "@/domain/calculators/business-tax/withholding-tax";
 import {
+  calculateFreelanceTaxEstimate,
+  freelanceTaxEstimateInputSchema,
+  freelanceTaxEstimatePayloadSchema,
+} from "@/domain/calculators/business-tax/freelance-tax-estimate";
+import {
+  calculateSsclCheck,
+  ssclCheckInputSchema,
+  ssclCheckPayloadSchema,
+} from "@/domain/calculators/business-tax/sscl-check";
+import {
   defineRegulatedCalculator,
   type CalculationResult,
   type CalculatorMetadata,
@@ -351,6 +361,248 @@ export const withholdingTaxCalculator = defineRegulatedCalculator({
         "Rates and thresholds change; the result uses the rule effective for the payment date.",
         "Independent formula and accounting review is still required before this regulated rule is published for production use.",
       ],
+    });
+  },
+});
+
+const freelanceTaxEstimateRule: RuleDependency = {
+  name: "freelanceTaxEstimate",
+  key: "freelance-tax-estimate-lk-2026",
+  scope: "lk",
+};
+
+const freelanceTaxEstimateMetadata = {
+  key: "freelance-tax-estimate",
+  name: "Freelancer tax estimate",
+  shortName: "Freelancer tax",
+  summary: "Estimate annual income tax for a freelancer or service exporter, including the foreign-currency-remitted capped-rate path and foreign tax credit.",
+  category: "Business & Tax",
+  classification: "regulated",
+  version: "1.0.0",
+  accent: "gold",
+  fields: [
+    { name: "asOfDate", label: "Calculation date", type: "date", required: true, min: "2025-04-01", max: "9999-12-31" },
+    { name: "businessIncome", label: "Service income", type: "number", required: true, min: 0, max: 10_000_000_000, maxDecimalPlaces: 0, step: 1, suffix: "LKR", description: "Gross service income for the year of assessment. Foreign service income is business income, not employment income." },
+    { name: "allowableExpenses", label: "Allowable expenses", type: "number", required: true, min: 0, max: 10_000_000_000, maxDecimalPlaces: 0, step: 1, suffix: "LKR", description: "Expenses incurred in producing the service income and allowed as deductions." },
+    { name: "capitalAllowances", label: "Capital allowances (optional)", type: "number", required: false, min: 0, max: 10_000_000_000, maxDecimalPlaces: 0, step: 1, suffix: "LKR", description: "Fourth Schedule depreciation on depreciable business assets. Leave blank for none." },
+    { name: "personalReliefOverride", label: "Personal relief (optional)", type: "number", required: false, min: 0, max: 10_000_000_000, maxDecimalPlaces: 0, step: 1, suffix: "LKR", description: "Override the statutory personal relief, for example when part of it is consumed by other income in your return." },
+    { name: "foreignIncomeAmount", label: "Foreign-currency-remitted income (optional)", type: "number", required: false, min: 0, max: 10_000_000_000, maxDecimalPlaces: 0, step: 1, suffix: "LKR", description: "Service income rendered for use outside Sri Lanka or foreign-source income, received in foreign currency and remitted through a bank in Sri Lanka. Taxed at a maximum of 15%." },
+    { name: "foreignTaxPaid", label: "Foreign tax paid (optional)", type: "number", required: false, min: 0, max: 10_000_000_000, maxDecimalPlaces: 0, step: 1, suffix: "LKR", description: "Income tax paid abroad on the foreign-currency-remitted income, creditable against Sri Lankan tax under section 80. Leave blank if no foreign tax was paid." },
+  ],
+} satisfies CalculatorMetadata;
+
+export const freelanceTaxEstimateCalculator = defineRegulatedCalculator({
+  ...freelanceTaxEstimateMetadata,
+  schema: freelanceTaxEstimateInputSchema,
+  ruleDependencies: [freelanceTaxEstimateRule],
+  getAsOfDate: (input) => input.asOfDate,
+  run(input, payloads) {
+    const payload = freelanceTaxEstimatePayloadSchema.parse(payloads.freelanceTaxEstimate);
+    const calculation = calculateFreelanceTaxEstimate(input, payload);
+
+    const reliefLine =
+      calculation.personalReliefSource === "user"
+        ? `Custom relief LKR ${calculation.personalRelief} (official relief was LKR ${payload.personalRelief})`
+        : `Official relief LKR ${calculation.personalRelief}`;
+
+    const deductionsExpression =
+      input.capitalAllowances === undefined
+        ? `${calculation.allowableExpenses} expenses`
+        : `${calculation.allowableExpenses} expenses + ${calculation.capitalAllowances} capital allowances`;
+
+    const resultFields: Record<string, string | number> = {
+      yearOfAssessment: calculation.yearOfAssessment,
+      taxpayerCategoryLabel: calculation.taxpayerCategoryLabel,
+      businessIncome: calculation.businessIncome,
+      allowableExpenses: calculation.allowableExpenses,
+      capitalAllowances: calculation.capitalAllowances,
+      totalDeductions: calculation.totalDeductions,
+      taxableIncomeBeforeRelief: calculation.taxableIncomeBeforeRelief,
+      personalRelief: calculation.personalRelief,
+      personalReliefSource: calculation.personalReliefSource,
+      taxableIncome: calculation.taxableIncome,
+      foreignIncomePortion: calculation.foreignIncomePortion,
+      domesticPortion: calculation.domesticPortion,
+      capPercent: calculation.capPercent,
+      foreignTaxNormal: calculation.foreignTaxNormal,
+      foreignTaxCapped: calculation.foreignTaxCapped,
+      capApplied: calculation.capApplied ? "yes" : "no",
+      unroundedTax: calculation.unroundedTax,
+      foreignTaxCredit: calculation.foreignTaxCredit,
+      creditApplied: calculation.creditApplied ? "yes" : "no",
+      incomeTax: calculation.incomeTax,
+      effectiveRatePercent: calculation.effectiveRatePercent,
+    };
+
+    const foreignNote =
+      calculation.foreignIncomePortion === "0"
+        ? "No foreign-currency-remitted income entered"
+        : calculation.capApplied
+          ? `${calculation.foreignTaxCapped} at the ${calculation.capPercent}% cap instead of ${calculation.foreignTaxNormal} at the normal marginal rates`
+          : `${calculation.foreignTaxCapped} at the ${calculation.capPercent}% cap (below it the normal marginal rates applied)`;
+
+    const breakdown = [
+      { label: "Taxpayer type", value: calculation.taxpayerCategoryLabel },
+      { label: "Year of assessment", value: calculation.yearOfAssessment },
+      { label: "Service income", value: calculation.businessIncome, unit: "LKR", expression: "Gross service income for the year" },
+      { label: "Allowable expenses", value: calculation.allowableExpenses, unit: "LKR" },
+      { label: "Capital allowances", value: calculation.capitalAllowances, unit: "LKR", expression: input.capitalAllowances === undefined ? "None entered" : "Fourth Schedule depreciation" },
+      { label: "Total deductions", value: calculation.totalDeductions, unit: "LKR", expression: deductionsExpression },
+      { label: "Taxable income before relief", value: calculation.taxableIncomeBeforeRelief, unit: "LKR", expression: `${calculation.businessIncome} − ${calculation.totalDeductions}` },
+      { label: "Personal relief", value: calculation.personalRelief, unit: "LKR", expression: reliefLine },
+      { label: "Taxable income", value: calculation.taxableIncome, unit: "LKR", expression: `${calculation.taxableIncomeBeforeRelief} − ${calculation.personalRelief}` },
+      { label: "Domestic taxable portion", value: calculation.domesticPortion, unit: "LKR", expression: "Portion not eligible for the foreign-currency-remitted cap" },
+      { label: "Foreign-currency-remitted portion", value: calculation.foreignIncomePortion, unit: "LKR", expression: input.foreignIncomeAmount === undefined ? "None entered" : `Taxed at a maximum of ${calculation.capPercent}%` },
+      ...calculation.domesticBands.map((band) => ({
+        label: `Tax at ${band.ratePercent}%`,
+        value: band.tax,
+        unit: "LKR",
+        expression: `${band.ratePercent}% on ${band.taxableAmount} (${band.label})`,
+      })),
+      { label: "Foreign income tax", value: calculation.foreignTaxCapped, unit: "LKR", expression: foreignNote },
+      { label: "Unrounded tax", value: calculation.unroundedTax, unit: "LKR", expression: "Sum before rounding and before the foreign tax credit" },
+      { label: "Foreign tax credit", value: calculation.foreignTaxCredit, unit: "LKR", expression: calculation.creditApplied ? "Limited to the Sri Lankan tax on the foreign income" : "None" },
+      { label: "Income tax payable", value: calculation.incomeTax, unit: "LKR", expression: `Rounded to the nearest rupee (${payload.rounding})` },
+      { label: "Effective rate", value: calculation.effectiveRatePercent, unit: "%", expression: `${calculation.incomeTax} ÷ ${calculation.taxableIncome}` },
+    ];
+
+    const assumptions = [
+      `Rates apply to year of assessment ${calculation.yearOfAssessment} (effective ${payload.effectiveFrom}) as published by the Inland Revenue Department.`,
+      `Foreign service income is business income, not employment income; the personal relief of LKR ${payload.personalRelief} applies to the individual's total assessable income.`,
+      "Foreign-currency-remitted income (services for use outside Sri Lanka, or foreign-source income, received in foreign currency and remitted through a bank in Sri Lanka) is taxed at a maximum of 15%; the cap never increases the tax above the normal marginal rates.",
+      `A foreign tax credit under section 80 is limited to the Sri Lankan tax attributable to the foreign income (LKR ${calculation.foreignTaxCapped}), and excess foreign tax is not refundable or carried forward.`,
+      "Tax is computed on taxable income after deductions and relief, then rounded once to the nearest rupee.",
+    ];
+    if (input.foreignIncomeAmount !== undefined && Number(input.foreignIncomeAmount) > Number(calculation.foreignIncomePortion)) {
+      assumptions.push(
+        `The foreign-currency-remitted income entered (LKR ${input.foreignIncomeAmount}) exceeds the taxable income and is capped at LKR ${calculation.foreignIncomePortion}.`,
+      );
+    }
+
+    return baseResult(freelanceTaxEstimateMetadata, {
+      asOfDate: input.asOfDate,
+      normalizedInputs: input,
+      result: resultFields,
+      breakdown,
+      assumptions,
+      warnings: [
+        "This is an estimate for self-assessment, not tax, legal, or accounting advice.",
+        "The 15% cap applies only where the foreign service income is for use outside Sri Lanka, is received in foreign currency, and is remitted through a bank in Sri Lanka; otherwise the normal progressive rates apply.",
+        "Expenses must be allowable deductions incurred in producing the service income; personal and disallowed items are excluded.",
+        "The foreign tax credit requires evidence of the foreign tax actually paid and is limited to the Sri Lankan tax on that income; treaty relief is not modelled.",
+        "Losses carried forward, disallowed expenses, and Commissioner-General discretion cases are not modelled.",
+        "Independent formula and accounting review is still required before this regulated rule is published for production use.",
+      ],
+    });
+  },
+});
+
+const ssclCheckRule: RuleDependency = {
+  name: "ssclCheck",
+  key: "sscl-lk-2026",
+  scope: "lk",
+};
+
+const turnoverCategoryOptions = [
+  { label: "Select the business type", value: "" },
+  { label: "Importer of any article", value: "importer" },
+  { label: "Manufacturer of any article", value: "manufacturer" },
+  { label: "Service provider (non-financial)", value: "service-provider" },
+  { label: "Financial services supplier (20.5% VAT)", value: "financial-service" },
+  { label: "Land and improvements", value: "land-improvement" },
+  { label: "Wholesale/retail — registered distributor", value: "wholesale-retail-distributor" },
+  { label: "Wholesale/retail — other (including importation and sale)", value: "wholesale-retail-other" },
+];
+
+const ssclCheckMetadata = {
+  key: "sscl-check",
+  name: "SSCL liability and registration check",
+  shortName: "SSCL check",
+  summary: "Check whether a business owes the 2.5% Social Security Contribution Levy and whether it must register, quarter by quarter.",
+  category: "Business & Tax",
+  classification: "regulated",
+  version: "1.0.0",
+  accent: "green",
+  fields: [
+    { name: "asOfDate", label: "Calculation date", type: "date", required: true, min: "2025-04-01", max: "9999-12-31" },
+    { name: "turnoverCategory", label: "Business type", type: "select", required: true, options: turnoverCategoryOptions, description: "The liability fraction and registration treatment depend on the business type. Importers must register regardless of turnover; financial services at the 20.5% VAT rate are exempt from SSCL." },
+    { name: "periodEndDate", label: "Quarter ending", type: "date", required: true, description: "The last day of the calendar quarter under review. Only the last day of March, June, September, or December is accepted." },
+    { name: "quarterlyTurnover", label: "Quarterly turnover", type: "number", required: true, min: 0, max: 10_000_000_000, maxDecimalPlaces: 0, step: 1, suffix: "LKR", description: "Total turnover for the quarter ending on the period-end date, before deducting the liability fraction." },
+    { name: "rollingFourQuarterTurnover", label: "Four-quarter turnover (optional)", type: "number", required: false, min: 0, max: 10_000_000_000, maxDecimalPlaces: 0, step: 1, suffix: "LKR", description: "Total turnover over the current quarter and the previous three. Needed to complete the registration-threshold check." },
+  ],
+} satisfies CalculatorMetadata;
+
+const registrationStatusLabels: Record<string, string> = {
+  mandatory: "Mandatory — must register",
+  required: "Registration required",
+  "not-required": "Not required",
+  indeterminate: "Annual turnover needed",
+  exempt: "Exempt from SSCL",
+};
+
+export const ssclCheckCalculator = defineRegulatedCalculator({
+  ...ssclCheckMetadata,
+  schema: ssclCheckInputSchema,
+  ruleDependencies: [ssclCheckRule],
+  getAsOfDate: (input) => input.asOfDate,
+  run(input, payloads) {
+    const payload = ssclCheckPayloadSchema.parse(payloads.ssclCheck);
+    const calculation = calculateSsclCheck(input, payload);
+
+    const resultFields: Record<string, string | number> = {
+      turnoverCategoryLabel: calculation.turnoverCategoryLabel,
+      periodStartDate: calculation.periodStartDate,
+      periodEndDate: calculation.periodEndDate,
+      ratePercent: calculation.ratePercent,
+      rateEffectiveFrom: calculation.rateEffectiveFrom,
+      liableFractionPercent: calculation.liableFractionPercent,
+      quarterlyTurnover: calculation.quarterlyTurnover,
+      liableTurnover: calculation.liableTurnover,
+      exemptionApplied: calculation.exemptionApplied ? "yes" : "no",
+      registrationStatus: registrationStatusLabels[calculation.registrationStatus],
+      registrationReason: calculation.registrationReason,
+      deregistrationEligible: calculation.deregistrationEligible ? "yes" : "no",
+      ssclPayable: calculation.ssclPayable,
+    };
+
+    const breakdown = [
+      { label: "Business type", value: calculation.turnoverCategoryLabel },
+      { label: "Period", value: `${calculation.periodStartDate} to ${calculation.periodEndDate}` },
+      { label: "SSCL rate", value: calculation.ratePercent, unit: "%", expression: `Effective ${calculation.rateEffectiveFrom}` },
+      { label: "Liable fraction", value: calculation.liableFractionPercent, unit: "%", expression: `SSCL applies to ${calculation.liableFractionPercent}% of this business type's turnover` },
+      { label: "Quarterly turnover", value: calculation.quarterlyTurnover, unit: "LKR" },
+      { label: "Liable turnover", value: calculation.liableTurnover, unit: "LKR", expression: `${calculation.quarterlyTurnover} × ${calculation.liableFractionPercent}%` },
+      { label: "Registration status", value: registrationStatusLabels[calculation.registrationStatus], expression: calculation.registrationReason },
+      { label: "SSCL for the quarter", value: calculation.ssclPayable, unit: "LKR", expression: `${calculation.liableTurnover} × ${calculation.ratePercent}% rounded to the nearest rupee` },
+    ];
+
+    const assumptions = [
+      `SSCL applies at ${calculation.ratePercent}% on the liable fraction of turnover, effective ${calculation.rateEffectiveFrom} under the Social Security Contribution Levy Act, No. 25 of 2022 as amended.`,
+      `The liable fraction for this business type is ${calculation.liableFractionPercent}% of turnover.`,
+      `Registration is required once the four-quarter turnover exceeds LKR ${payload.registrationThresholds.at(-1)?.annual} or the current quarter's turnover exceeds LKR ${payload.registrationThresholds.at(-1)?.quarter}; importers must register regardless of turnover.`,
+      "Turnover means the total value of chargeable transactions before the liability fraction, from which the liable fraction is deducted.",
+      "SSCL is computed on the liable fraction of the quarter's turnover and rounded once to the nearest rupee.",
+      calculation.exemptionApplied
+        ? "Financial services that are subject to VAT at 20.5% are exempt from SSCL for periods commencing on or after the exemption date."
+        : "The financial-services exemption does not apply to this period.",
+    ];
+
+    const warnings = [
+      "This is an estimate for guidance, not tax, legal, or accounting advice.",
+      "The registration threshold is tested on turnover of the current quarter and the previous three quarters; leaving the four-quarter turnover blank leaves the annual-threshold leg of the check incomplete.",
+      "For a business below both registration thresholds, no SSCL is estimated unless it is an importer (mandatory registration).",
+      "The exemption for financial services subject to VAT at 20.5% applies from the exemption date onward; earlier periods are not exempt.",
+      "Rates and thresholds change; the result uses the rule effective for the quarter under review.",
+      "Independent formula and accounting review is still required before this regulated rule is published for production use.",
+    ];
+
+    return baseResult(ssclCheckMetadata, {
+      asOfDate: input.asOfDate,
+      normalizedInputs: input,
+      result: resultFields,
+      breakdown,
+      assumptions,
+      warnings,
     });
   },
 });
