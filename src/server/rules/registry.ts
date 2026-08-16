@@ -16,6 +16,11 @@ import {
   vehicleImportInputSchema,
 } from "@/domain/calculators/vehicle-import/vehicle-import";
 import { vehicleImportPayloadSchema } from "@/domain/calculators/vehicle-import/rates";
+import {
+  calculateFuelCost,
+  fuelCostInputSchema,
+  fuelPumpPricePayloadSchema,
+} from "@/domain/calculators/fuel/fuel-cost";
 import type { JsonValue } from "@/server/rules/json";
 import { RulePlatform, type RuleHandler } from "@/server/rules/service";
 
@@ -75,6 +80,20 @@ export const ruleHandlers: Readonly<Record<string, RuleHandler>> = {
         calculateVehicleImportDuty(
           vehicleImportInputSchema.parse(input),
           vehicleImportPayloadSchema.parse(payload),
+        ),
+      );
+    },
+  },
+  "fuel-pump-prices-cpc-2026": {
+    payloadSchemaVersion: "1",
+    validatePayload(payload) {
+      fuelPumpPricePayloadSchema.parse(payload);
+    },
+    calculate(input, payload) {
+      return result(
+        calculateFuelCost(
+          fuelCostInputSchema.parse(input),
+          fuelPumpPricePayloadSchema.parse(payload),
         ),
       );
     },
