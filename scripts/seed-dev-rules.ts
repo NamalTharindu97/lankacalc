@@ -274,6 +274,32 @@ const vehicleImportPayload = {
   ],
 } as const;
 
+const observedLendingRatesPayload = {
+  authority: "cbsl",
+  effectiveFrom: "2026-01-01",
+  rounding: "two-decimal-percent",
+  rates: [
+    {
+      rateType: "awpr",
+      label: "Average Weighted Prime Lending Rate (monthly)",
+      value: "8.99",
+      observedOn: "2026-01-31",
+    },
+    {
+      rateType: "awpr",
+      label: "Average Weighted Prime Lending Rate (monthly)",
+      value: "9.39",
+      observedOn: "2026-03-31",
+    },
+    {
+      rateType: "awpr",
+      label: "Average Weighted Prime Lending Rate (monthly)",
+      value: "9.75",
+      observedOn: "2026-05-31",
+    },
+  ],
+} as const;
+
 const devRules: DevRuleInput[] = [
   {
     key: "electricity-domestic-standard",
@@ -630,6 +656,71 @@ const devRules: DevRuleInput[] = [
         expected: [
           ["surcharge", "450000"],
           ["surchargeExemption", "not-applied"],
+        ],
+      },
+    ],
+  },
+  {
+    key: "observed-lending-rates-lk-2026",
+    calculatorKey: "loan-schedule",
+    scope: "lk",
+    name: "CBSL observed lending rates",
+    description: "Platform-observed CBSL monthly AWPR observations with source and date for the loan-schedule calculator.",
+    version: "1.0.0",
+    effectiveFrom: "2026-01-01",
+    payload: observedLendingRatesPayload as unknown as JsonValue,
+    sources: [
+      {
+        key: "cbsl-monetary-interest-rate-statistics",
+        authority: "Central Bank of Sri Lanka",
+        title: "CBSL monetary and interest rate statistics",
+        url: "https://www.cbsl.gov.lk/en/economic-and-statistical-charts/monetary-and-interest-rate-statistics",
+      },
+      {
+        key: "cbsl-may-2026-bulletin",
+        authority: "Central Bank of Sri Lanka",
+        title: "Monthly Bulletin of Monetary and Interest Rate Statistics - 2026 May",
+        url: "https://www.cbsl.gov.lk/sites/default/files/cbslweb_documents/statistics/monthly_bulletin_monetary_and_interest_rate_statistics_may_2026.pdf",
+      },
+      {
+        key: "cbsl-january-2026-bulletin",
+        authority: "Central Bank of Sri Lanka",
+        title: "Monthly Bulletin of Monetary and Interest Rate Statistics - 2026 January",
+        url: "https://www.cbsl.gov.lk/sites/default/files/cbslweb_documents/statistics/monthly_bulletin_monetary_and_interest_rate_statistics_january_2026.pdf",
+      },
+    ],
+    fixtures: [
+      {
+        name: "resolves the latest AWPR on or before the date",
+        input: {
+          asOfDate: "2026-08-16",
+        } as unknown as JsonValue,
+        expected: [
+          ["rateType", "awpr"],
+          ["value", "9.75"],
+          ["observedOn", "2026-05-31"],
+        ],
+      },
+      {
+        name: "resolves the observation window before a later bulletin",
+        input: {
+          asOfDate: "2026-04-15",
+        } as unknown as JsonValue,
+        expected: [
+          ["rateType", "awpr"],
+          ["value", "9.39"],
+          ["observedOn", "2026-03-31"],
+        ],
+      },
+      {
+        name: "earliest observation for a pre-May date",
+        input: {
+          asOfDate: "2026-02-15",
+        } as unknown as JsonValue,
+        expected: [
+          ["rateType", "awpr"],
+          ["value", "8.99"],
+          ["observedOn", "2026-01-31"],
         ],
       },
     ],

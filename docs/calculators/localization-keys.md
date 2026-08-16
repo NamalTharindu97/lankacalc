@@ -299,6 +299,10 @@ calculator.roofMaterial.warning.trims
 ```text
 calculator.loanSchedule.name
 calculator.loanSchedule.summary
+calculator.loanSchedule.input.asOfDate
+calculator.loanSchedule.input.rateSource
+calculator.loanSchedule.option.userRate
+calculator.loanSchedule.option.platformRate
 calculator.loanSchedule.input.principal
 calculator.loanSchedule.input.annualRatePercent
 calculator.loanSchedule.input.termMonths
@@ -313,6 +317,10 @@ calculator.loanSchedule.output.totalInterest
 calculator.loanSchedule.output.processingFeeAmount
 calculator.loanSchedule.output.totalInsurance
 calculator.loanSchedule.output.totalCost
+calculator.loanSchedule.output.appliedAnnualRatePercent
+calculator.loanSchedule.output.rateLabel
+calculator.loanSchedule.output.rateObservationDate
+calculator.loanSchedule.output.rateAuthority
 calculator.loanSchedule.output.termMonthsWithExtraPayment
 calculator.loanSchedule.output.termMonthsSaved
 calculator.loanSchedule.output.finalPaymentWithExtraPayment
@@ -325,6 +333,7 @@ calculator.loanSchedule.assumption.separateFees
 calculator.loanSchedule.assumption.earlyPaymentTermReduction
 calculator.loanSchedule.assumption.earlyPaymentEstimate
 calculator.loanSchedule.warning.estimate
+calculator.loanSchedule.warning.observedRateBenchmark
 calculator.loanSchedule.warning.exclusions
 ```
 
