@@ -4,6 +4,7 @@ import { getCalculator } from "@/domain/calculators/registry";
 import {
   businessIncomeTaxCalculator,
   vatLiabilityCalculator,
+  withholdingTaxCalculator,
 } from "@/domain/calculators/business-tax-calculators";
 import {
   businessIncomeTaxInputSchema,
@@ -17,6 +18,12 @@ import {
   vatLiabilityPayloadSchema,
   type VatLiabilityPayload,
 } from "@/domain/calculators/business-tax/vat-liability";
+import {
+  calculateWithholdingTax,
+  withholdingTaxInputSchema,
+  withholdingTaxPayloadSchema,
+  type WithholdingTaxPayload,
+} from "@/domain/calculators/business-tax/withholding-tax";
 
 const vatLiabilityPayload = {
   vatLiability: {
@@ -73,6 +80,32 @@ const individualBaseInput = {
   allowableExpenses: 200000,
   capitalAllowances: undefined,
   personalReliefOverride: undefined,
+} as const;
+
+const withholdingTaxPayload = {
+  withholdingTax: {
+    authority: "ird-income-tax-2025",
+    effectiveFrom: "2025-04-01",
+    rounding: "nearest-rupee",
+    personalRelief: "1800000",
+    monthlyThreshold: "100000",
+    rates: {
+      interest: [{ effectiveFrom: "2025-04-01", ratePercent: "10" }],
+      dividend: [{ effectiveFrom: "2025-04-01", ratePercent: "15" }],
+      rentResident: [{ effectiveFrom: "2025-04-01", ratePercent: "10" }],
+      rentNonResident: [{ effectiveFrom: "2025-04-01", ratePercent: "14" }],
+      serviceFeeResident: [{ effectiveFrom: "2025-04-01", ratePercent: "5" }],
+      serviceFeeNonResident: [{ effectiveFrom: "2025-04-01", ratePercent: "14" }],
+      royalty: [{ effectiveFrom: "2025-04-01", ratePercent: "14" }],
+    },
+  },
+} satisfies { withholdingTax: WithholdingTaxPayload };
+
+const interestInput = {
+  asOfDate: "2026-08-16",
+  paymentType: "interest",
+  grossAmount: 200000,
+  interestSelfDeclaration: undefined,
 } as const;
 
 describe("regulated business income tax calculator definition", () => {
@@ -620,5 +653,272 @@ describe("VAT liability schemas", () => {
       ],
     };
     expect(() => vatLiabilityPayloadSchema.parse(bad)).toThrow();
+  });
+});
+
+describe("regulated withholding tax calculator definition", () => {
+  it("registers the calculator for server execution", () => {
+    expect(getCalculator("withholding-tax")).toMatchObject({
+      key: "withholding-tax",
+      classification: "regulated",
+      execution: "server",
+    });
+  });
+
+  it("exposes the withholding tax rule dependency", () => {
+    expect(withholdingTaxCalculator.ruleDependencies).toEqual([
+      { name: "withholdingTax", key: "withholding-tax-lk-2026", scope: "lk" },
+    ]);
+  });
+
+  it("presents the result through the common result contract", () => {
+    const result = withholdingTaxCalculator.calculate(
+      { ...interestInput },
+      withholdingTaxPayload,
+    );
+
+    expect(result).toMatchObject({
+      calculator: "withholding-tax",
+      asOfDate: "2026-08-16",
+      ruleVersions: [],
+      sources: [],
+      result: {
+        paymentTypeLabel: "Interest or discount",
+        ratePercent: "10",
+        wthAmount: "20000.00",
+        netPayment: "180000.00",
+        treatment: "creditable",
+      },
+    });
+    expect(result.breakdown.length).toBeGreaterThan(0);
+    expect(result.assumptions.length).toBeGreaterThan(0);
+    expect(result.warnings.length).toBeGreaterThan(0);
+  });
+});
+
+describe("withholding tax engine", () => {
+  it("deducts AIT at 10% on interest to a resident or non-resident", () => {
+    const result = calculateWithholdingTax(
+      { ...interestInput },
+      withholdingTaxPayload.withholdingTax,
+    );
+
+    expect(result).toMatchObject({
+      paymentType: "interest",
+      ratePercent: "10",
+      wthAmount: "20000.00",
+      netPayment: "180000.00",
+      treatment: "creditable",
+      thresholdApplied: false,
+      selfDeclarationApplied: false,
+    });
+  });
+
+  it("stops the interest deduction when a self-declaration is on file", () => {
+    const result = calculateWithholdingTax(
+      { ...interestInput, interestSelfDeclaration: "yes" },
+      withholdingTaxPayload.withholdingTax,
+    );
+
+    expect(result).toMatchObject({
+      ratePercent: "0",
+      wthAmount: "0.00",
+      netPayment: "200000.00",
+      selfDeclarationApplied: true,
+    });
+  });
+
+  it("applies dividend WHT as a 15% final tax", () => {
+    const result = calculateWithholdingTax(
+      { asOfDate: "2026-08-16", paymentType: "dividend", grossAmount: 500000 },
+      withholdingTaxPayload.withholdingTax,
+    );
+
+    expect(result).toMatchObject({
+      ratePercent: "15",
+      wthAmount: "75000.00",
+      netPayment: "425000.00",
+      treatment: "final",
+    });
+  });
+
+  it("deducts 10% on resident rent above the calendar-month threshold", () => {
+    const result = calculateWithholdingTax(
+      { asOfDate: "2026-08-16", paymentType: "rent-resident", grossAmount: 150000 },
+      withholdingTaxPayload.withholdingTax,
+    );
+
+    expect(result).toMatchObject({
+      ratePercent: "10",
+      wthAmount: "15000.00",
+      thresholdApplied: true,
+      thresholdExceeded: true,
+    });
+  });
+
+  it("deducts nothing for resident rent at or below the calendar-month threshold", () => {
+    const atThreshold = calculateWithholdingTax(
+      { asOfDate: "2026-08-16", paymentType: "rent-resident", grossAmount: 100000 },
+      withholdingTaxPayload.withholdingTax,
+    );
+
+    expect(atThreshold).toMatchObject({
+      ratePercent: "0",
+      wthAmount: "0.00",
+      thresholdApplied: true,
+      thresholdExceeded: false,
+    });
+
+    const belowThreshold = calculateWithholdingTax(
+      { asOfDate: "2026-08-16", paymentType: "rent-resident", grossAmount: 90000 },
+      withholdingTaxPayload.withholdingTax,
+    );
+
+    expect(belowThreshold).toMatchObject({
+      ratePercent: "0",
+      wthAmount: "0.00",
+    });
+  });
+
+  it("deducts 5% AIT on service fees to a resident individual above the threshold", () => {
+    const result = calculateWithholdingTax(
+      { asOfDate: "2026-08-16", paymentType: "service-fee-resident", grossAmount: 250000 },
+      withholdingTaxPayload.withholdingTax,
+    );
+
+    expect(result).toMatchObject({
+      ratePercent: "5",
+      wthAmount: "12500.00",
+      netPayment: "237500.00",
+      treatment: "creditable",
+    });
+  });
+
+  it("deducts nothing for a resident service fee at or below the threshold", () => {
+    const result = calculateWithholdingTax(
+      { asOfDate: "2026-08-16", paymentType: "service-fee-resident", grossAmount: 100000 },
+      withholdingTaxPayload.withholdingTax,
+    );
+
+    expect(result).toMatchObject({
+      ratePercent: "0",
+      wthAmount: "0.00",
+      thresholdExceeded: false,
+    });
+  });
+
+  it("deducts 14% on service fees to a non-resident person without a threshold gate", () => {
+    const result = calculateWithholdingTax(
+      { asOfDate: "2026-08-16", paymentType: "service-fee-non-resident", grossAmount: 2000000 },
+      withholdingTaxPayload.withholdingTax,
+    );
+
+    expect(result).toMatchObject({
+      ratePercent: "14",
+      wthAmount: "280000.00",
+      netPayment: "1720000.00",
+      thresholdApplied: false,
+    });
+  });
+
+  it("deducts 14% on rent to a non-resident person", () => {
+    const result = calculateWithholdingTax(
+      { asOfDate: "2026-08-16", paymentType: "rent-non-resident", grossAmount: 200000 },
+      withholdingTaxPayload.withholdingTax,
+    );
+
+    expect(result).toMatchObject({
+      ratePercent: "14",
+      wthAmount: "28000.00",
+      thresholdApplied: false,
+    });
+  });
+
+  it("deducts 14% on royalties as a creditable tax", () => {
+    const result = calculateWithholdingTax(
+      { asOfDate: "2026-08-16", paymentType: "royalty", grossAmount: 300000 },
+      withholdingTaxPayload.withholdingTax,
+    );
+
+    expect(result).toMatchObject({
+      ratePercent: "14",
+      wthAmount: "42000.00",
+      netPayment: "258000.00",
+      treatment: "creditable",
+    });
+  });
+
+  it("rounds the deduction once to the nearest rupee", () => {
+    const result = calculateWithholdingTax(
+      { asOfDate: "2026-08-16", paymentType: "service-fee-resident", grossAmount: 333333 },
+      withholdingTaxPayload.withholdingTax,
+    );
+
+    expect(result).toMatchObject({
+      wthAmount: "16667.00",
+      netPayment: "316666.00",
+    });
+  });
+
+  it("selects the rate for the payment date from a multi-entry schedule", () => {
+    const twoTier = {
+      ...withholdingTaxPayload.withholdingTax,
+      rates: {
+        ...withholdingTaxPayload.withholdingTax.rates,
+        interest: [
+          { effectiveFrom: "2025-04-01", ratePercent: "10" },
+          { effectiveFrom: "2026-01-01", ratePercent: "12" },
+        ],
+      },
+    };
+
+    const earlier = calculateWithholdingTax(
+      { asOfDate: "2025-12-15", paymentType: "interest", grossAmount: 100000 },
+      twoTier,
+    );
+    const later = calculateWithholdingTax(
+      { asOfDate: "2026-06-15", paymentType: "interest", grossAmount: 100000 },
+      twoTier,
+    );
+
+    expect(earlier).toMatchObject({ ratePercent: "10", rateEffectiveFrom: "2025-04-01" });
+    expect(later).toMatchObject({ ratePercent: "12", rateEffectiveFrom: "2026-01-01" });
+  });
+});
+
+describe("withholding tax schemas", () => {
+  it("accepts an empty interest self-declaration", () => {
+    const parsed = withholdingTaxInputSchema.safeParse({
+      ...interestInput,
+      interestSelfDeclaration: "",
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.interestSelfDeclaration).toBeUndefined();
+    }
+  });
+
+  it("rejects a self-declaration on a non-interest payment", () => {
+    expect(
+      withholdingTaxInputSchema.safeParse({
+        ...interestInput,
+        paymentType: "dividend",
+        interestSelfDeclaration: "yes",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a rate schedule that is not strictly ascending", () => {
+    const bad = {
+      ...withholdingTaxPayload.withholdingTax,
+      rates: {
+        ...withholdingTaxPayload.withholdingTax.rates,
+        interest: [
+          { effectiveFrom: "2026-01-01", ratePercent: "12" },
+          { effectiveFrom: "2025-04-01", ratePercent: "10" },
+        ],
+      },
+    };
+    expect(() => withholdingTaxPayloadSchema.parse(bad)).toThrow();
   });
 });

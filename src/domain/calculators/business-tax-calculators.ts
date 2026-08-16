@@ -9,6 +9,11 @@ import {
   vatLiabilityPayloadSchema,
 } from "@/domain/calculators/business-tax/vat-liability";
 import {
+  calculateWithholdingTax,
+  withholdingTaxInputSchema,
+  withholdingTaxPayloadSchema,
+} from "@/domain/calculators/business-tax/withholding-tax";
+import {
   defineRegulatedCalculator,
   type CalculationResult,
   type CalculatorMetadata,
@@ -243,6 +248,107 @@ export const vatLiabilityCalculator = defineRegulatedCalculator({
         "Exempt and zero-rated supplies, partial input credit apportionment, import VAT timing, and the SVAT refund mechanism are not modelled.",
         "Rates, thresholds, and registration rules change; the result uses the rule effective for the date entered.",
         "A registration decision must be confirmed with the Inland Revenue Department before acting on it.",
+        "Independent formula and accounting review is still required before this regulated rule is published for production use.",
+      ],
+    });
+  },
+});
+
+const withholdingTaxRule: RuleDependency = {
+  name: "withholdingTax",
+  key: "withholding-tax-lk-2026",
+  scope: "lk",
+};
+
+const paymentTypeOptions = [
+  { label: "Select the payment type", value: "" },
+  { label: "Interest or discount", value: "interest" },
+  { label: "Dividend", value: "dividend" },
+  { label: "Rent to a resident person", value: "rent-resident" },
+  { label: "Rent to a non-resident person", value: "rent-non-resident" },
+  { label: "Service fee to a resident individual", value: "service-fee-resident" },
+  { label: "Service fee to a non-resident person", value: "service-fee-non-resident" },
+  { label: "Royalty", value: "royalty" },
+];
+
+const selfDeclarationOptions = [
+  { label: "Select an option", value: "" },
+  { label: "No — deduct the tax", value: "no" },
+  { label: "Yes — self-declaration on file", value: "yes" },
+];
+
+const withholdingTaxMetadata = {
+  key: "withholding-tax",
+  name: "Withholding tax (AIT/WHT) on payments",
+  shortName: "Withholding tax",
+  summary: "Estimate withholding or advance income tax on interest, dividends, rent, service fees, and royalties by payment date.",
+  category: "Business & Tax",
+  classification: "regulated",
+  version: "1.0.0",
+  accent: "rose",
+  fields: [
+    { name: "asOfDate", label: "Payment date", type: "date", required: true, min: "2025-04-01", max: "9999-12-31", description: "The date of the payment. The rate is selected by the payment date." },
+    { name: "paymentType", label: "Payment type", type: "select", required: true, options: paymentTypeOptions, description: "The kind of payment being made. This selects the withholding or advance income tax rate and whether it is a final or creditable tax." },
+    { name: "grossAmount", label: "Gross payment amount", type: "number", required: true, min: 0, max: 10_000_000_000, maxDecimalPlaces: 0, step: 1, suffix: "LKR", description: "The gross amount of the payment, before any deduction. For rent or a resident service fee, use the total paid to this recipient in the calendar month." },
+    { name: "interestSelfDeclaration", label: "Interest self-declaration (optional)", type: "select", required: false, options: selfDeclarationOptions, visibleWhen: { field: "paymentType", equals: "interest" }, description: "A resident individual whose total assessable income does not exceed the personal relief may declare to the payer to stop advance income tax on interest." },
+  ],
+} satisfies CalculatorMetadata;
+
+export const withholdingTaxCalculator = defineRegulatedCalculator({
+  ...withholdingTaxMetadata,
+  schema: withholdingTaxInputSchema,
+  ruleDependencies: [withholdingTaxRule],
+  getAsOfDate: (input) => input.asOfDate,
+  run(input, payloads) {
+    const payload = withholdingTaxPayloadSchema.parse(payloads.withholdingTax);
+    const calculation = calculateWithholdingTax(input, payload);
+
+    const resultFields: Record<string, string | number> = {
+      paymentType: calculation.paymentType,
+      paymentTypeLabel: calculation.paymentTypeLabel,
+      paymentDate: calculation.paymentDate,
+      ratePercent: calculation.ratePercent,
+      rateEffectiveFrom: calculation.rateEffectiveFrom,
+      rateLabel: calculation.rateLabel,
+      grossAmount: calculation.grossAmount,
+      thresholdApplied: calculation.thresholdApplied ? "yes" : "no",
+      thresholdExceeded:
+        calculation.thresholdExceeded === null ? "n/a" : calculation.thresholdExceeded ? "yes" : "no",
+      selfDeclarationApplied: calculation.selfDeclarationApplied ? "yes" : "no",
+      wthAmount: calculation.wthAmount,
+      netPayment: calculation.netPayment,
+      treatment: calculation.treatment,
+      reason: calculation.reason,
+    };
+
+    const breakdown = [
+      { label: "Payment type", value: calculation.paymentTypeLabel },
+      { label: "Payment date", value: calculation.paymentDate },
+      { label: "Applicable rate", value: calculation.ratePercent, unit: "%", expression: `${calculation.rateLabel}, effective ${calculation.rateEffectiveFrom}` },
+      { label: "Gross payment", value: calculation.grossAmount, unit: "LKR", expression: "Amount before any deduction" },
+      { label: "WHT / AIT deducted", value: calculation.wthAmount, unit: "LKR", expression: `${calculation.grossAmount} × ${calculation.ratePercent}%` },
+      { label: "Net payment", value: calculation.netPayment, unit: "LKR", expression: `${calculation.grossAmount} − ${calculation.wthAmount}` },
+      { label: "Treatment", value: calculation.treatment, expression: calculation.treatment === "final" ? "Final tax, not reclaimable" : "Creditable against the recipient's return" },
+      { label: "Notes", value: calculation.reason },
+    ];
+
+    return baseResult(withholdingTaxMetadata, {
+      asOfDate: input.asOfDate,
+      normalizedInputs: input,
+      result: resultFields,
+      breakdown,
+      assumptions: [
+        `Withholding and advance income tax are deducted at the rate for the payment date, effective ${payload.effectiveFrom} as published by the Inland Revenue Department.`,
+        "Interest, rent, service fees, and royalties are creditable against the recipient's annual return; dividends are a final tax.",
+        "Rent to a resident person and service fees to a resident individual are taxed only when the calendar-month aggregate exceeds the LKR 100000 threshold; the gross amount entered is treated as the calendar-month aggregate.",
+        `The interest self-declaration applies to a resident individual whose total assessable income does not exceed the personal relief of LKR ${payload.personalRelief}.`,
+        "Tax is rounded once to the nearest rupee.",
+      ],
+      warnings: [
+        "This is an estimate for payer guidance, not tax, legal, or accounting advice.",
+        "The calendar-month threshold test treats the amount entered as the aggregate paid to this recipient in the month; other payments to the same recipient may change the outcome.",
+        "Treaty-reduced rates for non-residents require a tax-residence certificate and are not modelled.",
+        "Rates and thresholds change; the result uses the rule effective for the payment date.",
         "Independent formula and accounting review is still required before this regulated rule is published for production use.",
       ],
     });
