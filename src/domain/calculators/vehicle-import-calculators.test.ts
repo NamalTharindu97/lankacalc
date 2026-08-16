@@ -9,6 +9,11 @@ const vehicleImportPayloads = {
     effectiveFrom: "2026-04-01",
     cidRate: "0.30",
     surchargeRate: "0.50",
+    surchargeExemption: {
+      instrument: "S.P.D. surcharge order 2026-08-15 to 2026-12-31",
+      lcEstablishedOnOrBefore: "2026-05-15",
+      shippedOnBoardOnOrBefore: "2026-11-15",
+    },
     vatRate: "0.18",
     ssclRate: "0.025",
     vatBaseCifMultiplier: "1.10",
@@ -479,5 +484,122 @@ describe("vehicle import duty engine", () => {
       },
       malformed,
     )).toThrow();
+  });
+});
+
+describe("vehicle import duty surcharge LC exemption", () => {
+  const baseInput = {
+    asOfDate: "2026-08-16",
+    vehicleType: "petrol",
+    cifValue: "3000000",
+    engineCc: 1800,
+    vehicleAge: "not-more-than-one-year",
+  } as const;
+
+  it("waives the surcharge when the LC was established on the order cutoff", () => {
+    const result = vehicleImportDutyCalculator.calculate(
+      {
+        ...baseInput,
+        lcEstablishedOn: "2026-05-15",
+        shippedOnBoardOn: "2026-08-01",
+      },
+      vehicleImportPayloads,
+    );
+
+    expect(result.result).toMatchObject({
+      surcharge: "0",
+      surchargeExemption: "applied",
+      totalPayable: "18642600",
+    });
+    expect(result.breakdown.some((item) => item.label.includes("Surcharge") && item.value === "0")).toBe(true);
+  });
+
+  it("treats the exemption as applied when the shipped-on-board date is omitted but the LC qualifies", () => {
+    const result = vehicleImportDutyCalculator.calculate(
+      {
+        ...baseInput,
+        lcEstablishedOn: "2026-04-10",
+      },
+      vehicleImportPayloads,
+    );
+
+    expect(result.result).toMatchObject({
+      surcharge: "0",
+      surchargeExemption: "applied",
+    });
+    expect(String(result.result.surchargeExemptionNote)).toContain("confirm the shipped-on-board");
+  });
+
+  it("charges the surcharge when the LC was established after the order cutoff", () => {
+    const result = vehicleImportDutyCalculator.calculate(
+      {
+        ...baseInput,
+        lcEstablishedOn: "2026-05-16",
+        shippedOnBoardOn: "2026-08-01",
+      },
+      vehicleImportPayloads,
+    );
+
+    expect(result.result).toMatchObject({
+      surcharge: "450000",
+      surchargeExemption: "not-applied",
+      totalPayable: "19184850",
+    });
+  });
+
+  it("charges the surcharge when the shipped-on-board date falls after the order cutoff", () => {
+    const result = vehicleImportDutyCalculator.calculate(
+      {
+        ...baseInput,
+        lcEstablishedOn: "2026-05-10",
+        shippedOnBoardOn: "2026-11-16",
+      },
+      vehicleImportPayloads,
+    );
+
+    expect(result.result).toMatchObject({
+      surcharge: "450000",
+      surchargeExemption: "not-applied",
+    });
+  });
+
+  it("keeps the surcharge when no LC establishment date is entered", () => {
+    const result = vehicleImportDutyCalculator.calculate(baseInput, vehicleImportPayloads);
+
+    expect(result.result).toMatchObject({
+      surcharge: "450000",
+      surchargeExemption: "not-applied",
+    });
+  });
+
+  it("offers no exemption when the payload defines no surcharge exemption", () => {
+    const withoutExemption = {
+      vehicleImport: {
+        ...vehicleImportPayloads.vehicleImport,
+        surchargeExemption: undefined,
+      },
+    };
+    const result = vehicleImportDutyCalculator.calculate(
+      {
+        ...baseInput,
+        lcEstablishedOn: "2026-05-01",
+      },
+      withoutExemption,
+    );
+
+    expect(result.result).toMatchObject({
+      surcharge: "450000",
+      surchargeExemption: "not-available",
+    });
+  });
+
+  it("rejects a malformed LC establishment date", () => {
+    expect(() => vehicleImportDutyCalculator.calculate(
+      {
+        ...baseInput,
+        lcEstablishedOn: "2026/05/15",
+      },
+      vehicleImportPayloads,
+    )).toThrow("Enter a valid LC establishment date.");
   });
 });

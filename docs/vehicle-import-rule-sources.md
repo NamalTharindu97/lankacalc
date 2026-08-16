@@ -12,6 +12,7 @@ Research retrieved and link-verified: 2026-08-16.
 |---|---|---|
 | NITG 2026 Chapter 87 motor-vehicle excise rates from 2026-04-01 | Every rate row verified by per-cell extraction from the official PDF | Approved implementation candidate; blocked pending independent customs/legal review |
 | CID rate, surcharge, VAT base, and luxury tax stack | Formula verified against the official Preamble and luxury tax gazette | Approved implementation candidate; blocked pending independent review |
+| S.P.D. surcharge LC-establishment exemption (order effective 2025-02-01, extended to 2026-12-31) | LC cutoff 2026-05-15 and shipped-on-board cutoff 2026-11-15 identified from the gazette order and official reporting | Approved implementation candidate; blocked pending independent review |
 | Foreign-currency CIF conversion | No official conversion point defined for an estimator | Out of scope; CIF is entered in LKR |
 
 ## Sources
@@ -25,6 +26,7 @@ Issuing authority: Sri Lanka Customs.
 - NITG 2026 Chapter 87 motor-vehicle pages (volumes published on the NITG index) publish the seven Chapter 87 excise schedules: petrol engine, diesel engine, petrol hybrid, diesel hybrid, petrol plug-in hybrid, diesel plug-in hybrid, and electric grid-charged vehicles, each with `minLuxuryTax` thresholds and rates, and the three-year EV age bands.
 - [Gazette Extraordinary No. 2421/41](https://www.documents.gov.lk/) publishes the luxury tax on motor vehicles and its per-vehicle-type thresholds.
 - [Gazette Extraordinary No. 2488/56](https://www.documents.gov.lk/) publishes the temporary S.P.D. surcharge order (16 May – 15 Aug 2026).
+- Gazette surcharge orders effective 2025-02-01 and extended to 2026-12-31 publish the S.P.D. surcharge LC-establishment exemption; the August 2026 extension order was reported by the official press and the Ministry of Finance.
 - [Gazette Extraordinary No. 2478/03](https://www.documents.gov.lk/) publishes the April 2026 CID rate order used for the standard 30% column.
 
 ### Extraction Method
@@ -159,6 +161,24 @@ total = v + d + s + e + l + vat + sscl
 
 Cess and PAL (`c` and `p` in the Preamble) are `Ex` for HS heading 8703 and are excluded from the VAT base. The 10% uplift of the CIF value is part of the VAT base per the Preamble.
 
+The surcharge is zero when the S.P.D. LC exemption applies: `lcEstablishedOn ≤ 2026-05-15` and (shipped-on-board date absent or `≤ 2026-11-15`). The exemption is void if key LC details (number of vehicles, VIN, description, technical specifications, expiry date) are amended after establishment, or if the shipped-on-board date on the Bill of Lading or Airway Bill falls after 2026-11-15.
+
+## Dated Exemptions And Concessions Research
+
+Research on 2026-08-16 identified the following dated exemption and concession instruments relevant to HS 8703 passenger vehicles. Only the first is modeled; the others remain out of scope until their legal treatment is verified from official text.
+
+### S.P.D. Surcharge LC-establishment exemption (modeled)
+
+The 50% S.P.D. surcharge orders (effective 2025-02-01 and extended through 2026-12-31) exempt a specified motor vehicle when a letter of credit for it was established on or before 2026-05-15, subject to the conditions above. The calculator models this as the payload-level `surchargeExemption` block with `lcEstablishedOnOrBefore`, `shippedOnBoardOnOrBefore`, and an `instrument` label; the block is dated by the rule version carrying it. Independent review must confirm the order text, cutoff dates, and amendment condition before production publication.
+
+### Disabled persons vehicle concession (identified, not modeled)
+
+The Sri Lanka Trade Information Portal procedure for vehicles imported for disabled persons lists import duty at 10% of CIF plus VAT, permit-gated by an affidavit, a Divisional Secretariat letter, and a National Secretariat for Persons with Disabilities letter. The exact duty and VAT base treatment needs verification from the applicable Customs and VAT instruments before this can be modeled.
+
+### Public-sector concessionary permit scheme (identified, not modeled)
+
+Trade and Investment Policy Circular No. 01/2018 (effective 16.02.2018) governs motor vehicle permits on concessionary terms for senior public-sector officers, with tax treatment depending on CIF value and engine capacity. The scheme is complex, condition-laden, and out of the candidate estimator's scope.
+
 ## Scope Boundary
 
 The candidate covers passenger motor vehicles classifiable in the motor-car, station-wagon, SUV, and similar subheadings of HS heading 8703 whose excise line matches one of the seven schedules:
@@ -172,7 +192,7 @@ Excluded:
 - foreign-currency conversion, bank charges, port and terminal handling, freight beyond CIF, insurance, and agent fees;
 - vehicles over three years old where a distinct legal rate applies beyond the modeled age bands;
 - commercial vehicles, dual-purpose goods vehicles, motorcycles, tractors, and other chapters of the NITG;
-- concession schemes, exemptions, and special end-use regimes;
+- concession schemes and special end-use regimes other than the modeled S.P.D. LC-establishment exemption;
 - Cess and PAL lines outside the 8703 exclusion;
 - emission and road levies collected under other instruments; and
 - gazetted amendments published after the last-verified source revision.
@@ -189,6 +209,8 @@ These are independently calculated candidates, not official worked examples. The
 | diesel hybrid, 2000 cc, CIF 4,000,000, 1–3 yr | excise 16,700,000 (8,350); total 27,194,500 | Diesel hybrid band and age-insensitive engine row |
 | electric, 120 kW, CIF 8,000,000, ≤ 1 yr | excise 4,344,000 (36,200/kW); luxury 1,200,000; total 20,576,520 | EV kW band and 6.0 Mn threshold |
 | electric, 40 kW, CIF 3,000,000, 1–3 yr | excise 1,448,000 (36,200/kW); total 7,048,090 | EV age-band rate |
+| petrol, 1800 cc, CIF 3,000,000, ≤ 1 yr, LC 2026-05-15, shipped 2026-08-01 | surcharge 0; VAT base 15,720,000; VAT 2,829,600; SSCL 393,000; total 18,642,600 | LC exemption on the order cutoff |
+| petrol, 1800 cc, CIF 3,000,000, ≤ 1 yr, LC 2026-05-16 | surcharge 450,000; exemption not applied | LC established after the order cutoff |
 
 ## Source Registration
 
@@ -210,7 +232,7 @@ Before any vehicle import result is publicly published in production:
 
 1. An independent customs/legal reviewer must confirm the tariff schedule, formula, effective date, scope, and rounding for every supported rule.
 2. The reviewer must confirm the luxury tax thresholds and rates per vehicle type against the gazette order.
-3. The reviewer must confirm the CID and surcharge rates for the target entry window.
+3. The reviewer must confirm the CID and surcharge rates for the target entry window, and the LC-establishment and shipped-on-board cutoff dates and amendment condition of the surcharge exemption.
 4. Fixtures must cover at least one band transition per schedule and one luxury threshold crossing per vehicle type.
 5. Browser/domain, API, draft-rule, and published-rule results must match for every fixture.
 6. UI and API provenance must identify all sources needed to reproduce the selected result.

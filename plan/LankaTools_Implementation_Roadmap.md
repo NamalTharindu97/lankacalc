@@ -456,6 +456,8 @@ Status: the standard CEB domestic tariff (categories 0-60, 61-180, and above 180
 - Official Customs and gazette sources
 - Warning for cases requiring professional confirmation
 
+Status: the seven NITG 2026 Chapter 87 excise schedules and the standard CID/surcharge/VAT/SSCL stack are implemented, and the S.P.D. surcharge LC-establishment exemption (LC on or before 2026-05-15; shipped-on-board on or before 2026-11-15) is implemented as the first dated exemption. Broader concession schemes and the disabled-persons concession remain source- and review-gated.
+
 ### 10.4 Fuel And Solar
 
 - Dated fuel prices by fuel type

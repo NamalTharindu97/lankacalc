@@ -29,6 +29,8 @@ The candidate implements the Chapter 87 motor-vehicle excise schedule of the Nat
 | `engineCc` | integer | cc | petrol, diesel, hybrids, PHEVs | `1` to `10000`, inclusive; required when `vehicleType` is not `electric` |
 | `motorKw` | integer | kW | electric | `1` to `2000`, inclusive; required when `vehicleType` is `electric` |
 | `vehicleAge` | string | label | yes | One of `not-more-than-one-year`, `one-to-three-years`, `more-than-three-years` |
+| `lcEstablishedOn` | string | calendar date | no | Optional `YYYY-MM-DD`; the letter-of-credit establishment date tested against the S.P.D. surcharge order cutoff |
+| `shippedOnBoardOn` | string | calendar date | no | Optional `YYYY-MM-DD`; the Bill of Lading / Airway Bill shipped-on-board date tested against the S.P.D. surcharge order cutoff |
 
 `cifValue` is the cost, insurance, and freight value in Sri Lankan rupees at the entry date; foreign-currency conversion is out of scope and the user must convert to LKR. `engineCc` and `motorKw` are whole numbers only.
 
@@ -46,7 +48,9 @@ The candidate implements the Chapter 87 motor-vehicle excise schedule of the Nat
 | `appliedRateUnit` | string | unit | `per unit`, `per cc`, or `per kW` |
 | `cif` | string | LKR | Validated CIF value |
 | `customsDuty` | string | LKR | CID at the rule rate on the CIF value |
-| `surcharge` | string | LKR | S.P.D. surcharge on the customs duty |
+| `surcharge` | string | LKR | S.P.D. surcharge on the customs duty, zero when the LC exemption applies |
+| `surchargeExemption` | string | label | `applied`, `not-applied`, or `not-available` (no LC exemption in the rule payload) |
+| `surchargeExemptionNote` | string | label | Explains the exemption decision and the order cutoffs used |
 | `excise` | string | LKR | Specific excise duty |
 | `luxuryTax` | string | LKR | Luxury tax above the vehicle-type threshold |
 | `vatBase` | string | LKR | `CIF + 10% of CIF + customs duty + surcharge + excise` |
@@ -68,7 +72,8 @@ Let `v = cifValue`, `r = applied excise rate`, `u = bandValue`, and `q = applica
    e = round(perUnitRate)                                 when only a per-vehicle charge is defined
    ```
 3. `customsDuty d = round(v × cidRate)`.
-4. `surcharge s = round(d × surchargeRate)`.
+4. `surcharge s = round(d × surchargeRate)`, unless the S.P.D. LC exemption applies:
+   when the payload defines `surchargeExemption`, the surcharge is zero if `lcEstablishedOn` is present, `lcEstablishedOn ≤ lcEstablishedOnOrBefore`, and (`shippedOnBoardOn` is absent or `shippedOnBoardOn ≤ shippedOnBoardOnOrBefore`). An absent LC date leaves the surcharge payable; a missing shipped-on-board date still qualifies and adds a confirmation note.
 5. `luxuryTax l = round(max(0, v − luxuryThreshold) × luxuryRate)`.
 6. `vatBase = round(v × 1.10 + d + s + e)`. The luxury tax is excluded from the VAT base.
 7. `vat = round(vatBase × vatRate)`; `sscl = round(vatBase × ssclRate)`.
@@ -90,11 +95,18 @@ The "or" rows are a tariff shorthand: the official columns list both a per-vehic
 - The estimate covers the NITG 2026 three-year classification (vehicles not exceeding three years old) using the age band rates; the excise schedule for vehicles over three years old is treated as identical for engine-capacity rows and covered by the EV age bands.
 - The customs import duty (CID) applies at the standard column rate of 30%; the NITG and an April 2026 gazette order set this rate.
 - The S.P.D. surcharge is charged at 50% of the customs duty; this is a time-limited levy that may change.
+- The S.P.D. surcharge order defines an LC-establishment exemption. When entered, an LC established on or before the order cutoff (and a shipped-on-board date on or before its cutoff) waives the surcharge. The exemption is void if key LC details are amended after establishment.
 - VAT is charged at 18% and SSCL at 2.5% on the VAT base defined above; the luxury tax is not part of that base.
 - Cess and PAL are excluded for HS heading 8703 motor vehicles, as recorded in the customs preamble.
 - The result is an estimate, not a customs declaration, tariff interpretation, or import-cost decision.
 
-Excluded: foreign-exchange conversion and bank charges, port and terminal handling, freight beyond CIF, insurance, agent fees, licenses and permits, emission/road taxes collected separately, vehicles over three years old beyond the modeled age bands, commercial/dual-purpose vehicle lines, and any concession schemes or exemptions.
+Excluded: foreign-exchange conversion and bank charges, port and terminal handling, freight beyond CIF, insurance, agent fees, licenses and permits, emission/road taxes collected separately, vehicles over three years old beyond the modeled age bands, commercial/dual-purpose vehicle lines, and any concession schemes or exemptions other than the modeled S.P.D. LC-establishment exemption.
+
+## Dated Exemption: S.P.D. Surcharge LC Establishment
+
+The current S.P.D. surcharge order (effective 2025-02-01, extended through 2026-12-31) exempts a specified motor vehicle from the 50% surcharge when a letter of credit for it was established on or before 2026-05-15, subject to conditions. The surcharge applies anyway if key LC details (number of vehicles, vehicle identification number, description, technical specifications, or expiry date) were amended, or if the shipped-on-board date on the Bill of Lading or Airway Bill falls after 2026-11-15.
+
+The calculator models this as the payload-level `surchargeExemption` block with `lcEstablishedOnOrBefore`, `shippedOnBoardOnOrBefore`, and an `instrument` label. The block is dated by the rule version that carries it; a new surcharge order is a new rule version, not a payload mutation. The exemption is shown in the result and breakdown, and the amendment condition is surfaced as a warning whenever the exemption is applied. Because the tool cannot observe whether an LC was amended, a zero surcharge from this exemption is an estimate condition, not a clearance guarantee.
 
 ## Boundary Cases
 
@@ -105,13 +117,17 @@ Excluded: foreign-exchange conversion and bank charges, port and terminal handli
 - A band or schedule that is absent from the payload fails closed rather than using the latest rates without provenance.
 - A payload with non-contiguous, non-ascending, or non-1-starting bands is rejected at parse time.
 - A luxury value at or below the threshold yields zero luxury tax.
+- An LC established on the order cutoff date qualifies for the surcharge exemption; the day after does not.
+- A shipped-on-board date after the order cutoff disqualifies the exemption even when the LC qualified.
+- A payload without `surchargeExemption` never applies an exemption, even when LC dates are entered.
+- A malformed LC or shipped-on-board date is rejected.
 
 ## Official Sources
 
 - [Sri Lanka Customs — National Import Tariff Guide (NITG) 2026, Chapter 87](https://www.customs.gov.lk/)
 - [Sri Lanka Customs — Preamble to the National Import Tariff Guide (NITG) 2026](https://www.customs.gov.lk/wp-content/uploads/2026/06/Preamble%20intergrated.pdf)
 - Gazette Extraordinary No. 2421/41 (luxury tax on motor vehicles)
-- Gazette Extraordinary No. 2488/56 (temporary S.P.D. surcharge, 16 May – 15 Aug 2026)
+- Gazette Extraordinary No. 2488/56 (temporary S.P.D. surcharge, 16 May – 15 Aug 2026), extended to 31 December 2026 by the August 2026 surcharge order, which also defines the LC-establishment exemption (LC on or before 2026-05-15; shipped-on-board on or before 2026-11-15)
 
 The rule version must attach the NITG 2026 Chapter 87 schedule, the luxury tax gazette order, the CID rate authority, and the surcharge order as separate source records or revisions.
 
@@ -127,6 +143,8 @@ These are candidate calculations, not official worked examples. All use the cand
 | `vehicleType: "diesel-hybrid"`, `engineCc: 2000`, `cifValue: "4000000"`, `vehicleAge: "one-to-three-years"` | `bandLabel: "1801-2000"`, `appliedRate: "8350"`, `excise: "16700000"`, `luxuryTax: "0"`, `totalPayable: "27194500"` |
 | `vehicleType: "electric"`, `motorKw: 120`, `cifValue: "8000000"`, `vehicleAge: "not-more-than-one-year"` | `bandLabel: "101-200"`, `appliedRate: "36200"` per kW, `excise: "4344000"`, `luxuryTax: "1200000"`, `vat: "3013920"`, `sscl: "418600"`, `totalPayable: "20576520"` |
 | `vehicleType: "electric"`, `motorKw: 40`, `cifValue: "3000000"`, `vehicleAge: "one-to-three-years"` | `bandLabel: "1-50"`, `appliedRate: "36200"` per kW, `excise: "1448000"`, `luxuryTax: "0"`, `totalPayable: "7048090"` |
+| `vehicleType: "petrol"`, `engineCc: 1800`, `cifValue: "3000000"`, `vehicleAge: "not-more-than-one-year"`, `lcEstablishedOn: "2026-05-15"`, `shippedOnBoardOn: "2026-08-01"` | `surcharge: "0"`, `surchargeExemption: "applied"`, `vatBase: "15720000"`, `vat: "2829600"`, `sscl: "393000"`, `totalPayable: "18642600"` |
+| `vehicleType: "petrol"`, `engineCc: 1800`, `cifValue: "3000000"`, `vehicleAge: "not-more-than-one-year"`, `lcEstablishedOn: "2026-05-16"`, `shippedOnBoardOn: "2026-08-01"` | `surcharge: "450000"`, `surchargeExemption: "not-applied"` (LC after the order cutoff) |
 
 ## Candidate Rule Payload
 
@@ -138,6 +156,11 @@ The candidate payload below is what the test suite loads inline and what a revie
   "effectiveFrom": "2026-04-01",
   "cidRate": "0.30",
   "surchargeRate": "0.50",
+  "surchargeExemption": {
+    "instrument": "S.P.D. surcharge order 2026-08-15 to 2026-12-31",
+    "lcEstablishedOnOrBefore": "2026-05-15",
+    "shippedOnBoardOnOrBefore": "2026-11-15"
+  },
   "vatRate": "0.18",
   "ssclRate": "0.025",
   "vatBaseCifMultiplier": "1.10",
@@ -329,8 +352,11 @@ Every result must include the calculation version, resolved vehicle import rule 
 | `calculator.vehicleImport.input.engineCc` | Engine capacity |
 | `calculator.vehicleImport.input.motorKw` | Motor power |
 | `calculator.vehicleImport.input.vehicleAge` | Vehicle age |
+| `calculator.vehicleImport.input.lcEstablishedOn` | LC establishment date |
+| `calculator.vehicleImport.input.shippedOnBoardOn` | Shipped-on-board date |
 | `calculator.vehicleImport.output.customsDuty` | Customs import duty |
 | `calculator.vehicleImport.output.surcharge` | Surcharge (S.P.D.) |
+| `calculator.vehicleImport.output.surchargeExemption` | Surcharge exemption |
 | `calculator.vehicleImport.output.excise` | Excise duty |
 | `calculator.vehicleImport.output.luxuryTax` | Luxury tax |
 | `calculator.vehicleImport.output.vatBase` | VAT base |

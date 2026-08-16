@@ -23,6 +23,8 @@ export const vehicleImportInputSchema = z
     engineCc: z.number().int().positive().max(10_000).optional(),
     motorKw: z.number().int().positive().max(2_000).optional(),
     vehicleAge: vehicleAgeSchema,
+    lcEstablishedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    shippedOnBoardOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   })
   .strict()
   .superRefine((input, context) => {
@@ -76,6 +78,8 @@ export type VehicleImportCalculation = VehicleImportBandSelection & {
   customsDutyRate: string;
   surcharge: string;
   surchargeRate: string;
+  surchargeExemption: "applied" | "not-applied" | "not-available";
+  surchargeExemptionNote: string;
   excise: string;
   vatBase: string;
   vat: string;
@@ -184,7 +188,38 @@ export function calculateVehicleImportDuty(
 
   const cif = decimal(parsedInput.cifValue);
   const customsDuty = nearestWholeRupee(cif.mul(decimal(parsedPayload.cidRate)));
-  const surcharge = nearestWholeRupee(customsDuty.mul(decimal(parsedPayload.surchargeRate)));
+
+  const exemption = parsedPayload.surchargeExemption;
+  let surchargeExemption: VehicleImportCalculation["surchargeExemption"] = "not-available";
+  let surchargeExemptionNote = "The current surcharge order defines no LC-establishment exemption.";
+  if (exemption) {
+    const lcDate = parsedInput.lcEstablishedOn;
+    if (lcDate === undefined) {
+      surchargeExemption = "not-applied";
+      surchargeExemptionNote = "Enter the LC establishment date to test the surcharge exemption.";
+    } else {
+      const lcEligible = lcDate <= exemption.lcEstablishedOnOrBefore;
+      const shippedDate = parsedInput.shippedOnBoardOn;
+      const shippedEligible =
+        shippedDate === undefined || shippedDate <= exemption.shippedOnBoardOnOrBefore;
+      if (lcEligible && shippedEligible) {
+        surchargeExemption = "applied";
+        surchargeExemptionNote =
+          shippedDate === undefined
+            ? `LC established ${lcDate}, on or before the order cutoff; confirm the shipped-on-board date is on or before ${exemption.shippedOnBoardOnOrBefore}.`
+            : `LC established ${lcDate} and shipped-on-board ${shippedDate} both satisfy the order cutoffs.`;
+      } else {
+        surchargeExemption = "not-applied";
+        surchargeExemptionNote = lcEligible
+          ? `Shipped-on-board ${shippedDate} is after the order cutoff ${exemption.shippedOnBoardOnOrBefore}.`
+          : `LC established ${lcDate} is after the order cutoff ${exemption.lcEstablishedOnOrBefore}.`;
+      }
+    }
+  }
+  const surcharge =
+    surchargeExemption === "applied"
+      ? new VehicleImportDecimal(0)
+      : nearestWholeRupee(customsDuty.mul(decimal(parsedPayload.surchargeRate)));
   const luxuryBase = cif.minus(decimal(schedule.luxuryThreshold));
   const luxuryTax = luxuryBase.isPositive()
     ? nearestWholeRupee(luxuryBase.mul(decimal(schedule.luxuryRate)))
@@ -223,6 +258,8 @@ export function calculateVehicleImportDuty(
     customsDutyRate: parsedPayload.cidRate,
     surcharge: format(surcharge),
     surchargeRate: parsedPayload.surchargeRate,
+    surchargeExemption,
+    surchargeExemptionNote,
     excise: format(excise),
     vatBase: format(vatBase),
     vat: format(vat),

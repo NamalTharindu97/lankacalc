@@ -77,6 +77,8 @@ const vehicleImportMetadata = {
     { name: "engineCc", label: "Engine capacity", type: "number", required: true, min: 1, max: 10_000, maxDecimalPlaces: 0, step: 1, suffix: "cc", visibleWhen: { field: "vehicleType", notEquals: "electric" } },
     { name: "motorKw", label: "Motor power", type: "number", required: true, min: 1, max: 2_000, maxDecimalPlaces: 0, step: 1, suffix: "kW", visibleWhen: { field: "vehicleType", equals: "electric" } },
     { name: "vehicleAge", label: "Vehicle age", type: "select", required: true, options: vehicleAgeOptions, description: "Age affects the excise rate for electric vehicles; the NITG 2026 petrol and diesel excise rows are identical across the three-year boundary." },
+    { name: "lcEstablishedOn", label: "LC establishment date", type: "date", required: false, min: "2026-04-01", max: "9999-12-31", description: "Optional. If on or before the surcharge order cutoff, the 50% S.P.D. surcharge may be exempt." },
+    { name: "shippedOnBoardOn", label: "Shipped-on-board date", type: "date", required: false, min: "2026-04-01", max: "9999-12-31", description: "Optional. The date on the Bill of Lading or Airway Bill, checked against the surcharge order cutoff." },
   ],
 } satisfies CalculatorMetadata;
 
@@ -88,6 +90,8 @@ const vehicleImportInputSchema = z
     engineCc: optionalIntegerInput({ min: 1, max: 10_000 }),
     motorKw: optionalIntegerInput({ min: 1, max: 2_000 }),
     vehicleAge,
+    lcEstablishedOn: z.string().regex(dateOnlyPattern, "Enter a valid LC establishment date.").optional(),
+    shippedOnBoardOn: z.string().regex(dateOnlyPattern, "Enter a valid shipped-on-board date.").optional(),
   })
   .strict()
   .superRefine((input, context) => {
@@ -167,6 +171,9 @@ export const vehicleImportDutyCalculator = defineRegulatedCalculator({
         cif: calculation.cif,
         customsDuty: calculation.customsDuty,
         surcharge: calculation.surcharge,
+        surchargeRate: calculation.surchargeRate,
+        surchargeExemption: calculation.surchargeExemption,
+        surchargeExemptionNote: calculation.surchargeExemptionNote,
         excise: calculation.excise,
         luxuryTax: calculation.luxuryTax,
         vatBase: calculation.vatBase,
@@ -184,7 +191,9 @@ export const vehicleImportDutyCalculator = defineRegulatedCalculator({
         },
         {
           label: `Surcharge (S.P.D.) at ${percent(calculation.surchargeRate)}% of customs duty`,
-          expression: `${calculation.customsDuty} × ${percent(calculation.surchargeRate)}%`,
+          expression: calculation.surchargeExemption === "applied"
+            ? `Exempt: ${calculation.surchargeExemptionNote}`
+            : `${calculation.customsDuty} × ${percent(calculation.surchargeRate)}%`,
           value: calculation.surcharge,
           unit: "LKR",
         },
@@ -230,10 +239,16 @@ export const vehicleImportDutyCalculator = defineRegulatedCalculator({
         "The excise duty is the specific rate (per unit or per cc/kW); where a tariff line shows both a per-unit and a per-capacity rate, the higher amount applies.",
         "PAL and CESS are exempt for the motor-car rows of Chapter 87 and are excluded.",
         "For petrol and diesel vehicles the excise rows at and beyond the three-year age boundary carry the same rates in the candidate schedule.",
+        ...(calculation.surchargeExemption === "applied" ? [
+          "The surcharge exemption follows the current S.P.D. surcharge order and its LC-establishment and shipped-on-board cutoffs.",
+        ] : []),
       ],
       warnings: [
         "Estimate only; the customs declaration and the official assessment at the port are authoritative.",
         "The 50% surcharge (S.P.D.) is a time-limited levy and may change; confirm the rate for the entry date.",
+        ...(calculation.surchargeExemption === "applied" ? [
+          "The exemption is void if key LC details (number of vehicles, vehicle identification number, description, technical specifications, expiry date) were amended.",
+        ] : []),
         "Preferential duty origin, excise and duty concessions, used-vehicle import conditions, temporary imports, and other regulatory conditions are excluded.",
         "Professional customs or legal confirmation is recommended before relying on this estimate for a real import.",
         "The candidate rule is pending independent tariff review before production publication.",
