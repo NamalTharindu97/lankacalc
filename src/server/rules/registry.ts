@@ -31,6 +31,11 @@ import {
   businessIncomeTaxPayloadSchema,
   calculateBusinessIncomeTax,
 } from "@/domain/calculators/business-tax/business-income-tax";
+import {
+  calculateVatLiability,
+  vatLiabilityInputSchema,
+  vatLiabilityPayloadSchema,
+} from "@/domain/calculators/business-tax/vat-liability";
 import type { JsonValue } from "@/server/rules/json";
 import { RulePlatform, type RuleHandler } from "@/server/rules/service";
 
@@ -132,6 +137,20 @@ export const ruleHandlers: Readonly<Record<string, RuleHandler>> = {
         calculateBusinessIncomeTax(
           businessIncomeTaxInputSchema.parse(input),
           businessIncomeTaxPayloadSchema.parse(payload),
+        ),
+      );
+    },
+  },
+  "vat-liability-lk-2026": {
+    payloadSchemaVersion: "1",
+    validatePayload(payload) {
+      vatLiabilityPayloadSchema.parse(payload);
+    },
+    calculate(input, payload) {
+      return result(
+        calculateVatLiability(
+          vatLiabilityInputSchema.parse(input),
+          vatLiabilityPayloadSchema.parse(payload),
         ),
       );
     },

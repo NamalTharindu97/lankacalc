@@ -1,13 +1,50 @@
 import { describe, expect, it } from "vitest";
 
 import { getCalculator } from "@/domain/calculators/registry";
-import { businessIncomeTaxCalculator } from "@/domain/calculators/business-tax-calculators";
+import {
+  businessIncomeTaxCalculator,
+  vatLiabilityCalculator,
+} from "@/domain/calculators/business-tax-calculators";
 import {
   businessIncomeTaxInputSchema,
   businessIncomeTaxPayloadSchema,
   calculateBusinessIncomeTax,
   type BusinessIncomeTaxPayload,
 } from "@/domain/calculators/business-tax/business-income-tax";
+import {
+  calculateVatLiability,
+  vatLiabilityInputSchema,
+  vatLiabilityPayloadSchema,
+  type VatLiabilityPayload,
+} from "@/domain/calculators/business-tax/vat-liability";
+
+const vatLiabilityPayload = {
+  vatLiability: {
+    authority: "ird-vat-act-2002-as-amended",
+    effectiveFrom: "2024-01-01",
+    rounding: "nearest-rupee",
+    standardRates: [{ effectiveFrom: "2024-01-01", ratePercent: "18" }],
+    financialServicesRates: [
+      { effectiveFrom: "2022-01-01", ratePercent: "18" },
+      { effectiveFrom: "2026-07-01", ratePercent: "20.5" },
+    ],
+    registrationThresholds: {
+      goodsServices: { quarter: "15000000", annual: "60000000" },
+      financialServices: { quarter: "3000000", annual: "12000000" },
+    },
+    importerExporterMandatoryRegistration: true,
+  },
+} satisfies { vatLiability: VatLiabilityPayload };
+
+const goodsQuarterlyInput = {
+  asOfDate: "2026-08-16",
+  supplierCategory: "goods-services",
+  taxablePeriod: "quarterly",
+  periodEndDate: "2026-06-30",
+  taxableSuppliesAmount: 20000000,
+  inputTaxCreditAmount: 2000000,
+  rolling12MonthTurnover: undefined,
+} as const;
 
 const businessIncomeTaxPayload = {
   businessIncomeTax: {
@@ -289,5 +326,299 @@ describe("business income tax schemas", () => {
       ],
     };
     expect(() => businessIncomeTaxPayloadSchema.parse(bad)).toThrow();
+  });
+});
+
+describe("regulated VAT liability calculator definition", () => {
+  it("registers the calculator for server execution", () => {
+    expect(getCalculator("vat-liability")).toMatchObject({
+      key: "vat-liability",
+      classification: "regulated",
+      execution: "server",
+    });
+  });
+
+  it("exposes the VAT liability rule dependency", () => {
+    expect(vatLiabilityCalculator.ruleDependencies).toEqual([
+      { name: "vatLiability", key: "vat-liability-lk-2026", scope: "lk" },
+    ]);
+  });
+
+  it("presents the result through the common result contract", () => {
+    const result = vatLiabilityCalculator.calculate(
+      { ...goodsQuarterlyInput },
+      vatLiabilityPayload,
+    );
+
+    expect(result).toMatchObject({
+      calculator: "vat-liability",
+      asOfDate: "2026-08-16",
+      ruleVersions: [],
+      sources: [],
+      result: {
+        supplierCategoryLabel: "Goods and services supplier",
+        ratePercent: "18",
+        periodStartDate: "2026-04-01",
+        outputVat: "3600000.00",
+        vatPayable: "1600000.00",
+      },
+    });
+    expect(result.breakdown.length).toBeGreaterThan(0);
+    expect(result.assumptions.length).toBeGreaterThan(0);
+    expect(result.warnings.length).toBeGreaterThan(0);
+  });
+});
+
+describe("VAT liability engine", () => {
+  it("computes quarterly goods/services VAT and the quarterly threshold trigger", () => {
+    const result = calculateVatLiability(
+      { ...goodsQuarterlyInput },
+      vatLiabilityPayload.vatLiability,
+    );
+
+    expect(result).toMatchObject({
+      supplierCategoryLabel: "Goods and services supplier",
+      taxablePeriod: "quarterly",
+      periodStartDate: "2026-04-01",
+      periodEndDate: "2026-06-30",
+      ratePercent: "18",
+      rateEffectiveFrom: "2024-01-01",
+      taxableSuppliesAmount: "20000000",
+      outputVat: "3600000.00",
+      inputTaxCredit: "2000000.00",
+      netVat: "1600000.00",
+      vatPayable: "1600000.00",
+      excessCredit: "0.00",
+      registrationStatus: "required",
+      registrationReason:
+        "Registration is required: taxable supplies exceed the threshold (quarter LKR 15000000 / 12-month LKR 60000000).",
+    });
+  });
+
+  it("carries forward excess input credit on a monthly period", () => {
+    const result = calculateVatLiability(
+      {
+        asOfDate: "2026-08-16",
+        supplierCategory: "goods-services",
+        taxablePeriod: "monthly",
+        periodEndDate: "2026-08-31",
+        taxableSuppliesAmount: 5000000,
+        inputTaxCreditAmount: 1000000,
+        rolling12MonthTurnover: undefined,
+      },
+      vatLiabilityPayload.vatLiability,
+    );
+
+    expect(result).toMatchObject({
+      periodStartDate: "2026-08-01",
+      outputVat: "900000.00",
+      netVat: "-100000.00",
+      vatPayable: "0.00",
+      excessCredit: "100000.00",
+      registrationStatus: "indeterminate",
+    });
+  });
+
+  it("marks a monthly supplier not-required when rolling turnover stays below the annual threshold", () => {
+    const result = calculateVatLiability(
+      {
+        asOfDate: "2026-08-16",
+        supplierCategory: "goods-services",
+        taxablePeriod: "monthly",
+        periodEndDate: "2026-08-31",
+        taxableSuppliesAmount: 5000000,
+        inputTaxCreditAmount: 900000,
+        rolling12MonthTurnover: 55000000,
+      },
+      vatLiabilityPayload.vatLiability,
+    );
+
+    expect(result).toMatchObject({
+      outputVat: "900000.00",
+      vatPayable: "0.00",
+      registrationStatus: "not-required",
+    });
+  });
+
+  it("applies the 18% financial services rate before 1 July 2026", () => {
+    const result = calculateVatLiability(
+      {
+        asOfDate: "2026-08-16",
+        supplierCategory: "financial-services",
+        taxablePeriod: "quarterly",
+        periodEndDate: "2026-06-30",
+        taxableSuppliesAmount: 10000000,
+        inputTaxCreditAmount: 300000,
+        rolling12MonthTurnover: undefined,
+      },
+      vatLiabilityPayload.vatLiability,
+    );
+
+    expect(result).toMatchObject({
+      ratePercent: "18",
+      rateEffectiveFrom: "2022-01-01",
+      outputVat: "1800000.00",
+      vatPayable: "1500000.00",
+      registrationStatus: "required",
+    });
+  });
+
+  it("applies the 20.5% financial services rate for periods commencing on or after 1 July 2026", () => {
+    const result = calculateVatLiability(
+      {
+        asOfDate: "2026-08-16",
+        supplierCategory: "financial-services",
+        taxablePeriod: "quarterly",
+        periodEndDate: "2026-09-30",
+        taxableSuppliesAmount: 10000000,
+        inputTaxCreditAmount: 500000,
+        rolling12MonthTurnover: undefined,
+      },
+      vatLiabilityPayload.vatLiability,
+    );
+
+    expect(result).toMatchObject({
+      periodStartDate: "2026-07-01",
+      ratePercent: "20.5",
+      rateEffectiveFrom: "2026-07-01",
+      outputVat: "2050000.00",
+      vatPayable: "1550000.00",
+      registrationStatus: "required",
+    });
+  });
+
+  it("reports mandatory registration for a commercial importer or exporter", () => {
+    const result = calculateVatLiability(
+      {
+        asOfDate: "2026-08-16",
+        supplierCategory: "importer-exporter",
+        taxablePeriod: "quarterly",
+        periodEndDate: "2026-06-30",
+        taxableSuppliesAmount: 5000000,
+        inputTaxCreditAmount: 2000000,
+        rolling12MonthTurnover: undefined,
+      },
+      vatLiabilityPayload.vatLiability,
+    );
+
+    expect(result).toMatchObject({
+      ratePercent: "18",
+      outputVat: "900000.00",
+      registrationStatus: "mandatory",
+      registrationReason:
+        "All persons importing or exporting goods for commercial purposes must register for VAT regardless of turnover or exemptions.",
+    });
+  });
+
+  it("gives a non-resident digital service provider a registration check only", () => {
+    const required = calculateVatLiability(
+      {
+        asOfDate: "2026-08-16",
+        supplierCategory: "digital-service",
+        taxablePeriod: "quarterly",
+        periodEndDate: "2026-09-30",
+        taxableSuppliesAmount: undefined,
+        inputTaxCreditAmount: undefined,
+        rolling12MonthTurnover: 70000000,
+      },
+      vatLiabilityPayload.vatLiability,
+    );
+
+    expect(required).toMatchObject({
+      ratePercent: "n/a",
+      outputVat: "0.00",
+      vatPayable: "0.00",
+      registrationStatus: "required",
+      registrationReason: "Registration is required: 12-month digital services exceed LKR 60000000.",
+    });
+
+    const notRequired = calculateVatLiability(
+      {
+        asOfDate: "2026-08-16",
+        supplierCategory: "digital-service",
+        taxablePeriod: "quarterly",
+        periodEndDate: "2026-09-30",
+        taxableSuppliesAmount: undefined,
+        inputTaxCreditAmount: undefined,
+        rolling12MonthTurnover: 40000000,
+      },
+      vatLiabilityPayload.vatLiability,
+    );
+
+    expect(notRequired).toMatchObject({
+      registrationStatus: "not-required",
+    });
+  });
+
+  it("rounds the payable once to the nearest rupee", () => {
+    const result = calculateVatLiability(
+      {
+        asOfDate: "2026-08-16",
+        supplierCategory: "goods-services",
+        taxablePeriod: "monthly",
+        periodEndDate: "2026-08-31",
+        taxableSuppliesAmount: 1000003,
+        inputTaxCreditAmount: 100000,
+        rolling12MonthTurnover: undefined,
+      },
+      vatLiabilityPayload.vatLiability,
+    );
+
+    expect(result).toMatchObject({
+      outputVat: "180000.54",
+      netVat: "80000.54",
+      vatPayable: "80001.00",
+    });
+  });
+});
+
+describe("VAT liability schemas", () => {
+  it("rejects a period end date that is not the last day of its month", () => {
+    expect(
+      vatLiabilityInputSchema.safeParse({
+        ...goodsQuarterlyInput,
+        periodEndDate: "2026-06-15",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a quarterly period that does not end on a quarter month", () => {
+    expect(
+      vatLiabilityInputSchema.safeParse({
+        ...goodsQuarterlyInput,
+        periodEndDate: "2026-05-31",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a digital service provider that enters supplies or input credit", () => {
+    expect(
+      vatLiabilityInputSchema.safeParse({
+        ...goodsQuarterlyInput,
+        supplierCategory: "digital-service",
+        taxableSuppliesAmount: 5000000,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("requires supplies and input credit for a liability category", () => {
+    expect(
+      vatLiabilityInputSchema.safeParse({
+        ...goodsQuarterlyInput,
+        taxableSuppliesAmount: undefined,
+        inputTaxCreditAmount: undefined,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a rate schedule that is not strictly ascending", () => {
+    const bad = {
+      ...vatLiabilityPayload.vatLiability,
+      financialServicesRates: [
+        { effectiveFrom: "2026-07-01", ratePercent: "20.5" },
+        { effectiveFrom: "2022-01-01", ratePercent: "18" },
+      ],
+    };
+    expect(() => vatLiabilityPayloadSchema.parse(bad)).toThrow();
   });
 });
