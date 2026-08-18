@@ -70,8 +70,35 @@ export const publicationEventType = pgEnum("publication_event_type", [
 export const reportStatus = pgEnum("report_status", [
   "queued",
   "generating",
-  "ready",
+  "completed",
   "failed",
+]);
+
+export const guideStatus = pgEnum("guide_status", [
+  "draft",
+  "published",
+  "retired",
+]);
+
+export const guideVersionStatus = pgEnum("guide_version_status", [
+  "draft",
+  "reviewed",
+  "published",
+  "retired",
+]);
+
+export const decisionNodeType = pgEnum("decision_node_type", [
+  "single-choice",
+  "multi-choice",
+  "text",
+  "date",
+]);
+
+export const translationStatus = pgEnum("translation_status", [
+  "draft",
+  "reviewed",
+  "published",
+  "stale",
 ]);
 
 export const calculatorDefinitions = pgTable(
@@ -568,5 +595,190 @@ export const ruleValidationFixtures = pgTable(
   },
   (table) => [
     uniqueIndex("rule_validation_fixtures_version_name_unique").on(table.ruleVersionId, table.name),
+  ],
+);
+
+export const guides = pgTable(
+  "guides",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    key: varchar("key", { length: 100 }).notNull().unique(),
+    product: varchar("product", { length: 40 }).notNull(),
+    name: varchar("name", { length: 200 }).notNull(),
+    description: varchar("description", { length: 1000 }).notNull(),
+    status: guideStatus("status").default("draft").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("guides_product_idx").on(table.product)],
+);
+
+export const guideVersions = pgTable(
+  "guide_versions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    guideId: uuid("guide_id")
+      .notNull()
+      .references(() => guides.id, { onDelete: "cascade" }),
+    version: varchar("version", { length: 40 }).notNull(),
+    status: guideVersionStatus("status").default("draft").notNull(),
+    effectiveFrom: date("effective_from").notNull(),
+    effectiveTo: date("effective_to"),
+    createdBy: text("created_by").notNull(),
+    reviewedBy: text("reviewed_by"),
+    publishedBy: text("published_by"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("guide_versions_guide_version_unique").on(table.guideId, table.version),
+    index("guide_versions_guide_status_idx").on(table.guideId, table.status),
+  ],
+);
+
+export const decisionTrees = pgTable(
+  "decision_trees",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    guideVersionId: uuid("guide_version_id")
+      .notNull()
+      .references(() => guideVersions.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 200 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("decision_trees_guide_version_unique").on(table.guideVersionId),
+  ],
+);
+
+export const decisionNodes = pgTable(
+  "decision_nodes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    treeId: uuid("tree_id")
+      .notNull()
+      .references(() => decisionTrees.id, { onDelete: "cascade" }),
+    key: varchar("key", { length: 100 }).notNull(),
+    type: decisionNodeType("type").notNull(),
+    question: varchar("question", { length: 1000 }).notNull(),
+    sortOrder: integer("sort_order").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("decision_nodes_tree_key_unique").on(table.treeId, table.key),
+    index("decision_nodes_tree_idx").on(table.treeId),
+  ],
+);
+
+export const decisionOutcomes = pgTable(
+  "decision_outcomes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    treeId: uuid("tree_id")
+      .notNull()
+      .references(() => decisionTrees.id, { onDelete: "cascade" }),
+    key: varchar("key", { length: 100 }).notNull(),
+    title: varchar("title", { length: 500 }).notNull(),
+    documents: jsonb("documents").default([]).notNull(),
+    fees: jsonb("fees").default([]).notNull(),
+    steps: jsonb("steps").default([]).notNull(),
+    offices: jsonb("offices").default([]).notNull(),
+    forms: jsonb("forms").default([]).notNull(),
+    links: jsonb("links").default([]).notNull(),
+    escalation: jsonb("escalation"),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("decision_outcomes_tree_key_unique").on(table.treeId, table.key),
+    index("decision_outcomes_tree_idx").on(table.treeId),
+  ],
+);
+
+export const decisionEdges = pgTable(
+  "decision_edges",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    treeId: uuid("tree_id")
+      .notNull()
+      .references(() => decisionTrees.id, { onDelete: "cascade" }),
+    fromNodeId: uuid("from_node_id").references(() => decisionNodes.id, {
+      onDelete: "cascade",
+    }),
+    toNodeId: uuid("to_node_id").references(() => decisionNodes.id, {
+      onDelete: "cascade",
+    }),
+    toOutcomeId: uuid("to_outcome_id").references(() => decisionOutcomes.id, {
+      onDelete: "cascade",
+    }),
+    condition: jsonb("condition").notNull(),
+    sortOrder: integer("sort_order").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("decision_edges_tree_idx").on(table.treeId),
+    index("decision_edges_from_node_idx").on(table.fromNodeId),
+  ],
+);
+
+export const contentSources = pgTable(
+  "content_sources",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    guideVersionId: uuid("guide_version_id")
+      .notNull()
+      .references(() => guideVersions.id, { onDelete: "cascade" }),
+    key: varchar("key", { length: 100 }).notNull(),
+    authority: varchar("authority", { length: 200 }).notNull(),
+    title: varchar("title", { length: 500 }).notNull(),
+    url: varchar("url", { length: 1000 }).notNull(),
+    publishedOn: date("published_on"),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("content_sources_guide_version_idx").on(table.guideVersionId),
+  ],
+);
+
+export const contentTranslations = pgTable(
+  "content_translations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    entityType: varchar("entity_type", { length: 40 }).notNull(),
+    entityId: uuid("entity_id").notNull(),
+    locale: varchar("locale", { length: 10 }).notNull(),
+    field: varchar("field", { length: 60 }).notNull(),
+    value: text("value").notNull(),
+    status: translationStatus("status").default("draft").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("content_translations_entity_unique").on(
+      table.entityType,
+      table.entityId,
+      table.locale,
+      table.field,
+    ),
+  ],
+);
+
+export const guideValidationFixtures = pgTable(
+  "guide_validation_fixtures",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    guideVersionId: uuid("guide_version_id")
+      .notNull()
+      .references(() => guideVersions.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 200 }).notNull(),
+    answers: jsonb("answers").notNull(),
+    expectedOutcome: varchar("expected_outcome", { length: 100 }).notNull(),
+    passed: boolean("passed"),
+    executedAt: timestamp("executed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("guide_fixtures_version_name_unique").on(table.guideVersionId, table.name),
   ],
 );
