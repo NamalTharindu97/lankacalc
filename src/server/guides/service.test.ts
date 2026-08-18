@@ -19,6 +19,16 @@ import {
   validateVersion,
   publishVersion,
   evaluateGuide,
+  addContentSource,
+  listContentSources,
+  verifyContentSource,
+  upsertTranslation,
+  listTranslations,
+  markTranslationsStale,
+  addFixture,
+  listFixtures,
+  executeFixture,
+  executeAllFixtures,
 } from "./service";
 
 const EMPTY_OUTCOME_FIELDS = {
@@ -628,5 +638,252 @@ describe.sequential("guide service", () => {
 
     const result = await evaluateGuide(key, { service: "licence" });
     expect(result).toMatchObject({ resolved: false, title: "Unresolved" });
+  });
+});
+
+describe.sequential("content sources", () => {
+  it("adds and lists sources for a draft version", async () => {
+    const suffix = randomUUID().replaceAll("-", "").slice(0, 8);
+    const key = `test-guide-${suffix}`;
+    await createGuide({ key, product: "govguide", name: "Src Test", description: "..." });
+    await createDraftVersion(key, { version: "1.0.0", effectiveFrom: "2026-01-01" });
+
+    const src = await addContentSource(key, "1.0.0", {
+      key: "gazette-2024",
+      authority: "Govt Printer",
+      title: "Extraordinary Gazette 2024/001",
+      url: "https://example.com/gazette",
+      publishedOn: "2024-03-15",
+    });
+    expect(src.key).toBe("gazette-2024");
+    expect(src.authority).toBe("Govt Printer");
+
+    const list = await listContentSources(key, "1.0.0");
+    expect(list).toHaveLength(1);
+    expect(list[0].id).toBe(src.id);
+  });
+
+  it("rejects source on non-draft version", async () => {
+    const suffix = randomUUID().replaceAll("-", "").slice(0, 8);
+    const key = `test-guide-${suffix}`;
+    await createGuide({ key, product: "govguide", name: "Src Reject", description: "..." });
+    await createDraftVersion(key, { version: "1.0.0", effectiveFrom: "2026-01-01" });
+    const n1 = await addNode(key, "1.0.0", { key: "root", type: "single-choice", question: "Q?", sortOrder: 0 });
+    const o1 = await addOutcome(key, "1.0.0", { key: "res", title: "Res", ...EMPTY_OUTCOME_FIELDS });
+    await addEdge(key, "1.0.0", { fromNodeId: n1.id, toOutcomeId: o1.id, condition: { answer: "y" }, sortOrder: 0 });
+    await publishVersion(key, "1.0.0");
+
+    await expect(
+      addContentSource(key, "1.0.0", {
+        key: "bad",
+        authority: "X",
+        title: "X",
+        url: "https://example.com",
+      }),
+    ).rejects.toThrow("non-draft");
+  });
+
+  it("verifies a source", async () => {
+    const suffix = randomUUID().replaceAll("-", "").slice(0, 8);
+    const key = `test-guide-${suffix}`;
+    await createGuide({ key, product: "govguide", name: "Verify Src", description: "..." });
+    await createDraftVersion(key, { version: "1.0.0", effectiveFrom: "2026-01-01" });
+
+    const src = await addContentSource(key, "1.0.0", {
+      key: "doc-1",
+      authority: "Auth",
+      title: "Doc 1",
+      url: "https://example.com/doc1",
+    });
+    expect(src.verifiedAt).toBeNull();
+
+    const verified = await verifyContentSource(src.id, new Date());
+    expect(verified.verifiedAt).toBeInstanceOf(Date);
+  });
+
+  it("rejects invalid source input", async () => {
+    const suffix = randomUUID().replaceAll("-", "").slice(0, 8);
+    const key = `test-guide-${suffix}`;
+    await createGuide({ key, product: "govguide", name: "Src Invalid", description: "..." });
+    await createDraftVersion(key, { version: "1.0.0", effectiveFrom: "2026-01-01" });
+
+    await expect(
+      addContentSource(key, "1.0.0", {
+        key: "Invalid Key!",
+        authority: "",
+        title: "",
+        url: "not-a-url",
+      }),
+    ).rejects.toThrow();
+  });
+});
+
+describe.sequential("translations", () => {
+  it("creates and retrieves translations", async () => {
+    const entityId = randomUUID();
+
+    const t = await upsertTranslation({
+      entityType: "guide",
+      entityId,
+      locale: "si",
+      field: "title",
+      value: "සේවා මාර්ගෝපදේශය",
+    });
+    expect(t.locale).toBe("si");
+    expect(t.value).toBe("සේවා මාර්ගෝපදේශය");
+    expect(t.status).toBe("draft");
+
+    const all = await listTranslations("guide", entityId);
+    expect(all).toHaveLength(1);
+    expect(all[0].id).toBe(t.id);
+  });
+
+  it("upserts existing translation", async () => {
+    const entityId = randomUUID();
+
+    await upsertTranslation({
+      entityType: "guide",
+      entityId,
+      locale: "ta",
+      field: "title",
+      value: "Original",
+    });
+
+    const updated = await upsertTranslation({
+      entityType: "guide",
+      entityId,
+      locale: "ta",
+      field: "title",
+      value: "Updated",
+      status: "reviewed",
+    });
+    expect(updated.value).toBe("Updated");
+    expect(updated.status).toBe("reviewed");
+
+    const all = await listTranslations("guide", entityId);
+    expect(all).toHaveLength(1);
+  });
+
+  it("filters translations by locale", async () => {
+    const entityId = randomUUID();
+
+    await upsertTranslation({ entityType: "node", entityId, locale: "si", field: "q", value: "Sinhala" });
+    await upsertTranslation({ entityType: "node", entityId, locale: "ta", field: "q", value: "Tamil" });
+
+    const siOnly = await listTranslations("node", entityId, "si");
+    expect(siOnly).toHaveLength(1);
+    expect(siOnly[0].locale).toBe("si");
+  });
+
+  it("marks translations stale", async () => {
+    const entityId = randomUUID();
+
+    await upsertTranslation({ entityType: "outcome", entityId, locale: "si", field: "note", value: "Note" });
+    await upsertTranslation({ entityType: "outcome", entityId, locale: "ta", field: "note", value: "Note TA" });
+
+    const count = await markTranslationsStale("outcome", entityId);
+    expect(count).toBe(2);
+
+    const all = await listTranslations("outcome", entityId);
+    expect(all.every((t) => t.status === "stale")).toBe(true);
+  });
+
+  it("does not re-stale already stale translations", async () => {
+    const entityId = randomUUID();
+
+    await upsertTranslation({ entityType: "guide", entityId, locale: "si", field: "desc", value: "D" });
+    await markTranslationsStale("guide", entityId);
+    const count = await markTranslationsStale("guide", entityId);
+    expect(count).toBe(0);
+  });
+});
+
+describe.sequential("validation fixtures", () => {
+  it("adds and lists fixtures for a version", async () => {
+    const suffix = randomUUID().replaceAll("-", "").slice(0, 8);
+    const key = `test-guide-${suffix}`;
+    await createGuide({ key, product: "govguide", name: "Fix Test", description: "..." });
+    await createDraftVersion(key, { version: "1.0.0", effectiveFrom: "2026-01-01" });
+
+    const f = await addFixture(key, "1.0.0", {
+      name: "Passport path",
+      answers: { service: "passport" },
+      expectedOutcome: "passport",
+    });
+    expect(f.name).toBe("Passport path");
+    expect(f.passed).toBeNull();
+
+    const list = await listFixtures(key, "1.0.0");
+    expect(list).toHaveLength(1);
+  });
+
+  it("executes a fixture against the decision engine", async () => {
+    const suffix = randomUUID().replaceAll("-", "").slice(0, 8);
+    const key = `test-guide-${suffix}`;
+    await createGuide({ key, product: "govguide", name: "Exec Fix", description: "..." });
+    await createDraftVersion(key, { version: "1.0.0", effectiveFrom: "2026-01-01" });
+
+    const n1 = await addNode(key, "1.0.0", { key: "svc", type: "single-choice", question: "Svc?", sortOrder: 0 });
+    const o1 = await addOutcome(key, "1.0.0", { key: "passport", title: "Passport", ...EMPTY_OUTCOME_FIELDS });
+    await addEdge(key, "1.0.0", { fromNodeId: n1.id, toOutcomeId: o1.id, condition: { answer: "passport" }, sortOrder: 0 });
+
+    const f = await addFixture(key, "1.0.0", {
+      name: "Match",
+      answers: { svc: "passport" },
+      expectedOutcome: "passport",
+    });
+
+    const result = await executeFixture(f.id);
+    expect(result.passed).toBe(true);
+    expect(result.executedAt).toBeInstanceOf(Date);
+  });
+
+  it("records failure when fixture expectation mismatches", async () => {
+    const suffix = randomUUID().replaceAll("-", "").slice(0, 8);
+    const key = `test-guide-${suffix}`;
+    await createGuide({ key, product: "govguide", name: "Fail Fix", description: "..." });
+    await createDraftVersion(key, { version: "1.0.0", effectiveFrom: "2026-01-01" });
+
+    const n1 = await addNode(key, "1.0.0", { key: "svc", type: "single-choice", question: "Svc?", sortOrder: 0 });
+    const o1 = await addOutcome(key, "1.0.0", { key: "passport", title: "Passport", ...EMPTY_OUTCOME_FIELDS });
+    await addEdge(key, "1.0.0", { fromNodeId: n1.id, toOutcomeId: o1.id, condition: { answer: "passport" }, sortOrder: 0 });
+
+    const f = await addFixture(key, "1.0.0", {
+      name: "Wrong expected",
+      answers: { svc: "passport" },
+      expectedOutcome: "licence",
+    });
+
+    const result = await executeFixture(f.id);
+    expect(result.passed).toBe(false);
+  });
+
+  it("executes all fixtures and returns summary", async () => {
+    const suffix = randomUUID().replaceAll("-", "").slice(0, 8);
+    const key = `test-guide-${suffix}`;
+    await createGuide({ key, product: "govguide", name: "ExecAll", description: "..." });
+    await createDraftVersion(key, { version: "1.0.0", effectiveFrom: "2026-01-01" });
+
+    const n1 = await addNode(key, "1.0.0", { key: "svc", type: "single-choice", question: "Svc?", sortOrder: 0 });
+    const o1 = await addOutcome(key, "1.0.0", { key: "passport", title: "Passport", ...EMPTY_OUTCOME_FIELDS });
+    await addEdge(key, "1.0.0", { fromNodeId: n1.id, toOutcomeId: o1.id, condition: { answer: "passport" }, sortOrder: 0 });
+
+    await addFixture(key, "1.0.0", { name: "Pass", answers: { svc: "passport" }, expectedOutcome: "passport" });
+    await addFixture(key, "1.0.0", { name: "Fail", answers: { svc: "passport" }, expectedOutcome: "licence" });
+
+    const summary = await executeAllFixtures(key, "1.0.0");
+    expect(summary.total).toBe(2);
+    expect(summary.passed).toBe(1);
+    expect(summary.failed).toBe(1);
+  });
+
+  it("rejects fixture on nonexistent version", async () => {
+    await expect(
+      addFixture("nonexistent", "1.0.0", {
+        name: "Bad",
+        answers: {},
+        expectedOutcome: "x",
+      }),
+    ).rejects.toThrow("not found");
   });
 });

@@ -71,6 +71,7 @@ export const reportStatus = pgEnum("report_status", [
   "queued",
   "generating",
   "completed",
+  "ready",
   "failed",
 ]);
 
