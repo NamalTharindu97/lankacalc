@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { authClient } from "@/server/auth/client";
 
 type AuthDialogProperties = {
@@ -70,7 +75,7 @@ export function AuthDialog({ open, onClose, onAuthenticated, title }: AuthDialog
   return (
     <dialog
       aria-label={title ?? "Sign in"}
-      className="auth-dialog"
+      className="z-50 rounded-xl border bg-background p-0 shadow-lg backdrop:bg-black/50"
       onCancel={(event) => {
         event.preventDefault();
         handleClose();
@@ -81,42 +86,36 @@ export function AuthDialog({ open, onClose, onAuthenticated, title }: AuthDialog
       }}
       ref={dialogRef}
     >
-      <div className="auth-dialog-panel">
-        <div className="panel-heading">
-          <span>{mode === "sign-up" ? "01" : "02"}</span>
-          <div>
-            <h2>{title ?? (mode === "sign-up" ? "Create an account" : "Sign in")}</h2>
-            <p>{mode === "sign-up" ? "Your calculations stay private and yours." : "Access your saved calculations."}</p>
+      <Card className="border-0 shadow-none">
+        <CardHeader>
+          <CardTitle>{title ?? (mode === "sign-up" ? "Create an account" : "Sign in")}</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {mode === "sign-up" ? "Your calculations stay private and yours." : "Access your saved calculations."}
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6 flex gap-2">
+            <Button
+              onClick={() => switchMode("sign-in")}
+              size="sm"
+              variant={mode === "sign-in" ? "default" : "ghost"}
+            >
+              Sign in
+            </Button>
+            <Button
+              onClick={() => switchMode("sign-up")}
+              size="sm"
+              variant={mode === "sign-up" ? "default" : "ghost"}
+            >
+              Create account
+            </Button>
           </div>
-        </div>
 
-        <div className="auth-tabs" role="tablist" aria-label="Sign in or create an account">
-          <button
-            aria-selected={mode === "sign-in"}
-            className="auth-tab"
-            onClick={() => switchMode("sign-in")}
-            role="tab"
-            type="button"
-          >
-            Sign in
-          </button>
-          <button
-            aria-selected={mode === "sign-up"}
-            className="auth-tab"
-            onClick={() => switchMode("sign-up")}
-            role="tab"
-            type="button"
-          >
-            Create account
-          </button>
-        </div>
-
-        <form className="auth-form" onSubmit={handleSubmit}>
-          {mode === "sign-up" ? (
-            <div className="field-group">
-              <label htmlFor="auth-name">Name</label>
-              <div className="input-shell">
-                <input
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            {mode === "sign-up" ? (
+              <div className="space-y-2">
+                <Label htmlFor="auth-name">Name</Label>
+                <Input
                   autoComplete="name"
                   id="auth-name"
                   name="name"
@@ -126,13 +125,11 @@ export function AuthDialog({ open, onClose, onAuthenticated, title }: AuthDialog
                   value={name}
                 />
               </div>
-            </div>
-          ) : null}
+            ) : null}
 
-          <div className="field-group">
-            <label htmlFor="auth-email">Email</label>
-            <div className="input-shell">
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="auth-email">Email</Label>
+              <Input
                 autoComplete="email"
                 id="auth-email"
                 name="email"
@@ -142,12 +139,10 @@ export function AuthDialog({ open, onClose, onAuthenticated, title }: AuthDialog
                 value={email}
               />
             </div>
-          </div>
 
-          <div className="field-group">
-            <label htmlFor="auth-password">Password</label>
-            <div className="input-shell">
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="auth-password">Password</Label>
+              <Input
                 autoComplete={mode === "sign-up" ? "new-password" : "current-password"}
                 id="auth-password"
                 minLength={8}
@@ -157,23 +152,35 @@ export function AuthDialog({ open, onClose, onAuthenticated, title }: AuthDialog
                 type="password"
                 value={password}
               />
+              {mode === "sign-up" ? (
+                <p className="text-xs text-muted-foreground">Use at least 8 characters.</p>
+              ) : null}
             </div>
-            {mode === "sign-up" ? <p>Use at least 8 characters.</p> : null}
-          </div>
 
-          {error ? <div className="form-error" role="alert">{error}</div> : null}
+            {error ? (
+              <div className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                {error}
+              </div>
+            ) : null}
 
-          <button className="calculate-button" disabled={isPending} type="submit">
-            {isPending
-              ? (mode === "sign-up" ? "Creating account..." : "Signing in...")
-              : (mode === "sign-up" ? "Create account" : "Sign in")}
-          </button>
-        </form>
+            <Button className="w-full" disabled={isPending} type="submit">
+              {isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {mode === "sign-up" ? "Creating account..." : "Signing in..."}
+                </>
+              ) : (
+                mode === "sign-up" ? "Create account" : "Sign in"
+              )}
+            </Button>
+          </form>
 
-        <p className="auth-terms">
-          No ads, no tracking. Signed-in data is used only to restore your saved calculations.
-        </p>
-      </div>
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            No ads, no tracking. Signed-in data is used only to restore your saved calculations.
+          </p>
+        </CardContent>
+      </Card>
     </dialog>
   );
 }

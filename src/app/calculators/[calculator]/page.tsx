@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 
+import { Badge } from "@/components/ui/badge";
 import { CalculatorForm } from "@/components/calculator-form";
 import {
   getCalculator,
@@ -40,20 +42,29 @@ export default async function CalculatorPage({ params }: CalculatorPagePropertie
   }
 
   return (
-    <section className={`calculator-page accent-${calculator.accent}`}>
-      <div className="calculator-page-header">
-        <Link className="back-link" href="/#calculators">&lt;- All calculators</Link>
-        <div className="calculator-title-row">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <Link
+        className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        href="/#calculators"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        All calculators
+      </Link>
+
+      <div className="mb-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="eyebrow">{calculator.category} / {calculator.classification}</p>
-            <h1>{calculator.name}</h1>
+            <Badge className="mb-3" variant="outline">
+              {calculator.category} / {calculator.classification}
+            </Badge>
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{calculator.name}</h1>
           </div>
-          <span className="version-chip">Calculation v{calculator.version}</span>
+          <Badge variant="secondary">Calculation v{calculator.version}</Badge>
         </div>
-        <p className="calculator-summary">{calculator.summary}</p>
+        <p className="mt-4 max-w-xl text-muted-foreground">{calculator.summary}</p>
       </div>
 
       <CalculatorForm calculator={getCalculatorMetadata(calculator)} />
-    </section>
+    </div>
   );
 }

@@ -2,6 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { AlertCircle, Loader2, Trash2, XCircle } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 type Delivery = {
   id: string;
@@ -160,81 +166,84 @@ export function RemindersList({
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <section className="saved-page">
-      <div className="panel-heading">
-        <span>01</span>
-        <div>
-          <h1>Reminders</h1>
-          <p>Date-based email reminders so obligations are not missed. Not legal or compliance advice.</p>
-        </div>
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight">Reminders</h1>
+        <p className="text-sm text-muted-foreground">Date-based email reminders so obligations are not missed. Not legal or compliance advice.</p>
       </div>
 
-      <form className="reminder-form" onSubmit={createReminder}>
-        <div className="input-shell">
-          <input
-            aria-label="Reminder title"
-            maxLength={200}
-            onChange={(event) => setTitle(event.target.value)}
-            placeholder="What are you being reminded about?"
-            required
-            type="text"
-            value={title}
-          />
-        </div>
-        <div className="reminder-form-row">
-          <div className="input-shell">
-            <input
-              aria-label="Obligation date"
-              min={today}
-              onChange={(event) => setObligationDate(event.target.value)}
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <form className="space-y-3" onSubmit={createReminder}>
+            <Input
+              aria-label="Reminder title"
+              maxLength={200}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="What are you being reminded about?"
               required
-              type="date"
-              value={obligationDate}
+              type="text"
+              value={title}
             />
-          </div>
-          <div className="input-shell">
-            <input
-              aria-label="Action URL"
-              onChange={(event) => setActionUrl(event.target.value)}
-              placeholder="Action link (optional)"
-              type="url"
-              value={actionUrl}
-            />
-          </div>
-        </div>
-        <div className="input-shell">
-          <input
-            aria-label="Reminder note"
-            maxLength={1000}
-            onChange={(event) => setNote(event.target.value)}
-            placeholder="Note (optional)"
-            type="text"
-            value={note}
-          />
-        </div>
-        <fieldset className="reminder-offsets">
-          <legend>Remind me before</legend>
-          {DEFAULT_OFFSETS.map((offset) => (
-            <label key={offset}>
-              <input
-                checked={offsets.includes(offset)}
-                onChange={() => toggleOffset(offset)}
-                type="checkbox"
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input
+                aria-label="Obligation date"
+                min={today}
+                onChange={(event) => setObligationDate(event.target.value)}
+                required
+                type="date"
+                value={obligationDate}
               />
-              {offset} day{offset === 1 ? "" : "s"}
-            </label>
-          ))}
-          <span className="reminder-timezone">delivered at 9am {preferences.timezone}</span>
-        </fieldset>
-        <button className="save-submit" disabled={busy} type="submit">
-          {busy ? "Creating…" : "Add reminder"}
-        </button>
-        {error ? <div className="form-error" role="alert">{error}</div> : null}
-      </form>
+              <Input
+                aria-label="Action URL"
+                onChange={(event) => setActionUrl(event.target.value)}
+                placeholder="Action link (optional)"
+                type="url"
+                value={actionUrl}
+              />
+            </div>
+            <Input
+              aria-label="Reminder note"
+              maxLength={1000}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="Note (optional)"
+              type="text"
+              value={note}
+            />
+            <fieldset className="rounded-lg border p-3">
+              <legend className="px-1 text-sm font-medium">Remind me before</legend>
+              <div className="flex flex-wrap items-center gap-4">
+                {DEFAULT_OFFSETS.map((offset) => (
+                  <label className="flex items-center gap-2 text-sm" key={offset}>
+                    <input
+                      checked={offsets.includes(offset)}
+                      className="h-4 w-4 rounded border-input"
+                      onChange={() => toggleOffset(offset)}
+                      type="checkbox"
+                    />
+                    {offset} day{offset === 1 ? "" : "s"}
+                  </label>
+                ))}
+                <span className="ml-auto text-xs text-muted-foreground">delivered at 9am {preferences.timezone}</span>
+              </div>
+            </fieldset>
+            <Button disabled={busy} type="submit">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {busy ? "Creating..." : "Add reminder"}
+            </Button>
+            {error ? (
+              <div className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                {error}
+              </div>
+            ) : null}
+          </form>
+        </CardContent>
+      </Card>
 
-      <label className="reminder-email-toggle">
+      <label className="mb-6 flex items-center gap-2 text-sm font-medium">
         <input
           checked={preferences.emailEnabled}
+          className="h-4 w-4 rounded border-input"
           onChange={(event) => void toggleEmail(event.target.checked)}
           type="checkbox"
         />
@@ -242,40 +251,50 @@ export function RemindersList({
       </label>
 
       {reminders.length === 0 ? (
-        <p className="reminder-empty">No reminders yet. Add one above.</p>
+        <p className="text-sm text-muted-foreground">No reminders yet. Add one above.</p>
       ) : (
-        <ul className="reminder-list">
+        <div className="space-y-3">
           {reminders.map((item) => (
-            <li className="saved-row reminder-row" key={item.id}>
-              <div className="saved-details">
-                <strong>{item.title}</strong>
-                <span>
-                  {formatCalendarDate(item.obligationDate)} · {item.timezone}
-                </span>
-                {item.note ? <span>{item.note}</span> : null}
-                {item.actionUrl ? <span>Action: {item.actionUrl}</span> : null}
-              </div>
-              <div className="reminder-deliveries">
-                {item.deliveries.map((delivery) => (
-                  <span className={`delivery-badge delivery-${delivery.status}`} key={delivery.id}>
-                    {delivery.offsetDays}d · {formatDate(delivery.scheduledFor)} · {statusLabels[delivery.status]}
-                  </span>
-                ))}
-              </div>
-              <div className="saved-actions">
-                {item.status === "active" ? (
-                  <button className="text-button" onClick={() => void cancelReminder(item.id)} type="button">
-                    Cancel
-                  </button>
-                ) : null}
-                <button className="text-button danger" onClick={() => void deleteReminder(item.id)} type="button">
-                  Delete
-                </button>
-              </div>
-            </li>
+            <Card key={item.id}>
+              <CardContent className="p-4">
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <h3 className="font-semibold">{item.title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {formatCalendarDate(item.obligationDate)} · {item.timezone}
+                    </p>
+                    {item.note ? <p className="text-sm text-muted-foreground">{item.note}</p> : null}
+                    {item.actionUrl ? <p className="text-sm text-muted-foreground">Action: {item.actionUrl}</p> : null}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {item.deliveries.map((delivery) => (
+                      <Badge
+                        className={delivery.status === "failed" ? "border-destructive text-destructive" : delivery.status === "sent" || delivery.status === "delivered" ? "border-green-500 text-green-700 dark:text-green-400" : ""}
+                        key={delivery.id}
+                        variant="outline"
+                      >
+                        {delivery.offsetDays}d · {formatDate(delivery.scheduledFor)} · {statusLabels[delivery.status]}
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex gap-1">
+                    {item.status === "active" ? (
+                      <Button onClick={() => void cancelReminder(item.id)} size="sm" variant="ghost">
+                        <XCircle className="h-3 w-3" />
+                        Cancel
+                      </Button>
+                    ) : null}
+                    <Button onClick={() => void deleteReminder(item.id)} size="sm" variant="ghost">
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           ))}
-        </ul>
+        </div>
       )}
-    </section>
+    </div>
   );
 }
