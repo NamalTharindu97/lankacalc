@@ -508,7 +508,7 @@ describe.sequential("guide service", () => {
     });
   });
 
-  it("returns unresolved for published guide without tree", async () => {
+  it("rejects publishing a guide without a decision tree", async () => {
     const suffix = randomUUID().replaceAll("-", "").slice(0, 8);
     const key = `test-guide-${suffix}`;
     await createGuide({
@@ -521,14 +521,8 @@ describe.sequential("guide service", () => {
       version: "1.0.0",
       effectiveFrom: "2026-01-01",
     });
-    await publishVersion(key, "1.0.0");
-
-    const result = await evaluateGuide(key, {});
-    expect(result).toMatchObject({
-      resolved: false,
-      title: "Unresolved",
-      note: "No decision tree is available for this guide.",
-    });
+    await expect(publishVersion(key, "1.0.0"))
+      .rejects.toThrow("Cannot publish: Decision tree has no nodes.");
   });
 
   it("evaluates multi-step path correctly", async () => {

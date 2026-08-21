@@ -4,7 +4,10 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { StructuredData } from "@/components/structured-data";
+import { getCalculatorCategories } from "@/domain/calculators/categories";
 import { getCalculators } from "@/domain/calculators/registry";
+import { absoluteUrl, siteDescription, siteName } from "@/lib/site";
 
 const principles = [
   {
@@ -31,9 +34,20 @@ const principles = [
 
 export default function HomePage() {
   const calculators = getCalculators();
+  const categories = getCalculatorCategories();
 
   return (
     <>
+      <StructuredData
+        data={{
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: siteName,
+          description: siteDescription,
+          url: absoluteUrl("/"),
+          inLanguage: "en",
+        }}
+      />
       <section className="relative overflow-hidden border-b">
         <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32 lg:px-8">
           <div className="grid gap-12 lg:grid-cols-[1.6fr_0.6fr] lg:items-end">
@@ -60,8 +74,8 @@ export default function HomePage() {
               <Badge className="mb-3" variant="secondary">01</Badge>
               <h3 className="font-semibold">Foundation release</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Six static calculators run without an account. Source-backed Sri Lankan salary and
-                contribution rules are the next regulated release.
+                Static tools run in your browser. Source-backed calculators use dated rules and
+                show their provenance when those rules are published.
               </p>
             </Card>
           </div>
@@ -83,6 +97,16 @@ export default function HomePage() {
               {calculators.length.toString().padStart(2, "0")} calculators in this release
             </p>
           </div>
+
+          <nav aria-label="Calculator categories" className="mb-8 flex flex-wrap gap-2">
+            {categories.map((category) => (
+              <Button asChild key={category.slug} size="sm" variant="outline">
+                <Link href={`/categories/${category.slug}`}>
+                  {category.name} ({category.calculators.length})
+                </Link>
+              </Button>
+            ))}
+          </nav>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {calculators.map((calculator, index) => (

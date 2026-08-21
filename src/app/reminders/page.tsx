@@ -8,6 +8,7 @@ import { getPreferences, listReminders } from "@/server/reminders/service";
 
 export const metadata: Metadata = {
   title: "Reminders",
+  robots: { index: false, follow: false },
 };
 
 export default async function RemindersPage() {

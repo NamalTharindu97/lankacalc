@@ -1,0 +1,29 @@
+services:
+  db:
+    ports: !override []
+    logging: &production-logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  web:
+    logging: *production-logging
+
+  proxy:
+    ports: !override
+      - "127.0.0.1:${APP_PORT:-3100}:80"
+    volumes: !override
+      - ./deploy/nginx.production.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - default
+      - edge
+    logging: *production-logging
+
+  migrate:
+    logging: *production-logging
+
+networks:
+  edge:
+    external: true
+    name: edge
