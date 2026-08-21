@@ -31,5 +31,5 @@
 
 ## Git Workflow
 
-- `main` is the integration branch. Use a topic branch for each coherent change, run `npm run verify`, open a PR, and squash-merge; do not push feature work directly to `main`. No repository CI workflow currently enforces verification.
+- `main` is the integration branch. Use a topic branch for each coherent change, run `npm run verify`, open a PR, wait for `.github/workflows/ci.yml`, and squash-merge; do not push feature work directly to `main`.
 - After merging, fast-forward local `main` before creating the next topic branch.
