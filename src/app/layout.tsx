@@ -4,15 +4,31 @@ import Link from "next/link";
 import { AccountBar } from "@/components/account-bar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { getSiteUrl, siteDescription, siteName } from "@/lib/site";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: getSiteUrl(),
   title: {
     default: "LankaCalc | Clear calculations for Sri Lanka",
     template: "%s | LankaCalc",
   },
-  description:
-    "Straightforward calculators with visible assumptions, calculation breakdowns, and source-aware results.",
+  description: siteDescription,
+  applicationName: siteName,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "en_LK",
+    siteName,
+    title: "LankaCalc | Clear calculations for Sri Lanka",
+    description: siteDescription,
+    url: "/",
+  },
+  twitter: {
+    card: "summary",
+    title: "LankaCalc | Clear calculations for Sri Lanka",
+    description: siteDescription,
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -43,7 +59,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <footer className="border-t bg-muted/50">
             <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-6 text-xs text-muted-foreground sm:px-6 lg:px-8">
               <p>Built for clear decisions, not mysterious totals.</p>
-              <p className="text-right">Static calculators are estimates. Regulated rules will include official sources.</p>
+              <p className="text-right">Estimates show their assumptions; regulated results cite published rules and sources.</p>
             </div>
           </footer>
         </ThemeProvider>

@@ -1,6 +1,6 @@
 # LankaCalc
 
-LankaCalc is a web-first collection of transparent calculation and decision tools for Sri Lanka. The foundation release contains anonymous static calculators that run in the browser plus a versioned public API. Regulated calculators will be added only with effective-dated rules, official sources, verification dates, and regression fixtures.
+LankaCalc is a web-first collection of transparent calculation and decision tools for Sri Lanka. Anonymous static calculators run in the browser, while server-authoritative calculators use effective-dated rules, official sources, verification dates, and regression fixtures.
 
 ## Requirements
 
@@ -10,7 +10,7 @@ LankaCalc is a web-first collection of transparent calculation and decision tool
 
 ## Local Development
 
-Create `.env` from `.env.example` and replace the development password, then run:
+Create `.env` from `.env.example`, set `SITE_URL` to the public origin outside local development, and replace the development password, then run:
 
 ```sh
 npm install

@@ -2,29 +2,33 @@
 
 ## Architecture
 
-- This is an npm-based Next.js 16 App Router modular monolith on Node 22; PostgreSQL is defined through Drizzle and self-hosted with Docker Compose.
-- `src/domain/calculators/` is the framework-independent source of calculation behavior and metadata. Pages and `/api/v1` routes must use its registry rather than duplicate formulas.
-- Static calculators do not require PostgreSQL. Database tables currently establish calculator/source metadata for future regulated rules.
-- `docs/Sri_Lanka_Web_Application_Service_Research.md` is the product source; `plan/LankaTools_Backend_Plan.md` is the architecture blueprint; `plan/LankaTools_Implementation_Roadmap.md` defines execution order and exit criteria.
+- This is an npm/Node 22 Next.js 16 App Router modular monolith; PostgreSQL 17 is accessed through Drizzle and supplied by `compose.yaml`.
+- `src/domain/calculators/` owns calculator metadata, validation, formulas, and the shared registry. Pages and `/api/v1` routes must use that registry rather than duplicate behavior.
+- Keep executable formulas in versioned TypeScript. PostgreSQL stores validated, effective-dated parameters and provenance for server-authoritative calculators, never executable formulas.
+- Static calculators run in the browser without PostgreSQL. Regulated calculators fail closed unless their reviewed rules and sources are published; some `configurable` calculators are also server-executed, so inspect `execution`, not only `classification`.
+- `src/server/guides/` owns the framework-independent decision engine and graph validation; `src/app/api/v1/guides/` is its HTTP layer.
+- Next.js 16 dynamic route `params` are promises and must be awaited.
+- Product intent comes from `docs/Sri_Lanka_Web_Application_Service_Research.md`; architecture from `plan/LankaTools_Backend_Plan.md`; sequencing and exit gates from `plan/LankaTools_Implementation_Roadmap.md`. Executable code and tests override stale prose.
 
-## Commands
+## Setup And Commands
 
-- Install with `npm install`; the lockfile is authoritative.
-- Run locally with `npm run dev`; start PostgreSQL separately with `docker compose up -d db` when database work is needed.
-- Run verification in order with `npm run verify` (`lint -> typecheck -> test -> build`).
-- Run one test file with `npx vitest run <path>`.
-- After editing `src/server/db/schema.ts`, run `npm run db:generate`, review generated SQL under `drizzle/`, then run `npm run db:migrate` with `DATABASE_URL` or the discrete `POSTGRES_*` variables set.
-- Docker startup does not migrate automatically; use `docker compose --profile tools run --rm migrate` as an explicit deployment step.
+- Use Node 22+ and `npm install`; `package-lock.json` is authoritative.
+- Create `.env` from `.env.example`. Set `SITE_URL` to the public HTTPS origin for canonical metadata. `BETTER_AUTH_SECRET` is required and secrets/tokens validated by `src/server/env.ts` must be at least 32 characters; admin and reviewer tokens must differ.
+- Full local setup is `docker compose up -d db`, `npm run db:migrate`, then `npm run dev`. Run `npm run db:seed:dev-rules` when exercising regulated calculators locally.
+- `npm run verify` is the required order: `lint -> typecheck -> test -> build`. The test suite includes database integration tests, so PostgreSQL must be running and migrated.
+- Run one test file with `npx vitest run <path>`; use `npm run test:watch` for focused iteration.
+- `npm run test:edge` requires a running web/proxy deployment and verifies `/api/health`, `/api/ready`, and Nginx rate limiting; override its target with `APP_BASE_URL`.
+- After changing `src/server/db/schema.ts`, run `npm run db:generate`, inspect the generated SQL under `drizzle/`, then run `npm run db:migrate`. Application and Docker startup never migrate automatically.
+- Production-style migration is an explicit operator step: `docker compose --profile tools run --rm migrate`.
+
+## Delivery Constraints
+
+- Implement calculator behavior as a vertical slice across domain logic, registry metadata, UI/API, specifications under `docs/calculators/`, and tests.
+- Regulated formulas require official sources, golden fixtures, effective-dated rules, rule versions, verification dates, and calculation breakdowns before publication.
+- Do not log or add analytics for anonymous financial inputs. Accounts are only for explicit persistence features such as saves, reports, and reminders.
+- Follow the active roadmap stage; the research catalog is long-term scope, not permission to widen the current slice.
 
 ## Git Workflow
 
-- `main` is the integration branch. Make each roadmap stage or coherent fix on a topic branch such as `phase-0/stabilize-foundation`, run the required verification, push the branch, open a PR, wait for CI, and squash-merge it into `main`; do not push feature work directly to `main`.
-- After merging, update local `main` with a fast-forward pull before creating the next branch.
-
-## Product Constraints
-
-- All documented calculators are long-term scope, but implementation follows `plan/LankaTools_Implementation_Roadmap.md`; do not widen the active stage merely because the catalog is comprehensive.
-- For calculator work, distinguish static, configurable, and regulated formulas. Regulated formulas require versioned rules.
-- Calculation results should expose official sources, rule versions, last-verified dates, and calculation breakdowns.
-- The proposed MVP is web-first and narrow: simple calculations may run entirely in the browser; add backend services only for concrete persistence, account, changing-data, integration, or operational requirements.
-- English, Sinhala, and Tamil are long-term localization targets; localization includes explanations, examples, guidance, errors, and calculation descriptions, not only controls.
+- `main` is the integration branch. Use a topic branch for each coherent fix or roadmap slice, run verification, open a PR, wait for CI, and squash-merge; do not push feature work directly to `main`.
+- After merging, fast-forward local `main` before creating the next topic branch.

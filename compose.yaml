@@ -23,6 +23,7 @@ services:
       args:
         BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
         BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+        SITE_URL: ${SITE_URL:-${BETTER_AUTH_URL}}
     environment:
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
@@ -35,6 +36,7 @@ services:
       REVIEWER_ACTOR: ${REVIEWER_ACTOR:-initial-reviewer}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:?Set BETTER_AUTH_URL in .env}
+      SITE_URL: ${SITE_URL:-${BETTER_AUTH_URL}}
     depends_on:
       db:
         condition: service_healthy
