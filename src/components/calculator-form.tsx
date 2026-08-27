@@ -18,6 +18,10 @@ import type {
   CalculatorField,
   CalculatorMetadata,
 } from "@/domain/calculators/types";
+import type { Locale } from "@/i18n/config";
+import { languageTags } from "@/i18n/config";
+import { translateResultText } from "@/i18n/catalog";
+import type { UiCopy } from "@/i18n/copy";
 import { authClient } from "@/server/auth/client";
 
 type ApiError = {
@@ -47,17 +51,16 @@ function initialValues(fields: readonly CalculatorField[]): Record<string, strin
   );
 }
 
-function formatValue(value: string | number): string {
+function formatValue(value: string | number, locale: Locale): string {
   if (typeof value === "number") {
-    return new Intl.NumberFormat("en-LK", { maximumFractionDigits: 6 }).format(value);
+    return new Intl.NumberFormat(languageTags[locale], { maximumFractionDigits: 6 }).format(value);
   }
 
   if (/^-?\d+(?:\.\d+)?$/.test(value)) {
-    const sign = value.startsWith("-") ? "-" : "";
-    const unsigned = sign ? value.slice(1) : value;
-    const [integer, fraction] = unsigned.split(".");
-    const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    return `${sign}${grouped}${fraction ? `.${fraction}` : ""}`;
+    const fractionDigits = value.split(".")[1]?.length ?? 0;
+    return new Intl.NumberFormat(languageTags[locale], {
+      maximumFractionDigits: Math.min(fractionDigits, 12),
+    }).format(Number(value));
   }
 
   return value;
@@ -160,7 +163,10 @@ function InputField({
   );
 }
 
-export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata }) {
+export function CalculatorForm({ calculator, locale = "en", copy, anonymous = false }: { calculator: CalculatorMetadata; locale?: Locale; copy?: UiCopy; anonymous?: boolean }) {
+  const text = copy ?? {
+    values: "Your values", valuesHelp: "Only values needed for this calculation are sent.", result: "Result", resultHelp: "Totals, workings, and declared assumptions.", calculating: "Calculating...", calculate: "Calculate result", invalid: "The calculation input is invalid.", unavailable: "The calculator definition is unavailable.", failed: "The calculation could not be completed.", assumptions: "Assumptions", warnings: "Check before deciding", inputs: "Normalized inputs", empty: "Enter your values to see a transparent breakdown here.", calculatedWith: "Calculated with",
+  };
   const [values, setValues] = useState(() => initialValues(calculator.fields));
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -224,7 +230,7 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
 
   function showValidationError(error: ZodError) {
     setResult(null);
-    setFormError("The calculation input is invalid.");
+    setFormError(text.invalid);
     setFieldErrors(
       Object.fromEntries(
         error.issues.map((issue) => [issue.path.join("."), issue.message]),
@@ -238,11 +244,12 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
     setFieldErrors({});
 
     startTransition(async () => {
-      if (calculator.classification === "static") {
+      const localDefinition = getCalculator(calculator.key);
+      if (localDefinition?.execution === "browser") {
         try {
           const definition = getCalculator(calculator.key);
           if (!definition) {
-            setFormError("The calculator definition is unavailable.");
+             setFormError(text.unavailable);
             return;
           }
 
@@ -259,7 +266,7 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
           }
 
           setResult(null);
-          setFormError("The calculation could not be completed.");
+           setFormError(text.failed);
         }
         return;
       }
@@ -301,8 +308,8 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
               01
             </div>
             <div>
-              <CardTitle className="text-lg">Your values</CardTitle>
-              <p className="text-sm text-muted-foreground">Only values needed for this calculation are sent.</p>
+               <CardTitle className="text-lg">{text.values}</CardTitle>
+               <p className="text-sm text-muted-foreground">{text.valuesHelp}</p>
             </div>
           </div>
         </CardHeader>
@@ -335,11 +342,11 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
               {isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Calculating...
+                   {text.calculating}
                 </>
               ) : (
                 <>
-                  Calculate result
+                   {text.calculate}
                   <Calculator className="h-4 w-4" />
                 </>
               )}
@@ -355,8 +362,8 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
               02
             </div>
             <div>
-              <CardTitle className="text-lg">Result</CardTitle>
-              <p className="text-sm text-muted-foreground">Totals, workings, and declared assumptions.</p>
+               <CardTitle className="text-lg">{text.result}</CardTitle>
+               <p className="text-sm text-muted-foreground">{text.resultHelp}</p>
             </div>
           </div>
         </CardHeader>
@@ -366,9 +373,9 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
               <div className="grid gap-3 sm:grid-cols-2">
                 {result.breakdown.map((item) => (
                   <div className="rounded-lg bg-muted/50 p-4" key={item.label}>
-                    <span className="text-xs font-medium uppercase text-muted-foreground">{item.label}</span>
+                     <span className="text-xs font-medium uppercase text-muted-foreground">{translateResultText(locale, item.label)}</span>
                     <div className="mt-2 flex items-baseline gap-2">
-                      <span className="text-2xl font-bold tracking-tight">{formatValue(item.value)}</span>
+                       <span className="text-2xl font-bold tracking-tight">{formatValue(item.value, locale)}</span>
                       {item.unit ? <span className="text-xs font-medium text-muted-foreground">{item.unit}</span> : null}
                     </div>
                     {item.expression ? (
@@ -382,9 +389,9 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
                 <>
                   <Separator />
                   <div>
-                    <h3 className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Assumptions</h3>
+                     <h3 className="mb-2 text-xs font-semibold uppercase text-muted-foreground">{text.assumptions}</h3>
                     <ul className="space-y-1 text-sm text-muted-foreground">
-                      {result.assumptions.map((note) => <li key={note}>{note}</li>)}
+                       {result.assumptions.map((note) => <li key={note}>{translateResultText(locale, note)}</li>)}
                     </ul>
                   </div>
                 </>
@@ -392,9 +399,9 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
 
               {result.warnings.length > 0 ? (
                 <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3">
-                  <h3 className="mb-2 text-xs font-semibold uppercase text-amber-700 dark:text-amber-400">Check before deciding</h3>
+                   <h3 className="mb-2 text-xs font-semibold uppercase text-amber-700 dark:text-amber-400">{text.warnings}</h3>
                   <ul className="space-y-1 text-sm text-amber-700 dark:text-amber-400">
-                    {result.warnings.map((note) => <li key={note}>{note}</li>)}
+                     {result.warnings.map((note) => <li key={note}>{translateResultText(locale, note)}</li>)}
                   </ul>
                 </div>
               ) : null}
@@ -402,12 +409,12 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
               <Separator />
 
               <div>
-                <h3 className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Normalized inputs</h3>
+                 <h3 className="mb-2 text-xs font-semibold uppercase text-muted-foreground">{text.inputs}</h3>
                 <div className="grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
                   {Object.entries(result.normalizedInputs).map(([key, value]) => (
                     <div className="flex justify-between" key={key}>
-                      <span>{humanize(key)}:</span>
-                      <span className="font-medium text-foreground">{formatValue(value)}</span>
+                       <span>{calculator.fields.find((field) => field.name === key)?.label ?? humanize(key)}:</span>
+                       <span className="font-medium text-foreground">{formatValue(value, locale)}</span>
                     </div>
                   ))}
                 </div>
@@ -458,18 +465,18 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
 
               <div className="flex flex-col gap-2 text-xs text-muted-foreground">
                 {result.verifiedAt ? <p>Last verified {result.verifiedAt}</p> : null}
-                <p>Calculated with {result.calculator} v{result.calculationVersion}</p>
+                 <p>{text.calculatedWith} {calculator.shortName} v{result.calculationVersion}</p>
               </div>
 
               <Separator />
 
-              <div className="space-y-3">
+               {!anonymous ? <div className="space-y-3">
                 {saveStatus === "saved" ? (
                   <div className="flex items-center gap-2 rounded-lg border border-green-500/50 bg-green-500/10 p-3 text-sm text-green-700 dark:text-green-400">
                     <CheckCircle2 className="h-4 w-4" />
                     Saved to your account.{" "}
                     <Link className="underline" href="/saved">View saved calculations</Link>
-                  </div>
+                   </div>
                 ) : saveOpen ? (
                   <form
                     className="space-y-3"
@@ -508,7 +515,7 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
                     {saveError}
                   </div>
                 ) : null}
-              </div>
+              </div> : null}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -516,21 +523,21 @@ export function CalculatorForm({ calculator }: { calculator: CalculatorMetadata 
                 <span className="text-4xl font-bold text-muted-foreground">=</span>
               </div>
               <p className="mt-4 max-w-[260px] text-sm text-muted-foreground">
-                Enter your values to see a transparent breakdown here.
+                 {text.empty}
               </p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      <AuthDialog
+      {!anonymous ? <AuthDialog
         onAuthenticated={handleAuthenticated}
         onClose={() => {
           pendingSaveRef.current = false;
           setAuthOpen(false);
         }}
         open={authOpen}
-      />
+      /> : null}
     </div>
   );
 }

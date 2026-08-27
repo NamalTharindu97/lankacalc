@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/admin/", "/api/", "/reminders", "/saved"],
+      disallow: ["/admin/", "/api/", "/reminders", "/saved", "/en/admin/", "/si/admin/", "/ta/admin/", "/en/reminders", "/si/reminders", "/ta/reminders", "/en/saved", "/si/saved", "/ta/saved"],
     },
     sitemap: absoluteUrl("/sitemap.xml"),
     host: getSiteUrl().origin,
