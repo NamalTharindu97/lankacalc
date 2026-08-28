@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { getSiteUrl } from "@/lib/site";
+import { getSiteUrl, isPublicIndexingEnabled } from "@/lib/site";
 
 describe("site URL configuration", () => {
+  it("requires an explicit true value to enable public indexing", () => {
+    expect(isPublicIndexingEnabled({})).toBe(false);
+    expect(isPublicIndexingEnabled({ PUBLIC_INDEXING_ENABLED: "false" })).toBe(false);
+    expect(isPublicIndexingEnabled({ PUBLIC_INDEXING_ENABLED: "true" })).toBe(true);
+  });
+
   it("prefers SITE_URL and normalizes it to an origin", () => {
     const url = getSiteUrl({
       NODE_ENV: "production",

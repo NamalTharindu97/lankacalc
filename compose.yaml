@@ -24,6 +24,7 @@ services:
         BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
         BETTER_AUTH_URL: ${BETTER_AUTH_URL}
         SITE_URL: ${SITE_URL:-${BETTER_AUTH_URL}}
+        PUBLIC_INDEXING_ENABLED: ${PUBLIC_INDEXING_ENABLED:-false}
     environment:
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
@@ -37,6 +38,7 @@ services:
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:?Set BETTER_AUTH_URL in .env}
       SITE_URL: ${SITE_URL:-${BETTER_AUTH_URL}}
+      PUBLIC_INDEXING_ENABLED: ${PUBLIC_INDEXING_ENABLED:-false}
     depends_on:
       db:
         condition: service_healthy

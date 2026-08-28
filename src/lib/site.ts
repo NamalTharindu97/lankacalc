@@ -9,7 +9,12 @@ type SiteEnvironment = {
   NODE_ENV?: string;
   SITE_URL?: string;
   BETTER_AUTH_URL?: string;
+  PUBLIC_INDEXING_ENABLED?: string;
 };
+
+export function isPublicIndexingEnabled(environment: SiteEnvironment = process.env): boolean {
+  return environment.PUBLIC_INDEXING_ENABLED === "true";
+}
 
 export function getSiteUrl(environment: SiteEnvironment = process.env): URL {
   const configuredUrl = environment.SITE_URL ?? environment.BETTER_AUTH_URL;
