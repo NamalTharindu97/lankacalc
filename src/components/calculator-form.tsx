@@ -375,7 +375,7 @@ export function CalculatorForm({ calculator, locale = "en", copy, anonymous = fa
                   <div className="rounded-lg bg-muted/50 p-4" key={item.label}>
                      <span className="text-xs font-medium uppercase text-muted-foreground">{translateResultText(locale, item.label)}</span>
                     <div className="mt-2 flex items-baseline gap-2">
-                       <span className="text-2xl font-bold tracking-tight">{formatValue(item.value, locale)}</span>
+                      <span className="text-2xl font-bold tabular-nums tracking-tight">{formatValue(item.value, locale)}</span>
                       {item.unit ? <span className="text-xs font-medium text-muted-foreground">{item.unit}</span> : null}
                     </div>
                     {item.expression ? (
@@ -414,7 +414,7 @@ export function CalculatorForm({ calculator, locale = "en", copy, anonymous = fa
                   {Object.entries(result.normalizedInputs).map(([key, value]) => (
                     <div className="flex justify-between" key={key}>
                        <span>{calculator.fields.find((field) => field.name === key)?.label ?? humanize(key)}:</span>
-                       <span className="font-medium text-foreground">{formatValue(value, locale)}</span>
+                       <span className="font-medium tabular-nums text-foreground">{formatValue(value, locale)}</span>
                     </div>
                   ))}
                 </div>
