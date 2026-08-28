@@ -277,10 +277,256 @@ const compoundInterestContent: Record<Locale, CalculatorContent> = {
   },
 };
 
+const tileQuantityContent: Record<Locale, CalculatorContent> = {
+  en: {
+    directAnswer: "The tile quantity calculator estimates the whole number of tiles needed for a rectangular floor or wall area. It accounts for the entered tile dimensions, a uniform joint, and a wastage percentage, rounding both the base count and final count upward. It is an arithmetic estimate, not a layout, engineering, or purchasing specification.",
+    instructions: ["Enter the rectangular area's length and width and select their unit.", "Enter each tile's length and width in millimetres and the uniform joint width.", "Enter a wastage percentage, then calculate the estimated whole-tile counts."],
+    formula: {
+      expression: "T = ceil(ceil(A / ((L + J) x (W + J))) x (1 + R / 100))",
+      explanation: "The area dimensions are converted to metres. Tile dimensions and the joint are converted from millimetres to metres. The base count is rounded up before the wastage percentage is applied, and the final count is rounded up again.",
+      variables: [{ symbol: "T", meaning: "tiles after wastage" }, { symbol: "A", meaning: "rectangular area in square metres" }, { symbol: "L", meaning: "tile length in metres" }, { symbol: "W", meaning: "tile width in metres" }, { symbol: "J", meaning: "uniform joint width in metres" }, { symbol: "R", meaning: "wastage percentage" }],
+    },
+    workedExample: {
+      title: "Example: 4 m by 3 m area with 600 mm square tiles",
+      input: "For a 4 m by 3 m rectangular area, 600 mm by 600 mm tiles, no joint, and no wastage, the floor area is 12.000 m2.",
+      result: "Dividing 12 m2 by 0.36 m2 per tile gives 33.33, which rounds up to 34 tiles before wastage and 34 tiles after wastage.",
+      fixture: { input: { length: 4, width: 3, unit: "metre", tileLength: 600, tileWidth: 600, jointMillimetres: 0, wastagePercent: 0 }, expectedResult: { floorArea: "12.000", tilesBeforeWastage: 34, tilesAfterWastage: 34 } },
+    },
+    assumptions: ["The area is a flush rectangle measured using one selected unit.", "Tiles are laid edge to edge with the same joint width on all four sides.", "The entered wastage percentage is applied after the base tile count is rounded up."],
+    exclusions: ["Borders, diagonal layouts, patterns, thresholds, openings, and fixture cut-outs", "Tile thickness, substrate, adhesive, grout, labour, prices, and pack sizes", "Structural, engineering, layout, installation, or procurement advice"],
+    commonMistakes: ["Entering tile dimensions in centimetres instead of millimetres", "Using room dimensions in a unit different from the selected unit", "Assuming the estimate includes extra tiles required by a patterned or diagonal layout"],
+    faqs: [
+      { question: "Why is the tile count rounded up twice?", answer: "A fraction of a tile in the base calculation requires a whole tile. The wastage percentage is then applied to that whole base count, and any final fraction is also rounded up." },
+      { question: "Does the joint width reduce the estimated tile count?", answer: "A larger entered joint increases the effective length and width assigned to each tile, so the arithmetic estimate can decrease. The calculator assumes a uniform joint throughout." },
+      { question: "Does this tell me exactly how many tiles to buy?", answer: "No. Cuts, breakage, batch matching, patterns, pack sizes, and site conditions can change actual needs. The result is only a rectangular-area estimate." },
+    ],
+    relatedCalculatorKeys: ["paint", "concrete"],
+    reviewedAt: "2026-08-28",
+    reviewedBy: "LankaCalc tile quantity calculator specification",
+  },
+  si: {
+    directAnswer: "ටයිල් ප්‍රමාණ ගණකය සෘජුකෝණාස්‍රාකාර බිමකට හෝ බිත්තියකට අවශ්‍ය සම්පූර්ණ ටයිල් ගණන ඇස්තමේන්තු කරයි. ඇතුළත් කළ ටයිල් මාන, ඒකාකාර සන්ධි පළල සහ අපතේ යාමේ ප්‍රතිශතය සලකා මූලික ගණනත් අවසාන ගණනත් ඉහළ සම්පූර්ණ අගයට වටයයි. මෙය සැලසුම්, ඉංජිනේරු හෝ මිලදී ගැනීමේ පිරිවිතරයක් නොව ගණිතමය ඇස්තමේන්තුවකි.",
+    instructions: ["සෘජුකෝණාස්‍රාකාර ප්‍රදේශයේ දිග හා පළල ඇතුළත් කර ඒවායේ ඒකකය තෝරන්න.", "එක් ටයිලයක දිග හා පළල මිලිමීටරවලින් සහ ඒකාකාර සන්ධි පළල ඇතුළත් කරන්න.", "අපතේ යාමේ ප්‍රතිශතය ඇතුළත් කර සම්පූර්ණ ටයිල් ගණන් ගණනය කරන්න."],
+    formula: {
+      expression: "T = ceil(ceil(A / ((L + J) x (W + J))) x (1 + R / 100))",
+      explanation: "ප්‍රදේශයේ මාන මීටරවලටත් ටයිල් මාන සහ සන්ධිය මිලිමීටරවලින් මීටරවලටත් පරිවර්තනය කරයි. අපතේ යාමේ ප්‍රතිශතය යෙදීමට පෙර මූලික ගණන ඉහළට වටයා, අවසාන ගණන නැවත ඉහළට වටයයි.",
+      variables: [{ symbol: "T", meaning: "අපතේ යාම ඇතුළත් ටයිල් ගණන" }, { symbol: "A", meaning: "වර්ග මීටරවලින් සෘජුකෝණාස්‍ර ප්‍රදේශය" }, { symbol: "L", meaning: "මීටරවලින් ටයිල් දිග" }, { symbol: "W", meaning: "මීටරවලින් ටයිල් පළල" }, { symbol: "J", meaning: "මීටරවලින් ඒකාකාර සන්ධි පළල" }, { symbol: "R", meaning: "අපතේ යාමේ ප්‍රතිශතය" }],
+    },
+    workedExample: {
+      title: "උදාහරණය: මීටර් 4 x 3 ප්‍රදේශයක් සහ මි.මී. 600 හතරැස් ටයිල්",
+      input: "මීටර් 4 x 3 ප්‍රදේශයක්, මි.මී. 600 x 600 ටයිල්, ශූන්‍ය සන්ධියක් සහ ශූන්‍ය අපතේ යාමක් සඳහා බිම් ප්‍රදේශය වර්ග මීටර් 12.000කි.",
+      result: "වර්ග මීටර් 12 එක් ටයිලයක වර්ග මීටර් 0.36න් බෙදූ විට 33.33 ලැබෙන අතර එය අපතේ යාමට පෙර ටයිල් 34කටත් පසුව ටයිල් 34කටත් වටයයි.",
+      fixture: { input: { length: 4, width: 3, unit: "metre", tileLength: 600, tileWidth: 600, jointMillimetres: 0, wastagePercent: 0 }, expectedResult: { floorArea: "12.000", tilesBeforeWastage: 34, tilesAfterWastage: 34 } },
+    },
+    assumptions: ["ප්‍රදේශය එක් තෝරාගත් ඒකකයකින් මනින ලද සෘජුකෝණාස්‍රයකි.", "සෑම ටයිලයකම පැති හතරට එකම සන්ධි පළලක් සහිතව ටයිල් අතුරයි.", "මූලික ටයිල් ගණන ඉහළට වටයා පසුව අපතේ යාමේ ප්‍රතිශතය යොදයි."],
+    exclusions: ["මායිම්, විකර්ණ රටා, වෙනත් රටා, දොර එළිපත්, විවර සහ සවිකිරීම් කැපුම්", "ටයිල් ඝනකම, යටි පෘෂ්ඨය, ඇලවුම් ද්‍රව්‍ය, සන්ධි ද්‍රව්‍ය, ශ්‍රමය, මිල සහ ඇසුරුම් ප්‍රමාණ", "ව්‍යුහාත්මක, ඉංජිනේරු, අතුරන සැලසුම්, ස්ථාපන හෝ මිලදී ගැනීමේ උපදෙස්"],
+    commonMistakes: ["ටයිල් මාන මිලිමීටර වෙනුවට සෙන්ටිමීටරවලින් ඇතුළත් කිරීම", "කාමර මාන තෝරාගත් ඒකකයට වෙනස් ඒකකයකින් ඇතුළත් කිරීම", "රටා සහිත හෝ විකර්ණ අතුරීමකට අවශ්‍ය අමතර ටයිල් ඇස්තමේන්තුවට ඇතුළත් යැයි සිතීම"],
+    faqs: [
+      { question: "ටයිල් ගණන දෙවරක් ඉහළට වටයන්නේ ඇයි?", answer: "මූලික ගණනයේ ටයිලයක කොටසක් ලැබුණත් සම්පූර්ණ ටයිලයක් අවශ්‍ය වේ. එම සම්පූර්ණ මූලික ගණනට අපතේ යාම යොදා අවසාන කොටසද ඉහළට වටයයි." },
+      { question: "සන්ධි පළල වැඩි කළ විට ඇස්තමේන්තු ගණන අඩු වේද?", answer: "වැඩි සන්ධියක් එක් ටයිලයකට අදාළ ඵලදායී දිග හා පළල වැඩි කරන නිසා ගණිතමය ඇස්තමේන්තුව අඩු විය හැක. ගණකය මුළු ප්‍රදේශයටම ඒකාකාර සන්ධියක් උපකල්පනය කරයි." },
+      { question: "මිලදී ගත යුතු නිශ්චිත ටයිල් ගණන මෙය පෙන්වයිද?", answer: "නැත. කැපුම්, බිඳීම්, වර්ණ කාණ්ඩ ගැළපීම, රටා, ඇසුරුම් ප්‍රමාණ සහ ස්ථාන තත්ත්ව සැබෑ අවශ්‍යතාව වෙනස් කළ හැක. මෙය සෘජුකෝණාස්‍ර ප්‍රදේශයක ඇස්තමේන්තුවක් පමණි." },
+    ],
+    relatedCalculatorKeys: ["paint", "concrete"],
+    reviewedAt: "2026-08-28",
+    reviewedBy: "LankaCalc ටයිල් ප්‍රමාණ ගණක පිරිවිතරය",
+  },
+  ta: {
+    directAnswer: "ஓடு அளவுக் கணிப்பான் ஒரு செவ்வகத் தரை அல்லது சுவருக்குத் தேவையான முழு ஓடுகளின் எண்ணிக்கையை மதிப்பிடுகிறது. உள்ளிட்ட ஓட்டு அளவுகள், சீரான இணைப்பு அகலம் மற்றும் கழிவுச் சதவீதத்தைக் கொண்டு அடிப்படை எண்ணிக்கையையும் இறுதி எண்ணிக்கையையும் மேலுள்ள முழு எண்ணாகச் சுற்றுகிறது. இது அமைப்பு, பொறியியல் அல்லது கொள்முதல் விவரக்குறிப்பு அல்ல; ஓர் எண்கணித மதிப்பீடு மட்டுமே.",
+    instructions: ["செவ்வகப் பகுதியின் நீளத்தையும் அகலத்தையும் உள்ளிட்டு அவற்றின் அலகைத் தேர்ந்தெடுங்கள்.", "ஒவ்வோர் ஓட்டின் நீளத்தையும் அகலத்தையும் மில்லிமீட்டரில், சீரான இணைப்பு அகலத்துடன் உள்ளிடுங்கள்.", "கழிவுச் சதவீதத்தை உள்ளிட்டு மதிப்பிடப்பட்ட முழு ஓட்டு எண்ணிக்கைகளைக் கணக்கிடுங்கள்."],
+    formula: {
+      expression: "T = ceil(ceil(A / ((L + J) x (W + J))) x (1 + R / 100))",
+      explanation: "பகுதியின் அளவுகள் மீட்டருக்கும், ஓட்டு அளவுகளும் இணைப்பும் மில்லிமீட்டரிலிருந்து மீட்டருக்கும் மாற்றப்படுகின்றன. கழிவுச் சதவீதம் பயன்படுத்தப்படுமுன் அடிப்படை எண்ணிக்கை மேலே சுற்றப்பட்டு, இறுதி எண்ணிக்கையும் மீண்டும் மேலே சுற்றப்படுகிறது.",
+      variables: [{ symbol: "T", meaning: "கழிவுக்குப் பிந்தைய ஓட்டு எண்ணிக்கை" }, { symbol: "A", meaning: "சதுர மீட்டரில் செவ்வகப் பரப்பளவு" }, { symbol: "L", meaning: "மீட்டரில் ஓட்டு நீளம்" }, { symbol: "W", meaning: "மீட்டரில் ஓட்டு அகலம்" }, { symbol: "J", meaning: "மீட்டரில் சீரான இணைப்பு அகலம்" }, { symbol: "R", meaning: "கழிவுச் சதவீதம்" }],
+    },
+    workedExample: {
+      title: "உதாரணம்: 4 மீ x 3 மீ பகுதியும் 600 மிமீ சதுர ஓடுகளும்",
+      input: "4 மீ x 3 மீ செவ்வகப் பகுதி, 600 மிமீ x 600 மிமீ ஓடுகள், இணைப்பு மற்றும் கழிவு இரண்டும் பூச்சியம் எனில் தரைப் பரப்பளவு 12.000 சதுர மீட்டர்.",
+      result: "12 சதுர மீட்டரை ஓர் ஓட்டின் 0.36 சதுர மீட்டரால் வகுத்தால் 33.33 கிடைக்கிறது; இது கழிவுக்கு முன் 34 ஓடுகளாகவும் கழிவுக்குப் பின் 34 ஓடுகளாகவும் மேலே சுற்றப்படுகிறது.",
+      fixture: { input: { length: 4, width: 3, unit: "metre", tileLength: 600, tileWidth: 600, jointMillimetres: 0, wastagePercent: 0 }, expectedResult: { floorArea: "12.000", tilesBeforeWastage: 34, tilesAfterWastage: 34 } },
+    },
+    assumptions: ["பகுதி ஒரே தேர்ந்தெடுத்த அலகில் அளக்கப்பட்ட செவ்வகம்.", "ஒவ்வோர் ஓட்டின் நான்கு பக்கங்களிலும் ஒரே இணைப்பு அகலத்துடன் ஓடுகள் அமைக்கப்படுகின்றன.", "அடிப்படை ஓட்டு எண்ணிக்கை மேலே சுற்றப்பட்ட பின்னரே கழிவுச் சதவீதம் பயன்படுத்தப்படுகிறது."],
+    exclusions: ["எல்லைகள், குறுக்கு அமைப்புகள், வடிவங்கள், வாசற்படிகள், திறப்புகள் மற்றும் பொருத்துக் கருவி வெட்டுகள்", "ஓட்டு தடிமன், அடித்தளம், பசை, இணைப்புப் பொருள், உழைப்பு, விலை மற்றும் பொதியளவுகள்", "கட்டமைப்பு, பொறியியல், அமைப்பு, நிறுவல் அல்லது கொள்முதல் ஆலோசனை"],
+    commonMistakes: ["ஓட்டு அளவுகளை மில்லிமீட்டருக்குப் பதிலாக சென்டிமீட்டரில் உள்ளிடுதல்", "தேர்ந்தெடுத்த அலகிலிருந்து மாறுபட்ட அலகில் அறை அளவுகளை உள்ளிடுதல்", "வடிவ அல்லது குறுக்கு அமைப்புக்கான மேலதிக ஓடுகள் மதிப்பீட்டில் உள்ளதாகக் கருதுதல்"],
+    faqs: [
+      { question: "ஓட்டு எண்ணிக்கை ஏன் இருமுறை மேலே சுற்றப்படுகிறது?", answer: "அடிப்படைக் கணக்கில் ஓட்டின் ஒரு பகுதி கிடைத்தாலும் முழு ஓடு தேவை. அந்த முழு அடிப்படை எண்ணிக்கைக்கு கழிவு பயன்படுத்தப்பட்டு இறுதிப் பகுதியும் மேலே சுற்றப்படுகிறது." },
+      { question: "இணைப்பு அகலம் மதிப்பிடப்பட்ட ஓட்டு எண்ணிக்கையைக் குறைக்குமா?", answer: "பெரிய இணைப்பு ஒவ்வோர் ஓட்டுக்கும் ஒதுக்கப்படும் பயனுறு நீளத்தையும் அகலத்தையும் அதிகரிப்பதால் எண்கணித மதிப்பீடு குறையலாம். கணிப்பான் முழுவதும் சீரான இணைப்பைக் கருதுகிறது." },
+      { question: "வாங்க வேண்டிய துல்லியமான ஓட்டு எண்ணிக்கையை இது கூறுமா?", answer: "இல்லை. வெட்டுகள், உடைதல், தொகுதி நிறப் பொருத்தம், வடிவங்கள், பொதியளவுகள் மற்றும் தளநிலை உண்மையான தேவையை மாற்றலாம். இது செவ்வகப் பகுதியின் மதிப்பீடு மட்டுமே." },
+    ],
+    relatedCalculatorKeys: ["paint", "concrete"],
+    reviewedAt: "2026-08-28",
+    reviewedBy: "LankaCalc ஓடு அளவுக் கணிப்பான் விவரக்குறிப்பு",
+  },
+};
+
+const paintContent: Record<Locale, CalculatorContent> = {
+  en: {
+    directAnswer: "The paint quantity calculator estimates whole litres for an entered surface area, number of coats, coverage per litre, and wastage percentage. It converts square feet when selected, calculates the litres before wastage, applies wastage, and rounds the quantity to buy upward to a whole litre. It is not a professional paint or purchasing specification.",
+    instructions: ["Enter the surface area and select square metres or square feet.", "Enter the number of full coats and the paint coverage in square metres per litre.", "Enter a wastage percentage, then calculate the estimated litres."],
+    formula: {
+      expression: "B = ceil((A x C / V) x (1 + R / 100))",
+      explanation: "The surface area is converted to square metres and multiplied by the number of coats. Dividing by coverage gives raw litres; wastage is applied to that unrounded value before the result is rounded up to a whole litre.",
+      variables: [{ symbol: "B", meaning: "whole litres to buy" }, { symbol: "A", meaning: "surface area in square metres" }, { symbol: "C", meaning: "number of coats" }, { symbol: "V", meaning: "coverage in square metres per litre" }, { symbol: "R", meaning: "wastage percentage" }],
+    },
+    workedExample: {
+      title: "Example: 40 m2, two coats, and 10 m2/L coverage",
+      input: "For 40 m2, two coats, coverage of 10 m2/L, and 10% wastage, the total area to cover is 80 m2 and the exact paint need before wastage is 8.0 litres.",
+      result: "After the 10% allowance, 8.8 litres rounds up to 9 whole litres to buy. The displayed difference from the exact pre-wastage amount is 1.0 litre.",
+      fixture: { input: { surfaceArea: 40, unit: "square-metre", coats: 2, coveragePerLitre: 10, wastagePercent: 10 }, expectedResult: { surfaceAreaSquareMetres: "40", areaToCover: "80", exactLitres: "8.0", litresToBuy: 9, wastageLitres: "1.0" } },
+    },
+    assumptions: ["Every coat covers the full entered surface area.", "Coverage is a user-supplied flat rate; the 10 m2/L default represents smooth, primed masonry rather than a brand claim.", "Wastage and rounding to a whole litre cover cutting in, touch-ups, roller loss, and paint left in the container."],
+    exclusions: ["Primer, undercoat, ceilings, trim, woodwork, and gloss unless their areas are entered separately", "Surface repairs, texture, porosity, colour changes, product instructions, prices, and container sizes", "Professional coating, application, or procurement advice"],
+    commonMistakes: ["Entering wall length instead of the already calculated surface area", "Using a coverage figure for one coat while entering an area that already includes multiple coats", "Assuming the default coverage applies equally to rough, porous, or unprimed surfaces"],
+    faqs: [
+      { question: "Why does the calculator round up to a whole litre?", answer: "It applies wastage to the unrounded paint need and then rounds upward because the calculator reports a whole-litre quantity. Actual products may use different container sizes." },
+      { question: "Should doors and windows be deducted?", answer: "The calculator uses exactly the surface area entered. Deduct or retain openings when measuring according to the estimate you want; it does not make that decision automatically." },
+      { question: "Is 10 m2 per litre correct for every paint?", answer: "No. It is a general default for emulsion on smooth, primed masonry. Use the coverage stated for the chosen product and surface when available." },
+    ],
+    relatedCalculatorKeys: ["tile-quantity", "concrete"],
+    reviewedAt: "2026-08-28",
+    reviewedBy: "LankaCalc paint quantity calculator specification",
+  },
+  si: {
+    directAnswer: "තීන්ත ප්‍රමාණ ගණකය ඇතුළත් කළ පෘෂ්ඨ වර්ගඵලය, ආලේපන වාර ගණන, ලීටරයක ආවරණය සහ අපතේ යාමේ ප්‍රතිශතය අනුව සම්පූර්ණ ලීටර් ගණන ඇස්තමේන්තු කරයි. වර්ග අඩි තෝරා ඇත්නම් ඒවා පරිවර්තනය කර, අපතේ යාමට පෙර ලීටර් ගණනය කර, අපතේ යාම යොදා අවසාන අගය සම්පූර්ණ ලීටරයට ඉහළට වටයයි. මෙය වෘත්තීය තීන්ත හෝ මිලදී ගැනීමේ පිරිවිතරයක් නොවේ.",
+    instructions: ["පෘෂ්ඨ වර්ගඵලය ඇතුළත් කර වර්ග මීටර් හෝ වර්ග අඩි තෝරන්න.", "සම්පූර්ණ ආලේපන වාර ගණන සහ ලීටරයකට වර්ග මීටර්වලින් තීන්ත ආවරණය ඇතුළත් කරන්න.", "අපතේ යාමේ ප්‍රතිශතය ඇතුළත් කර ඇස්තමේන්තු ලීටර් ගණනය කරන්න."],
+    formula: {
+      expression: "B = ceil((A x C / V) x (1 + R / 100))",
+      explanation: "පෘෂ්ඨ වර්ගඵලය වර්ග මීටරවලට පරිවර්තනය කර ආලේපන වාර ගණනින් ගුණ කරයි. ආවරණයෙන් බෙදා ලැබෙන නොවටයූ ලීටර් අගයට අපතේ යාම යොදා පසුව සම්පූර්ණ ලීටරයට ඉහළට වටයයි.",
+      variables: [{ symbol: "B", meaning: "මිලදී ගැනීමට සම්පූර්ණ ලීටර්" }, { symbol: "A", meaning: "වර්ග මීටරවලින් පෘෂ්ඨ වර්ගඵලය" }, { symbol: "C", meaning: "ආලේපන වාර ගණන" }, { symbol: "V", meaning: "ලීටරයකට වර්ග මීටර්වලින් ආවරණය" }, { symbol: "R", meaning: "අපතේ යාමේ ප්‍රතිශතය" }],
+    },
+    workedExample: {
+      title: "උදාහරණය: වර්ග මීටර් 40ක්, ආලේපන දෙකක් සහ වර්ග මීටර් 10/L ආවරණයක්",
+      input: "වර්ග මීටර් 40ක්, ආලේපන දෙකක්, ලීටරයකට වර්ග මීටර් 10ක ආවරණයක් සහ 10% අපතේ යාමක් සඳහා මුළු ආවරණ ප්‍රදේශය වර්ග මීටර් 80ක් සහ අපතේ යාමට පෙර අවශ්‍ය තීන්ත ලීටර් 8.0කි.",
+      result: "10% දීමනාවෙන් පසු ලීටර් 8.8 සම්පූර්ණ ලීටර් 9කට ඉහළට වටයයි. අපතේ යාමට පෙර නිශ්චිත අගය සමඟ පෙන්වන වෙනස ලීටර් 1.0කි.",
+      fixture: { input: { surfaceArea: 40, unit: "square-metre", coats: 2, coveragePerLitre: 10, wastagePercent: 10 }, expectedResult: { surfaceAreaSquareMetres: "40", areaToCover: "80", exactLitres: "8.0", litresToBuy: 9, wastageLitres: "1.0" } },
+    },
+    assumptions: ["සෑම ආලේපනයක්ම ඇතුළත් කළ මුළු පෘෂ්ඨය ආවරණය කරයි.", "ආවරණය පරිශීලකයා දෙන ස්ථාවර අගයකි; පෙරනිමි 10 m2/L අගය සුමට, ප්‍රයිමර් යෙදූ ගඩොල් පෘෂ්ඨයකට සාමාන්‍ය අගයක් මිස වෙළඳ නාම ප්‍රකාශයක් නොවේ.", "අපතේ යාම සහ සම්පූර්ණ ලීටරයට වටයීම දාර තීන්ත කිරීම, නැවත ස්පර්ශ, රෝලර් අලාභ සහ බඳුනේ ඉතිරිවීම ආවරණය කරයි."],
+    exclusions: ["වෙනම වර්ගඵල ඇතුළත් නොකළ ප්‍රයිමර්, යටි ආලේපන, සිවිලිම්, අලංකාර දාර, ලී වැඩ සහ දිලිසෙන ආලේපන", "පෘෂ්ඨ අලුත්වැඩියා, රළු බව, සිදුරු සහිත බව, වර්ණ වෙනස්කම්, නිෂ්පාදන උපදෙස්, මිල සහ බඳුන් ප්‍රමාණ", "වෘත්තීය ආලේපන, යෙදීම හෝ මිලදී ගැනීමේ උපදෙස්"],
+    commonMistakes: ["දැනටමත් ගණනය කළ පෘෂ්ඨ වර්ගඵලය වෙනුවට බිත්තියේ දිග පමණක් ඇතුළත් කිරීම", "ආලේපන කිහිපයක් ඇතුළත් වර්ගඵලයක් සමඟ එක් ආලේපනයක ආවරණ අගයක් නැවත ගුණ කිරීම", "පෙරනිමි ආවරණය රළු, සිදුරු සහිත හෝ ප්‍රයිමර් නොයෙදූ පෘෂ්ඨවලටද සමාන යැයි සිතීම"],
+    faqs: [
+      { question: "ගණකය සම්පූර්ණ ලීටරයට ඉහළට වටයන්නේ ඇයි?", answer: "නොවටයූ තීන්ත අවශ්‍යතාවට අපතේ යාම යොදා ගණකය සම්පූර්ණ ලීටර් ගණනක් වාර්තා කරන නිසා ඉහළට වටයයි. සැබෑ නිෂ්පාදන වෙනත් බඳුන් ප්‍රමාණවල තිබිය හැක." },
+      { question: "දොරවල් සහ ජනෙල් අඩු කළ යුතුද?", answer: "ගණකය ඔබ ඇතුළත් කරන පෘෂ්ඨ වර්ගඵලයම භාවිත කරයි. ඔබට අවශ්‍ය ඇස්තමේන්තුව අනුව මැනීමේදී විවර අඩු කිරීම හෝ තබා ගැනීම ඔබ තීරණය කළ යුතුය." },
+      { question: "ලීටරයකට වර්ග මීටර් 10 සෑම තීන්තකටම නිවැරදිද?", answer: "නැත. එය සුමට, ප්‍රයිමර් යෙදූ ගඩොල් පෘෂ්ඨයක ඉමල්ෂන් සඳහා සාමාන්‍ය පෙරනිමියකි. හැකි විට තෝරාගත් නිෂ්පාදනය සහ පෘෂ්ඨය සඳහා සඳහන් ආවරණය භාවිත කරන්න." },
+    ],
+    relatedCalculatorKeys: ["tile-quantity", "concrete"],
+    reviewedAt: "2026-08-28",
+    reviewedBy: "LankaCalc තීන්ත ප්‍රමාණ ගණක පිරිවිතරය",
+  },
+  ta: {
+    directAnswer: "வண்ணப்பூச்சு அளவுக் கணிப்பான் உள்ளிட்ட மேற்பரப்பு, பூச்சுகளின் எண்ணிக்கை, ஒரு லீட்டருக்கான பரவல் மற்றும் கழிவுச் சதவீதத்திலிருந்து முழு லீட்டர்களை மதிப்பிடுகிறது. சதுர அடியைத் தேர்ந்தெடுத்தால் அதை மாற்றி, கழிவுக்கு முந்தைய லீட்டரைக் கணக்கிட்டு, கழிவைச் சேர்த்து வாங்கும் அளவை முழு லீட்டராக மேலே சுற்றுகிறது. இது தொழில்முறை வண்ணப்பூச்சு அல்லது கொள்முதல் விவரக்குறிப்பு அல்ல.",
+    instructions: ["மேற்பரப்பை உள்ளிட்டு சதுர மீட்டர் அல்லது சதுர அடியைத் தேர்ந்தெடுங்கள்.", "முழுப் பூச்சுகளின் எண்ணிக்கையையும் ஒரு லீட்டருக்கு சதுர மீட்டரில் வண்ணப்பூச்சின் பரவலையும் உள்ளிடுங்கள்.", "கழிவுச் சதவீதத்தை உள்ளிட்டு மதிப்பிடப்பட்ட லீட்டர்களைக் கணக்கிடுங்கள்."],
+    formula: {
+      expression: "B = ceil((A x C / V) x (1 + R / 100))",
+      explanation: "மேற்பரப்பு சதுர மீட்டருக்கு மாற்றப்பட்டு பூச்சுகளின் எண்ணிக்கையால் பெருக்கப்படுகிறது. பரவலால் வகுத்துச் கிடைக்கும் சுற்றப்படாத லீட்டருக்குக் கழிவு பயன்படுத்தப்பட்ட பின்னர் முழு லீட்டராக மேலே சுற்றப்படுகிறது.",
+      variables: [{ symbol: "B", meaning: "வாங்குவதற்கான முழு லீட்டர்கள்" }, { symbol: "A", meaning: "சதுர மீட்டரில் மேற்பரப்பு" }, { symbol: "C", meaning: "பூச்சுகளின் எண்ணிக்கை" }, { symbol: "V", meaning: "ஒரு லீட்டருக்கு சதுர மீட்டரில் பரவல்" }, { symbol: "R", meaning: "கழிவுச் சதவீதம்" }],
+    },
+    workedExample: {
+      title: "உதாரணம்: 40 சதுர மீட்டர், இரண்டு பூச்சுகள், 10 m2/L பரவல்",
+      input: "40 சதுர மீட்டர், இரண்டு பூச்சுகள், 10 m2/L பரவல் மற்றும் 10% கழிவு எனில் பூச வேண்டிய மொத்தப் பரப்பு 80 சதுர மீட்டர்; கழிவுக்கு முந்தைய துல்லியத் தேவை 8.0 லீட்டர்.",
+      result: "10% ஒதுக்கீட்டுக்குப் பின் 8.8 லீட்டர், வாங்குவதற்கான 9 முழு லீட்டராக மேலே சுற்றப்படுகிறது. கழிவுக்கு முந்தைய துல்லிய அளவிலிருந்து காட்டப்படும் வேறுபாடு 1.0 லீட்டர்.",
+      fixture: { input: { surfaceArea: 40, unit: "square-metre", coats: 2, coveragePerLitre: 10, wastagePercent: 10 }, expectedResult: { surfaceAreaSquareMetres: "40", areaToCover: "80", exactLitres: "8.0", litresToBuy: 9, wastageLitres: "1.0" } },
+    },
+    assumptions: ["ஒவ்வொரு பூச்சும் உள்ளிட்ட முழு மேற்பரப்பையும் மூடுகிறது.", "பரவல் பயனர் வழங்கும் நிலையான மதிப்பு; இயல்புநிலை 10 m2/L என்பது மிருதுவான, அடிப்பூச்சிட்ட கற்சுவருக்கான பொதுவான மதிப்பே தவிர வணிகக் குறி கூற்று அல்ல.", "கழிவும் முழு லீட்டராகச் சுற்றுவதும் ஓரப்பூச்சு, திருத்தம், உருளை இழப்பு மற்றும் கொள்கலனில் எஞ்சுவதை உள்ளடக்குகின்றன."],
+    exclusions: ["தனியாகப் பரப்பை உள்ளிடாத அடிப்பூச்சு, கீழ்ப்பூச்சு, கூரை, விளிம்பு, மரவேலை மற்றும் மினுமினுப்புப் பூச்சு", "மேற்பரப்புத் திருத்தம், சொரசொரப்பு, நுண்துளை, நிறமாற்றம், தயாரிப்பு வழிமுறைகள், விலை மற்றும் கொள்கலன் அளவுகள்", "தொழில்முறை பூச்சு, பயன்படுத்தல் அல்லது கொள்முதல் ஆலோசனை"],
+    commonMistakes: ["ஏற்கெனவே கணக்கிட்ட மேற்பரப்புக்குப் பதிலாக சுவரின் நீளத்தை மட்டும் உள்ளிடுதல்", "பல பூச்சுகளை ஏற்கெனவே கொண்ட பரப்புடன் ஒரு பூச்சின் பரவலை மீண்டும் பெருக்குதல்", "இயல்புநிலைப் பரவல் சொரசொரப்பான, நுண்துளை கொண்ட அல்லது அடிப்பூச்சிடாத மேற்பரப்புக்கும் பொருந்தும் எனக் கருதுதல்"],
+    faqs: [
+      { question: "கணிப்பான் ஏன் முழு லீட்டராக மேலே சுற்றுகிறது?", answer: "சுற்றப்படாத தேவைக்குக் கழிவைப் பயன்படுத்திய பின் கணிப்பான் முழு லீட்டர் அளவை அறிவிப்பதால் மேலே சுற்றுகிறது. உண்மையான தயாரிப்புகள் வேறு கொள்கலன் அளவுகளில் இருக்கலாம்." },
+      { question: "கதவுகளையும் சாளரங்களையும் கழிக்க வேண்டுமா?", answer: "கணிப்பான் உள்ளிட்ட மேற்பரப்பை அப்படியே பயன்படுத்துகிறது. நீங்கள் விரும்பும் மதிப்பீட்டிற்கு ஏற்ப அளக்கும்போது திறப்புகளைக் கழிப்பதா வைத்திருப்பதா என்பதை நீங்களே தீர்மானிக்க வேண்டும்." },
+      { question: "ஒரு லீட்டருக்கு 10 சதுர மீட்டர் எல்லா வண்ணப்பூச்சுக்கும் சரியா?", answer: "இல்லை. அது மிருதுவான, அடிப்பூச்சிட்ட கற்சுவரில் குழம்புப் பூச்சுக்கான பொதுவான இயல்புநிலை. கிடைக்கும்போது தேர்ந்தெடுத்த தயாரிப்புக்கும் மேற்பரப்புக்கும் குறிப்பிடப்பட்ட பரவலைப் பயன்படுத்துங்கள்." },
+    ],
+    relatedCalculatorKeys: ["tile-quantity", "concrete"],
+    reviewedAt: "2026-08-28",
+    reviewedBy: "LankaCalc வண்ணப்பூச்சு அளவுக் கணிப்பான் விவரக்குறிப்பு",
+  },
+};
+
+const concreteContent: Record<Locale, CalculatorContent> = {
+  en: {
+    directAnswer: "The concrete quantity calculator estimates fresh concrete volume for a rectangular slab, footing, form, or excavation from its length, width, and depth. It converts all three dimensions from the selected unit to metres, calculates cubic metres, and adds the entered wastage percentage. It does not determine concrete mix, strength, structural dimensions, or an amount to purchase.",
+    instructions: ["Enter the rectangular length, width, and depth or thickness.", "Select the single unit used for all three dimensions.", "Enter a wastage percentage, then calculate the base, wastage, and total volumes in cubic metres."],
+    formula: {
+      expression: "Q = L x W x D x (1 + R / 100)",
+      explanation: "Length, width, and depth are converted to metres before multiplication. The wastage volume is the base cubic-metre volume multiplied by the entered percentage, and the total is serialized to up to four decimal places.",
+      variables: [{ symbol: "Q", meaning: "total fresh concrete volume in cubic metres" }, { symbol: "L", meaning: "length in metres" }, { symbol: "W", meaning: "width in metres" }, { symbol: "D", meaning: "depth or thickness in metres" }, { symbol: "R", meaning: "wastage percentage" }],
+    },
+    workedExample: {
+      title: "Example: 5 m by 4 m by 0.15 m with 5% wastage",
+      input: "For dimensions of 5 m, 4 m, and 0.15 m, the base rectangular volume is 3 cubic metres. A 5% wastage allowance is 0.15 cubic metres.",
+      result: "The calculator reports a base volume of 3 m3, a wastage volume of 0.15 m3, and a total fresh concrete volume of 3.15 m3.",
+      fixture: { input: { length: 5, width: 4, depth: 0.15, unit: "metre", wastagePercent: 5 }, expectedResult: { volume: "3", wastageVolume: "0.15", totalVolume: "3.15" } },
+    },
+    assumptions: ["All three dimensions use the selected unit and describe one rectangular volume.", "Dimensions represent the formwork or excavation faces exactly as entered.", "The wastage percentage is user-selected; the 5% default is a general allowance, not a supplier figure."],
+    exclusions: ["Concrete strength, grade, mix design, and cement, sand, aggregate, or water quantities", "Reinforcement, formwork, curing, joints, pumping, hauling, labour, prices, and supplier minimums", "Structural sizing, engineering assessment, construction method, or procurement advice"],
+    commonMistakes: ["Entering depth in centimetres while the selected unit is metres", "Using area rather than entering three linear dimensions", "Treating the fresh concrete volume as a dry-material mix calculation"],
+    faqs: [
+      { question: "Can I enter depth in a different unit from length and width?", answer: "No. The selected unit applies to all three dimensions. Convert every dimension to the same unit before entering it." },
+      { question: "Does the result show cement, sand, and aggregate quantities?", answer: "No. It reports only fresh concrete volume and makes no assumption about grade, mix proportions, moisture, bulking, or dry volume." },
+      { question: "Is the default 5% wastage required?", answer: "No. It is an editable general allowance. The calculator does not recommend a project-specific percentage or supplier order quantity." },
+    ],
+    relatedCalculatorKeys: ["tile-quantity", "paint"],
+    reviewedAt: "2026-08-28",
+    reviewedBy: "LankaCalc concrete quantity calculator specification",
+  },
+  si: {
+    directAnswer: "කොන්ක්‍රීට් ප්‍රමාණ ගණකය සෘජුකෝණාස්‍රාකාර පුවරුවක්, පාදමක්, ආකෘතියක් හෝ කැණීමක් සඳහා දිග, පළල සහ ගැඹුර අනුව නැවුම් කොන්ක්‍රීට් පරිමාව ඇස්තමේන්තු කරයි. මාන තුනම තෝරාගත් ඒකකයෙන් මීටරවලට පරිවර්තනය කර ඝන මීටර් ගණනය කර ඇතුළත් කළ අපතේ යාමේ ප්‍රතිශතය එකතු කරයි. කොන්ක්‍රීට් මිශ්‍රණය, ශක්තිය, ව්‍යුහාත්මක මාන හෝ මිලදී ගත යුතු ප්‍රමාණයක් මෙය තීරණය නොකරයි.",
+    instructions: ["සෘජුකෝණාස්‍රයේ දිග, පළල සහ ගැඹුර හෝ ඝනකම ඇතුළත් කරන්න.", "මාන තුනටම භාවිත කළ එකම ඒකකය තෝරන්න.", "අපතේ යාමේ ප්‍රතිශතය ඇතුළත් කර මූලික, අපතේ යාමේ සහ මුළු පරිමාව ඝන මීටරවලින් ගණනය කරන්න."],
+    formula: {
+      expression: "Q = L x W x D x (1 + R / 100)",
+      explanation: "දිග, පළල සහ ගැඹුර ගුණ කිරීමට පෙර මීටරවලට පරිවර්තනය කරයි. අපතේ යාමේ පරිමාව මූලික ඝන මීටර් පරිමාව ඇතුළත් ප්‍රතිශතයෙන් ගුණ කළ අගය වන අතර මුළු අගය දශම ස්ථාන හතරක් දක්වා පෙන්වයි.",
+      variables: [{ symbol: "Q", meaning: "ඝන මීටරවලින් මුළු නැවුම් කොන්ක්‍රීට් පරිමාව" }, { symbol: "L", meaning: "මීටරවලින් දිග" }, { symbol: "W", meaning: "මීටරවලින් පළල" }, { symbol: "D", meaning: "මීටරවලින් ගැඹුර හෝ ඝනකම" }, { symbol: "R", meaning: "අපතේ යාමේ ප්‍රතිශතය" }],
+    },
+    workedExample: {
+      title: "උදාහරණය: මීටර් 5 x 4 x 0.15 සහ 5% අපතේ යාම",
+      input: "මීටර් 5, 4 සහ 0.15 මාන සඳහා මූලික සෘජුකෝණාස්‍ර පරිමාව ඝන මීටර් 3කි. 5% අපතේ යාමේ දීමනාව ඝන මීටර් 0.15කි.",
+      result: "ගණකය මූලික පරිමාව ඝන මීටර් 3ක්, අපතේ යාමේ පරිමාව ඝන මීටර් 0.15ක් සහ මුළු නැවුම් කොන්ක්‍රීට් පරිමාව ඝන මීටර් 3.15ක් ලෙස පෙන්වයි.",
+      fixture: { input: { length: 5, width: 4, depth: 0.15, unit: "metre", wastagePercent: 5 }, expectedResult: { volume: "3", wastageVolume: "0.15", totalVolume: "3.15" } },
+    },
+    assumptions: ["මාන තුනම තෝරාගත් ඒකකය භාවිත කර එක් සෘජුකෝණාස්‍ර පරිමාවක් විස්තර කරයි.", "මාන ඇතුළත් කළ පරිදි ආකෘති හෝ කැණීම් මුහුණු නිරූපණය කරයි.", "අපතේ යාමේ ප්‍රතිශතය පරිශීලකයා තෝරයි; පෙරනිමි 5% සාමාන්‍ය දීමනාවක් මිස සැපයුම්කරුගේ අගයක් නොවේ."],
+    exclusions: ["කොන්ක්‍රීට් ශක්තිය, ශ්‍රේණිය, මිශ්‍රණ සැලසුම සහ සිමෙන්ති, වැලි, ගල් හෝ ජල ප්‍රමාණ", "වානේ සවි කිරීම, ආකෘති, තෙත් තබා සුව කිරීම, සන්ධි, පොම්ප කිරීම, ප්‍රවාහනය, ශ්‍රමය, මිල සහ සැපයුම්කරුගේ අවම ප්‍රමාණ", "ව්‍යුහාත්මක මාන නියම කිරීම, ඉංජිනේරු ඇගයීම, ඉදිකිරීම් ක්‍රම හෝ මිලදී ගැනීමේ උපදෙස්"],
+    commonMistakes: ["තෝරාගත් ඒකකය මීටර් වන විට ගැඹුර සෙන්ටිමීටරවලින් ඇතුළත් කිරීම", "රේඛීය මාන තුනක් ඇතුළත් කිරීම වෙනුවට වර්ගඵලයක් භාවිත කිරීම", "නැවුම් කොන්ක්‍රීට් පරිමාව වියළි ද්‍රව්‍ය මිශ්‍රණ ගණනයක් ලෙස සැලකීම"],
+    faqs: [
+      { question: "දිග හා පළලට වෙනස් ඒකකයකින් ගැඹුර ඇතුළත් කළ හැකිද?", answer: "නැත. තෝරාගත් ඒකකය මාන තුනටම අදාළ වේ. ඇතුළත් කිරීමට පෙර සියලු මාන එකම ඒකකයට පරිවර්තනය කරන්න." },
+      { question: "ප්‍රතිඵලය සිමෙන්ති, වැලි සහ ගල් ප්‍රමාණ පෙන්වයිද?", answer: "නැත. එය නැවුම් කොන්ක්‍රීට් පරිමාව පමණක් පෙන්වන අතර ශ්‍රේණිය, මිශ්‍රණ අනුපාත, තෙතමනය, ප්‍රසාරණය හෝ වියළි පරිමාව ගැන උපකල්පනය නොකරයි." },
+      { question: "පෙරනිමි 5% අපතේ යාම අනිවාර්යද?", answer: "නැත. එය වෙනස් කළ හැකි සාමාන්‍ය දීමනාවකි. ගණකය ව්‍යාපෘතියකට විශේෂ ප්‍රතිශතයක් හෝ සැපයුම්කරුගෙන් මිලදී ගත යුතු ප්‍රමාණයක් නිර්දේශ නොකරයි." },
+    ],
+    relatedCalculatorKeys: ["tile-quantity", "paint"],
+    reviewedAt: "2026-08-28",
+    reviewedBy: "LankaCalc කොන්ක්‍රීට් ප්‍රමාණ ගණක පිරිවිතරය",
+  },
+  ta: {
+    directAnswer: "கொங்கிறீற்று அளவுக் கணிப்பான் ஒரு செவ்வகத் தளம், அடித்தளம், வார்ப்பு அல்லது அகழ்வின் நீளம், அகலம், ஆழத்திலிருந்து புதிய கொங்கிறீற்றின் கனஅளவை மதிப்பிடுகிறது. மூன்று அளவுகளையும் தேர்ந்தெடுத்த அலகிலிருந்து மீட்டருக்கு மாற்றி கன மீட்டரைக் கணக்கிட்டு உள்ளிட்ட கழிவுச் சதவீதத்தைச் சேர்க்கிறது. இது கலவை, வலிமை, கட்டமைப்பு அளவுகள் அல்லது வாங்க வேண்டிய அளவைத் தீர்மானிப்பதில்லை.",
+    instructions: ["செவ்வகத்தின் நீளம், அகலம் மற்றும் ஆழம் அல்லது தடிமனை உள்ளிடுங்கள்.", "மூன்று அளவுகளுக்கும் பயன்படுத்திய ஒரே அலகைத் தேர்ந்தெடுங்கள்.", "கழிவுச் சதவீதத்தை உள்ளிட்டு அடிப்படை, கழிவு மற்றும் மொத்தக் கனஅளவுகளை கன மீட்டரில் கணக்கிடுங்கள்."],
+    formula: {
+      expression: "Q = L x W x D x (1 + R / 100)",
+      explanation: "நீளம், அகலம் மற்றும் ஆழம் பெருக்கப்படுமுன் மீட்டருக்கு மாற்றப்படுகின்றன. கழிவுக் கனஅளவு அடிப்படை கன மீட்டரை உள்ளிட்ட சதவீதத்தால் பெருக்கிய மதிப்பு; மொத்தம் நான்கு தசம இடங்கள் வரை வெளியிடப்படுகிறது.",
+      variables: [{ symbol: "Q", meaning: "கன மீட்டரில் மொத்தப் புதிய கொங்கிறீற்று கனஅளவு" }, { symbol: "L", meaning: "மீட்டரில் நீளம்" }, { symbol: "W", meaning: "மீட்டரில் அகலம்" }, { symbol: "D", meaning: "மீட்டரில் ஆழம் அல்லது தடிமன்" }, { symbol: "R", meaning: "கழிவுச் சதவீதம்" }],
+    },
+    workedExample: {
+      title: "உதாரணம்: 5 மீ x 4 மீ x 0.15 மீ மற்றும் 5% கழிவு",
+      input: "5 மீ, 4 மீ மற்றும் 0.15 மீ அளவுகளுக்கு அடிப்படை செவ்வகக் கனஅளவு 3 கன மீட்டர். 5% கழிவு ஒதுக்கீடு 0.15 கன மீட்டர்.",
+      result: "கணிப்பான் அடிப்படை அளவு 3 m3, கழிவு அளவு 0.15 m3, மொத்தப் புதிய கொங்கிறீற்று அளவு 3.15 m3 எனக் காட்டுகிறது.",
+      fixture: { input: { length: 5, width: 4, depth: 0.15, unit: "metre", wastagePercent: 5 }, expectedResult: { volume: "3", wastageVolume: "0.15", totalVolume: "3.15" } },
+    },
+    assumptions: ["மூன்று அளவுகளும் தேர்ந்தெடுத்த அலகைப் பயன்படுத்தி ஒரு செவ்வகக் கனஅளவை விவரிக்கின்றன.", "அளவுகள் உள்ளிட்டபடி வார்ப்பு அல்லது அகழ்வு முகங்களைக் குறிக்கின்றன.", "கழிவுச் சதவீதம் பயனரால் தேர்ந்தெடுக்கப்படுகிறது; இயல்புநிலை 5% பொதுவான ஒதுக்கீடே தவிர வழங்குநரின் மதிப்பு அல்ல."],
+    exclusions: ["கொங்கிறீற்று வலிமை, தரம், கலவை வடிவமைப்பு மற்றும் சீமெந்து, மணல், கல் அல்லது நீர் அளவுகள்", "வலுவூட்டல், வார்ப்பு, பராமரிப்பு, இணைப்புகள், பம்ப், போக்குவரத்து, உழைப்பு, விலை மற்றும் வழங்குநர் குறைந்தபட்சம்", "கட்டமைப்பு அளவிடல், பொறியியல் மதிப்பீடு, கட்டுமான முறை அல்லது கொள்முதல் ஆலோசனை"],
+    commonMistakes: ["தேர்ந்தெடுத்த அலகு மீட்டராக இருக்கும்போது ஆழத்தை சென்டிமீட்டரில் உள்ளிடுதல்", "மூன்று நேர்கோட்டு அளவுகளை உள்ளிடுவதற்குப் பதிலாக பரப்பளவைப் பயன்படுத்துதல்", "புதிய கொங்கிறீற்று கனஅளவை உலர் பொருள் கலவைக் கணக்காகக் கருதுதல்"],
+    faqs: [
+      { question: "நீளம், அகலத்திலிருந்து வேறு அலகில் ஆழத்தை உள்ளிடலாமா?", answer: "இல்லை. தேர்ந்தெடுத்த அலகு மூன்று அளவுகளுக்கும் பொருந்தும். உள்ளிடுமுன் எல்லா அளவுகளையும் ஒரே அலகுக்கு மாற்றுங்கள்." },
+      { question: "முடிவு சீமெந்து, மணல் மற்றும் கல் அளவுகளைக் காட்டுமா?", answer: "இல்லை. அது புதிய கொங்கிறீற்று கனஅளவை மட்டும் காட்டுகிறது; தரம், கலவை விகிதம், ஈரப்பதம், பெருக்கம் அல்லது உலர் கனஅளவு குறித்த அனுமானம் இல்லை." },
+      { question: "இயல்புநிலை 5% கழிவு கட்டாயமா?", answer: "இல்லை. அது மாற்றக்கூடிய பொதுவான ஒதுக்கீடு. கணிப்பான் திட்டத்திற்குரிய சதவீதத்தையோ வழங்குநரிடம் வாங்க வேண்டிய அளவையோ பரிந்துரைப்பதில்லை." },
+    ],
+    relatedCalculatorKeys: ["tile-quantity", "paint"],
+    reviewedAt: "2026-08-28",
+    reviewedBy: "LankaCalc கொங்கிறீற்று அளவுக் கணிப்பான் விவரக்குறிப்பு",
+  },
+};
+
 const contentByCalculator = {
+  concrete: concreteContent,
   "compound-interest": compoundInterestContent,
   "loan-affordability": loanAffordabilityContent,
   "loan-emi": loanEmiContent,
+  paint: paintContent,
+  "tile-quantity": tileQuantityContent,
 } satisfies Record<string, Record<Locale, CalculatorContent>>;
 
 export function getCalculatorContent(key: string, locale: Locale): CalculatorContent | undefined {
