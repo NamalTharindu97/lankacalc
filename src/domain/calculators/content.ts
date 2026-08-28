@@ -520,6 +520,150 @@ const concreteContent: Record<Locale, CalculatorContent> = {
   },
 };
 
+const areaContent: Record<Locale, CalculatorContent> = {
+  en: {
+    directAnswer: "The area calculator finds the area of one flat rectangle, triangle, or circle using dimensions in metres, feet, or centimetres. It returns the selected square unit and the normalized area in square metres. It does not calculate irregular or composite areas.",
+    instructions: ["Select rectangle, triangle, or circle.", "Select one unit for every dimension and enter the active shape's required measurements.", "Calculate the area in the selected square unit and its square-metre equivalent."],
+    formula: { expression: "rectangle: A = L x W; triangle: A = B x H / 2; circle: A = pi x R^2", explanation: "Dimensions are converted to metres before calculation. The result is converted back to the selected square unit and rounded once to at most six decimal places.", variables: [{ symbol: "A", meaning: "area" }, { symbol: "L", meaning: "rectangle length" }, { symbol: "W", meaning: "rectangle width" }, { symbol: "B", meaning: "triangle base" }, { symbol: "H", meaning: "perpendicular triangle height" }, { symbol: "R", meaning: "circle radius" }] },
+    workedExample: { title: "Example: 10 m by 5 m rectangle", input: "A rectangle has a length of 10 metres and a width of 5 metres.", result: "The area is 50 m2 and the normalized area is 50 m2.", fixture: { input: { shape: "rectangle", unit: "metre", length: 10, width: 5 }, expectedResult: { area: "50", squareMetres: "50" } } },
+    assumptions: ["The shape is flat and Euclidean.", "Every dimension uses the selected unit.", "Triangle height is perpendicular to its base, and circle input is a radius."],
+    exclusions: ["Irregular shapes and composite areas", "Openings, slope, and wastage", "Material quantities, engineering tolerances, and engineering advice"],
+    commonMistakes: ["Mixing units within one calculation", "Entering a circle's diameter as its radius", "Using a sloping side instead of the perpendicular triangle height"],
+    faqs: [{ question: "Can I calculate an irregular or composite area?", answer: "No. This version handles one rectangle, triangle, or circle only; split or combined shapes are not supported." }, { question: "Can dimensions use different units?", answer: "No. Select one unit and convert every active dimension to it before entering values." }, { question: "How is a circle calculated?", answer: "The calculator uses pi times the entered radius squared and rounds the final result to at most six decimal places." }],
+    relatedCalculatorKeys: ["tile-quantity", "paint"], reviewedAt: "2026-08-28", reviewedBy: "LankaCalc area calculator specification",
+  },
+  si: {
+    directAnswer: "වර්ගඵල ගණකය මීටර්, අඩි හෝ සෙන්ටිමීටර්වලින් දෙන මාන භාවිත කර එක් පැතලි සෘජුකෝණාස්‍රයක, ත්‍රිකෝණයක හෝ වෘත්තයක වර්ගඵලය සොයයි. එය තෝරාගත් වර්ග ඒකකයෙන් සහ වර්ග මීටරවලට සාමාන්‍යකරණය කළ අගයෙන් ප්‍රතිඵලය පෙන්වයි. අක්‍රමවත් හෝ සංයුක්ත වර්ගඵල ගණනය නොකරයි.",
+    instructions: ["සෘජුකෝණාස්‍රය, ත්‍රිකෝණය හෝ වෘත්තය තෝරන්න.", "සියලු මාන සඳහා එක් ඒකකයක් තෝරා සක්‍රිය හැඩයට අවශ්‍ය මිනුම් ඇතුළත් කරන්න.", "තෝරාගත් වර්ග ඒකකයෙන් සහ වර්ග මීටරවලින් වර්ගඵලය ගණනය කරන්න."],
+    formula: { expression: "සෘජුකෝණාස්‍රය: A = L x W; ත්‍රිකෝණය: A = B x H / 2; වෘත්තය: A = pi x R^2", explanation: "ගණනයට පෙර මාන මීටරවලට පරිවර්තනය කරයි. ප්‍රතිඵලය තෝරාගත් වර්ග ඒකකයට නැවත පරිවර්තනය කර දශම ස්ථාන හයක් දක්වා එක් වරක් වටයයි.", variables: [{ symbol: "A", meaning: "වර්ගඵලය" }, { symbol: "L", meaning: "සෘජුකෝණාස්‍ර දිග" }, { symbol: "W", meaning: "සෘජුකෝණාස්‍ර පළල" }, { symbol: "B", meaning: "ත්‍රිකෝණ පාදය" }, { symbol: "H", meaning: "පාදයට ලම්බ ත්‍රිකෝණ උස" }, { symbol: "R", meaning: "වෘත්ත අරය" }] },
+    workedExample: { title: "උදාහරණය: මීටර් 10 x 5 සෘජුකෝණාස්‍රයක්", input: "සෘජුකෝණාස්‍රයේ දිග මීටර් 10ක් සහ පළල මීටර් 5කි.", result: "වර්ගඵලය වර්ග මීටර් 50ක් වන අතර සාමාන්‍යකරණය කළ වර්ගඵලයද වර්ග මීටර් 50කි.", fixture: { input: { shape: "rectangle", unit: "metre", length: 10, width: 5 }, expectedResult: { area: "50", squareMetres: "50" } } },
+    assumptions: ["හැඩය පැතලි යුක්ලීඩියානු හැඩයකි.", "සියලු මාන තෝරාගත් ඒකකය භාවිත කරයි.", "ත්‍රිකෝණ උස පාදයට ලම්බ වන අතර වෘත්තයට ඇතුළත් කරන්නේ අරයයි."],
+    exclusions: ["අක්‍රමවත් හැඩ සහ සංයුක්ත වර්ගඵල", "විවර, බෑවුම් සහ අපතේ යාම", "ද්‍රව්‍ය ප්‍රමාණ, ඉංජිනේරු ඉවසීම් සහ ඉංජිනේරු උපදෙස්"],
+    commonMistakes: ["එක් ගණනයක ඒකක මිශ්‍ර කිරීම", "වෘත්තයේ අරය වෙනුවට විෂ්කම්භය ඇතුළත් කිරීම", "ත්‍රිකෝණයේ ලම්බ උස වෙනුවට බෑවුම් පැත්ත භාවිත කිරීම"],
+    faqs: [{ question: "අක්‍රමවත් හෝ සංයුක්ත වර්ගඵලයක් ගණනය කළ හැකිද?", answer: "නැත. මෙම අනුවාදය එක් සෘජුකෝණාස්‍රයක්, ත්‍රිකෝණයක් හෝ වෘත්තයක් පමණක් ගණනය කරයි; බෙදූ හෝ එකතු කළ හැඩ සඳහා සහාය නැත." }, { question: "මාන සඳහා වෙනස් ඒකක භාවිත කළ හැකිද?", answer: "නැත. එක් ඒකකයක් තෝරා සක්‍රිය සියලු මාන ඇතුළත් කිරීමට පෙර එයට පරිවර්තනය කරන්න." }, { question: "වෘත්තය ගණනය කරන්නේ කෙසේද?", answer: "ඇතුළත් අරයේ වර්ගය pi අගයෙන් ගුණ කර අවසාන ප්‍රතිඵලය දශම ස්ථාන හයක් දක්වා වටයයි." }],
+    relatedCalculatorKeys: ["tile-quantity", "paint"], reviewedAt: "2026-08-28", reviewedBy: "LankaCalc වර්ගඵල ගණක පිරිවිතරය",
+  },
+  ta: {
+    directAnswer: "பரப்பளவுக் கணிப்பான் மீட்டர், அடி அல்லது சென்டிமீட்டரில் உள்ள அளவுகளைக் கொண்டு ஒரு தட்டையான செவ்வகம், முக்கோணம் அல்லது வட்டத்தின் பரப்பளவைக் கணக்கிடுகிறது. தேர்ந்தெடுத்த சதுர அலகிலும் சதுர மீட்டருக்கு இயல்பாக்கப்பட்ட அளவிலும் முடிவைக் காட்டுகிறது. ஒழுங்கற்ற அல்லது கூட்டுப் பரப்புகளை இது கணக்கிடாது.",
+    instructions: ["செவ்வகம், முக்கோணம் அல்லது வட்டத்தைத் தேர்ந்தெடுங்கள்.", "எல்லா அளவுகளுக்கும் ஓர் அலகைத் தேர்ந்தெடுத்து செயலில் உள்ள வடிவத்திற்குத் தேவையான அளவுகளை உள்ளிடுங்கள்.", "தேர்ந்தெடுத்த சதுர அலகிலும் சதுர மீட்டரிலும் பரப்பளவைக் கணக்கிடுங்கள்."],
+    formula: { expression: "செவ்வகம்: A = L x W; முக்கோணம்: A = B x H / 2; வட்டம்: A = pi x R^2", explanation: "கணக்கிடுமுன் அளவுகள் மீட்டருக்கு மாற்றப்படுகின்றன. முடிவு தேர்ந்தெடுத்த சதுர அலகுக்கு மீண்டும் மாற்றப்பட்டு அதிகபட்சம் ஆறு தசம இடங்களுக்கு ஒருமுறை சுற்றப்படுகிறது.", variables: [{ symbol: "A", meaning: "பரப்பளவு" }, { symbol: "L", meaning: "செவ்வக நீளம்" }, { symbol: "W", meaning: "செவ்வக அகலம்" }, { symbol: "B", meaning: "முக்கோண அடிப்பக்கம்" }, { symbol: "H", meaning: "அடிப்பக்கத்திற்குச் செங்குத்தான உயரம்" }, { symbol: "R", meaning: "வட்ட ஆரம்" }] },
+    workedExample: { title: "உதாரணம்: 10 மீ x 5 மீ செவ்வகம்", input: "செவ்வகத்தின் நீளம் 10 மீட்டர்; அகலம் 5 மீட்டர்.", result: "பரப்பளவு 50 m2; இயல்பாக்கப்பட்ட பரப்பளவும் 50 m2.", fixture: { input: { shape: "rectangle", unit: "metre", length: 10, width: 5 }, expectedResult: { area: "50", squareMetres: "50" } } },
+    assumptions: ["வடிவம் தட்டையான யூக்ளிடிய வடிவம்.", "எல்லா அளவுகளும் தேர்ந்தெடுத்த அலகையே பயன்படுத்துகின்றன.", "முக்கோண உயரம் அடிப்பக்கத்திற்குச் செங்குத்தானது; வட்ட உள்ளீடு ஆரம்."],
+    exclusions: ["ஒழுங்கற்ற வடிவங்களும் கூட்டுப் பரப்புகளும்", "திறப்புகள், சாய்வு மற்றும் கழிவு", "பொருள் அளவுகள், பொறியியல் சகிப்புத்தன்மை மற்றும் பொறியியல் ஆலோசனை"],
+    commonMistakes: ["ஒரே கணக்கில் அலகுகளைக் கலத்தல்", "வட்ட ஆரத்திற்குப் பதிலாக விட்டத்தை உள்ளிடுதல்", "செங்குத்து உயரத்திற்குப் பதிலாக முக்கோணத்தின் சாய்ந்த பக்கத்தைப் பயன்படுத்துதல்"],
+    faqs: [{ question: "ஒழுங்கற்ற அல்லது கூட்டுப் பரப்பைக் கணக்கிடலாமா?", answer: "இல்லை. இந்தப் பதிப்பு ஒரு செவ்வகம், முக்கோணம் அல்லது வட்டத்தை மட்டும் கையாளும்; பிரிக்கப்பட்ட அல்லது இணைக்கப்பட்ட வடிவங்கள் ஆதரிக்கப்படவில்லை." }, { question: "அளவுகளுக்கு வெவ்வேறு அலகுகளைப் பயன்படுத்தலாமா?", answer: "இல்லை. ஓர் அலகைத் தேர்ந்தெடுத்து செயலில் உள்ள எல்லா அளவுகளையும் உள்ளிடுமுன் அதற்கு மாற்றுங்கள்." }, { question: "வட்டம் எவ்வாறு கணக்கிடப்படுகிறது?", answer: "உள்ளிட்ட ஆரத்தின் வர்க்கத்தை pi-ஆல் பெருக்கி இறுதி முடிவை அதிகபட்சம் ஆறு தசம இடங்களுக்கு சுற்றுகிறது." }],
+    relatedCalculatorKeys: ["tile-quantity", "paint"], reviewedAt: "2026-08-28", reviewedBy: "LankaCalc பரப்பளவுக் கணிப்பான் விவரக்குறிப்பு",
+  },
+};
+
+const fuelConsumptionContent: Record<Locale, CalculatorContent> = {
+  en: {
+    directAnswer: "The fuel consumption calculator converts distance travelled and fuel used for the same journey into kilometres per litre and litres per 100 kilometres. It accepts kilometres or miles and litres, US gallons, or imperial gallons. It does not calculate fuel price or trip cost.",
+    instructions: ["Enter the distance and select kilometres or miles.", "Enter the fuel used and select litres, US gallons, or imperial gallons.", "Calculate both canonical metric consumption measures."],
+    formula: { expression: "km/L = D / V; L/100 km = V / D x 100", explanation: "Distance is converted to kilometres and volume to litres using exact conversion constants. Each result is rounded independently to at most three decimal places.", variables: [{ symbol: "D", meaning: "normalized distance in kilometres" }, { symbol: "V", meaning: "normalized fuel volume in litres" }] },
+    workedExample: { title: "Example: 500 km using 40 litres", input: "A journey covers 500 kilometres and uses 40 litres of fuel.", result: "Average efficiency is 12.5 km/L and average consumption is 8 L/100 km.", fixture: { input: { distance: 500, distanceUnit: "kilometre", fuelVolume: 40, volumeUnit: "litre" }, expectedResult: { kilometresPerLitre: "12.5", litresPerHundredKilometres: "8" } } },
+    assumptions: ["Distance and fuel volume cover the same journey or measurement period.", "The result is observed average consumption, not an instantaneous reading.", "US gallons and imperial gallons are distinct units."],
+    exclusions: ["Fuel price and trip cost", "Vehicle type and driving conditions", "Odometer error and measurement uncertainty"],
+    commonMistakes: ["Using distance and fuel from different periods", "Confusing US and imperial gallons", "Reading L/100 km as though a larger number means better efficiency"],
+    faqs: [{ question: "Does this calculate trip cost?", answer: "No. Fuel price and trip cost are explicitly excluded; it reports consumption only." }, { question: "Are US and imperial gallons interchangeable?", answer: "No. Select the exact gallon type because a US gallon is 3.785411784 litres and an imperial gallon is 4.54609 litres." }, { question: "Why are two measures shown?", answer: "Kilometres per litre expresses distance per fuel unit, while litres per 100 kilometres expresses fuel used over a fixed distance." }],
+    relatedCalculatorKeys: ["percentage", "age"], reviewedAt: "2026-08-28", reviewedBy: "LankaCalc fuel consumption calculator specification",
+  },
+  si: {
+    directAnswer: "ඉන්ධන පරිභෝජන ගණකය එකම ගමනට ගමන් කළ දුර සහ භාවිත කළ ඉන්ධන ලීටරයකට කිලෝමීටර් සහ කිලෝමීටර් 100කට ලීටර් ලෙස පරිවර්තනය කරයි. දුර කිලෝමීටර් හෝ සැතපුම්වලින්ද පරිමාව ලීටර්, US ගැලුම් හෝ ඉම්පීරියල් ගැලුම්වලින්ද ඇතුළත් කළ හැක. ඉන්ධන මිල හෝ ගමන් වියදම ගණනය නොකරයි.",
+    instructions: ["දුර ඇතුළත් කර කිලෝමීටර් හෝ සැතපුම් තෝරන්න.", "භාවිත කළ ඉන්ධන ඇතුළත් කර ලීටර්, US ගැලුම් හෝ ඉම්පීරියල් ගැලුම් තෝරන්න.", "සම්මත මෙට්‍රික් පරිභෝජන මිනුම් දෙකම ගණනය කරන්න."],
+    formula: { expression: "km/L = D / V; L/100 km = V / D x 100", explanation: "නිශ්චිත පරිවර්තන අගයන් භාවිත කර දුර කිලෝමීටර්වලටත් පරිමාව ලීටර්වලටත් පරිවර්තනය කරයි. එක් එක් ප්‍රතිඵලය දශම ස්ථාන තුනක් දක්වා වෙන වෙනම වටයයි.", variables: [{ symbol: "D", meaning: "කිලෝමීටර්වලින් සාමාන්‍යකරණය කළ දුර" }, { symbol: "V", meaning: "ලීටර්වලින් සාමාන්‍යකරණය කළ ඉන්ධන පරිමාව" }] },
+    workedExample: { title: "උදාහරණය: ලීටර් 40කින් කිලෝමීටර් 500ක්", input: "ගමනක දුර කිලෝමීටර් 500ක් වන අතර ඉන්ධන ලීටර් 40ක් භාවිත කරයි.", result: "සාමාන්‍ය කාර්යක්ෂමතාව 12.5 km/Lක් සහ සාමාන්‍ය පරිභෝජනය 8 L/100 kmක් වේ.", fixture: { input: { distance: 500, distanceUnit: "kilometre", fuelVolume: 40, volumeUnit: "litre" }, expectedResult: { kilometresPerLitre: "12.5", litresPerHundredKilometres: "8" } } },
+    assumptions: ["දුර සහ ඉන්ධන පරිමාව එකම ගමනට හෝ මිනුම් කාලයට අදාළ වේ.", "ප්‍රතිඵලය ක්ෂණික කියවීමක් නොව නිරීක්ෂිත සාමාන්‍ය පරිභෝජනයකි.", "US ගැලුම් සහ ඉම්පීරියල් ගැලුම් වෙනස් ඒකක වේ."],
+    exclusions: ["ඉන්ධන මිල සහ ගමන් වියදම", "වාහන වර්ගය සහ ධාවන තත්ත්ව", "ඔඩෝමීටර් දෝෂ සහ මිනුම් අවිනිශ්චිතතාව"],
+    commonMistakes: ["වෙනස් කාලවල දුර සහ ඉන්ධන භාවිත කිරීම", "US සහ ඉම්පීරියල් ගැලුම් පටලවා ගැනීම", "L/100 km වැඩි අගයක් වඩා හොඳ කාර්යක්ෂමතාවක් ලෙස කියවීම"],
+    faqs: [{ question: "මෙය ගමන් වියදම ගණනය කරයිද?", answer: "නැත. ඉන්ධන මිල සහ ගමන් වියදම පැහැදිලිවම බැහැර කර ඇති අතර පරිභෝජනය පමණක් පෙන්වයි." }, { question: "US සහ ඉම්පීරියල් ගැලුම් එක සමානද?", answer: "නැත. US ගැලුමක් ලීටර් 3.785411784ක් සහ ඉම්පීරියල් ගැලුමක් ලීටර් 4.54609ක් බැවින් නිවැරදි වර්ගය තෝරන්න." }, { question: "මිනුම් දෙකක් පෙන්වන්නේ ඇයි?", answer: "km/L ඉන්ධන ඒකකයකට දුර පෙන්වන අතර L/100 km නියමිත දුරකට භාවිත වන ඉන්ධන පෙන්වයි." }],
+    relatedCalculatorKeys: ["percentage", "age"], reviewedAt: "2026-08-28", reviewedBy: "LankaCalc ඉන්ධන පරිභෝජන ගණක පිරිවිතරය",
+  },
+  ta: {
+    directAnswer: "எரிபொருள் நுகர்வுக் கணிப்பான் ஒரே பயணத்தின் தூரத்தையும் பயன்படுத்திய எரிபொருளையும் ஒரு லீட்டருக்கான கிலோமீட்டர் மற்றும் 100 கிலோமீட்டருக்கான லீட்டர் என மாற்றுகிறது. தூரத்திற்கு கிலோமீட்டர் அல்லது மைலையும், அளவிற்கு லீட்டர், US கலன் அல்லது இம்பீரியல் கலனையும் ஏற்கிறது. எரிபொருள் விலையையோ பயணச் செலவையோ கணக்கிடாது.",
+    instructions: ["தூரத்தை உள்ளிட்டு கிலோமீட்டர் அல்லது மைலைத் தேர்ந்தெடுங்கள்.", "பயன்படுத்திய எரிபொருளை உள்ளிட்டு லீட்டர், US கலன் அல்லது இம்பீரியல் கலனைத் தேர்ந்தெடுங்கள்.", "இரண்டு நிலையான மெட்ரிக் நுகர்வு அளவுகளையும் கணக்கிடுங்கள்."],
+    formula: { expression: "km/L = D / V; L/100 km = V / D x 100", explanation: "தூரம் துல்லிய மாற்று மாறிலிகளால் கிலோமீட்டருக்கும் அளவு லீட்டருக்கும் மாற்றப்படுகின்றன. ஒவ்வொரு முடிவும் தனித்தனியாக அதிகபட்சம் மூன்று தசம இடங்களுக்கு சுற்றப்படுகிறது.", variables: [{ symbol: "D", meaning: "கிலோமீட்டரில் இயல்பாக்கப்பட்ட தூரம்" }, { symbol: "V", meaning: "லீட்டரில் இயல்பாக்கப்பட்ட எரிபொருள் அளவு" }] },
+    workedExample: { title: "உதாரணம்: 40 லீட்டரில் 500 கிமீ", input: "ஒரு பயணம் 500 கிலோமீட்டர் சென்று 40 லீட்டர் எரிபொருளைப் பயன்படுத்துகிறது.", result: "சராசரித் திறன் 12.5 km/L; சராசரி நுகர்வு 8 L/100 km.", fixture: { input: { distance: 500, distanceUnit: "kilometre", fuelVolume: 40, volumeUnit: "litre" }, expectedResult: { kilometresPerLitre: "12.5", litresPerHundredKilometres: "8" } } },
+    assumptions: ["தூரமும் எரிபொருள் அளவும் ஒரே பயணம் அல்லது அளவீட்டுக் காலத்தைக் குறிக்கின்றன.", "முடிவு உடனடி வாசிப்பு அல்ல; கவனிக்கப்பட்ட சராசரி நுகர்வு.", "US கலனும் இம்பீரியல் கலனும் வேறு அலகுகள்."],
+    exclusions: ["எரிபொருள் விலையும் பயணச் செலவும்", "வாகன வகையும் ஓட்டுநிலைமைகளும்", "தூரமானிப் பிழையும் அளவீட்டு நிச்சயமின்மையும்"],
+    commonMistakes: ["வெவ்வேறு காலங்களின் தூரத்தையும் எரிபொருளையும் பயன்படுத்துதல்", "US மற்றும் இம்பீரியல் கலன்களைக் குழப்புதல்", "அதிக L/100 km என்பது சிறந்த திறன் எனப் புரிந்துகொள்ளுதல்"],
+    faqs: [{ question: "இது பயணச் செலவைக் கணக்கிடுமா?", answer: "இல்லை. எரிபொருள் விலையும் பயணச் செலவும் வெளிப்படையாக விலக்கப்பட்டுள்ளன; நுகர்வு மட்டும் காட்டப்படுகிறது." }, { question: "US மற்றும் இம்பீரியல் கலன்கள் ஒன்றா?", answer: "இல்லை. US கலன் 3.785411784 லீட்டர்; இம்பீரியல் கலன் 4.54609 லீட்டர். ஆகவே சரியான வகையைத் தேர்ந்தெடுங்கள்." }, { question: "ஏன் இரண்டு அளவுகள் காட்டப்படுகின்றன?", answer: "km/L ஒரு எரிபொருள் அலகுக்கான தூரத்தையும் L/100 km ஒரு நிலையான தூரத்திற்குப் பயன்படுத்திய எரிபொருளையும் காட்டுகின்றன." }],
+    relatedCalculatorKeys: ["percentage", "age"], reviewedAt: "2026-08-28", reviewedBy: "LankaCalc எரிபொருள் நுகர்வுக் கணிப்பான் விவரக்குறிப்பு",
+  },
+};
+
+const percentageContent: Record<Locale, CalculatorContent> = {
+  en: {
+    directAnswer: "The percentage calculator answers only 'What is X percent of Y?' by multiplying the value by the percentage and dividing by 100. The value's meaning and unit come from the user. It does not calculate percentage change, reverse percentages, ratios, or percentage increases and decreases.",
+    instructions: ["Enter the percentage, including a negative percentage when needed.", "Enter the value whose percentage you want.", "Calculate the percentage value, rounded to at most six decimal places."],
+    formula: { expression: "P = V x R / 100", explanation: "The calculator uses decimal arithmetic and rounds the final result once to at most six decimal places.", variables: [{ symbol: "P", meaning: "percentage value" }, { symbol: "V", meaning: "entered value" }, { symbol: "R", meaning: "entered percentage" }] },
+    workedExample: { title: "Example: 12.5% of 800", input: "The requested percentage is 12.5 and the value is 800.", result: "800 x 12.5 / 100 equals 100.", fixture: { input: { percentage: 12.5, value: 800 }, expectedResult: { percentageValue: "100" } } },
+    assumptions: ["The operation is only X percent of Y.", "The calculator treats the value as unitless.", "Negative percentages and values follow ordinary sign multiplication."],
+    exclusions: ["Percentage change", "Reverse percentage and ratios", "Adding or subtracting a percentage from a value"],
+    commonMistakes: ["Entering 0.125 when intending 12.5%", "Expecting the calculator to add the result back to the original value", "Using this operation for percentage change or reverse calculations"],
+    faqs: [{ question: "Can this calculate percentage change?", answer: "No. It computes only X percent of Y and does not compare an old and new value." }, { question: "Can it find the original value from a percentage result?", answer: "No. Reverse-percentage calculations are excluded from this calculator." }, { question: "Can percentages or values be negative?", answer: "Yes. Negative inputs are valid and the result follows ordinary multiplication signs." }],
+    relatedCalculatorKeys: ["compound-interest", "fuel-consumption"], reviewedAt: "2026-08-28", reviewedBy: "LankaCalc percentage calculator specification",
+  },
+  si: {
+    directAnswer: "ප්‍රතිශත ගණකය අගය ප්‍රතිශතයෙන් ගුණ කර 100න් බෙදා 'Y හි X ප්‍රතිශතය කීයද?' යන්නට පමණක් පිළිතුරු දෙයි. අගයේ අර්ථය සහ ඒකකය පරිශීලකයා තීරණය කරයි. ප්‍රතිශත වෙනස, ප්‍රතිවිරුද්ධ ප්‍රතිශත, අනුපාත හෝ ප්‍රතිශතයකින් වැඩි කිරීම හා අඩු කිරීම ගණනය නොකරයි.",
+    instructions: ["අවශ්‍ය නම් ඍණ ප්‍රතිශතයක්ද ඇතුළුව ප්‍රතිශතය ඇතුළත් කරන්න.", "ප්‍රතිශතය සෙවිය යුතු අගය ඇතුළත් කරන්න.", "දශම ස්ථාන හයක් දක්වා වටයන ප්‍රතිශත අගය ගණනය කරන්න."],
+    formula: { expression: "P = V x R / 100", explanation: "ගණකය දශම ගණිතය භාවිත කර අවසාන ප්‍රතිඵලය දශම ස්ථාන හයක් දක්වා එක් වරක් වටයයි.", variables: [{ symbol: "P", meaning: "ප්‍රතිශත අගය" }, { symbol: "V", meaning: "ඇතුළත් අගය" }, { symbol: "R", meaning: "ඇතුළත් ප්‍රතිශතය" }] },
+    workedExample: { title: "උදාහරණය: 800න් 12.5%", input: "අවශ්‍ය ප්‍රතිශතය 12.5ක් සහ අගය 800ක් වේ.", result: "800 x 12.5 / 100 අගය 100කි.", fixture: { input: { percentage: 12.5, value: 800 }, expectedResult: { percentageValue: "100" } } },
+    assumptions: ["මෙම මෙහෙයුම Y හි X ප්‍රතිශතය පමණක් සොයයි.", "ගණකය අගය ඒකක රහිත ලෙස සලකයි.", "ඍණ ප්‍රතිශත සහ අගයන් සාමාන්‍ය ලකුණු ගුණ කිරීම අනුගමනය කරයි."],
+    exclusions: ["ප්‍රතිශත වෙනස", "ප්‍රතිවිරුද්ධ ප්‍රතිශත සහ අනුපාත", "අගයකට ප්‍රතිශතයක් එකතු කිරීම හෝ අඩු කිරීම"],
+    commonMistakes: ["12.5% අදහස් කරන විට 0.125 ඇතුළත් කිරීම", "ප්‍රතිඵලය මුල් අගයට ස්වයංක්‍රීයව එකතු වේ යැයි සිතීම", "ප්‍රතිශත වෙනස හෝ ප්‍රතිවිරුද්ධ ගණනය සඳහා මෙය භාවිත කිරීම"],
+    faqs: [{ question: "ප්‍රතිශත වෙනස මෙයින් ගණනය කළ හැකිද?", answer: "නැත. එය Y හි X ප්‍රතිශතය පමණක් සොයන අතර පැරණි සහ නව අගයන් සසඳන්නේ නැත." }, { question: "ප්‍රතිශත ප්‍රතිඵලයෙන් මුල් අගය සොයාගත හැකිද?", answer: "නැත. ප්‍රතිවිරුද්ධ ප්‍රතිශත ගණනය මෙම ගණකයෙන් බැහැර කර ඇත." }, { question: "ප්‍රතිශත හෝ අගයන් ඍණ විය හැකිද?", answer: "ඔව්. ඍණ ආදාන වලංගු වන අතර ප්‍රතිඵලය සාමාන්‍ය ගුණ කිරීමේ ලකුණු අනුගමනය කරයි." }],
+    relatedCalculatorKeys: ["compound-interest", "fuel-consumption"], reviewedAt: "2026-08-28", reviewedBy: "LankaCalc ප්‍රතිශත ගණක පිරිවිතරය",
+  },
+  ta: {
+    directAnswer: "சதவீதக் கணிப்பான் மதிப்பைச் சதவீதத்தால் பெருக்கி 100-ஆல் வகுத்து 'Y-இன் X சதவீதம் என்ன?' என்பதற்கு மட்டும் விடையளிக்கிறது. மதிப்பின் பொருளையும் அலகையும் பயனர் வழங்குகிறார். சதவீத மாற்றம், தலைகீழ்ச் சதவீதம், விகிதம் அல்லது சதவீதத்தைச் சேர்த்தல் மற்றும் கழித்தலை இது கணக்கிடாது.",
+    instructions: ["தேவைப்பட்டால் எதிர்மறைச் சதவீதம் உட்பட சதவீதத்தை உள்ளிடுங்கள்.", "சதவீதம் தேவைப்படும் மதிப்பை உள்ளிடுங்கள்.", "அதிகபட்சம் ஆறு தசம இடங்களுக்கு சுற்றப்பட்ட சதவீத மதிப்பைக் கணக்கிடுங்கள்."],
+    formula: { expression: "P = V x R / 100", explanation: "கணிப்பான் தசமக் கணிதத்தைப் பயன்படுத்தி இறுதி முடிவை அதிகபட்சம் ஆறு தசம இடங்களுக்கு ஒருமுறை சுற்றுகிறது.", variables: [{ symbol: "P", meaning: "சதவீத மதிப்பு" }, { symbol: "V", meaning: "உள்ளிட்ட மதிப்பு" }, { symbol: "R", meaning: "உள்ளிட்ட சதவீதம்" }] },
+    workedExample: { title: "உதாரணம்: 800-இன் 12.5%", input: "தேவையான சதவீதம் 12.5; மதிப்பு 800.", result: "800 x 12.5 / 100 என்பது 100.", fixture: { input: { percentage: 12.5, value: 800 }, expectedResult: { percentageValue: "100" } } },
+    assumptions: ["செயல் Y-இன் X சதவீதத்தை மட்டும் கணக்கிடுகிறது.", "கணிப்பான் மதிப்பை அலகற்றதாகக் கருதுகிறது.", "எதிர்மறைச் சதவீதங்களும் மதிப்புகளும் வழக்கமான குறிப் பெருக்கலைப் பின்பற்றுகின்றன."],
+    exclusions: ["சதவீத மாற்றம்", "தலைகீழ்ச் சதவீதமும் விகிதங்களும்", "ஒரு மதிப்புடன் சதவீதத்தைச் சேர்த்தல் அல்லது கழித்தல்"],
+    commonMistakes: ["12.5% என்பதற்குப் பதிலாக 0.125 உள்ளிடுதல்", "முடிவு மூல மதிப்புடன் தானாகச் சேர்க்கப்படும் என எதிர்பார்த்தல்", "சதவீத மாற்றம் அல்லது தலைகீழ்க் கணக்கிற்கு இதைப் பயன்படுத்துதல்"],
+    faqs: [{ question: "இது சதவீத மாற்றத்தைக் கணக்கிடுமா?", answer: "இல்லை. இது Y-இன் X சதவீதத்தை மட்டும் கணக்கிடும்; பழைய மற்றும் புதிய மதிப்புகளை ஒப்பிடாது." }, { question: "சதவீத முடிவிலிருந்து மூல மதிப்பைக் கண்டுபிடிக்கலாமா?", answer: "இல்லை. தலைகீழ்ச் சதவீதக் கணக்குகள் இந்தக் கணிப்பானிலிருந்து விலக்கப்பட்டுள்ளன." }, { question: "சதவீதம் அல்லது மதிப்பு எதிர்மறையாக இருக்கலாமா?", answer: "ஆம். எதிர்மறை உள்ளீடுகள் செல்லுபடியாகும்; முடிவு வழக்கமான பெருக்கல் குறிகளைப் பின்பற்றும்." }],
+    relatedCalculatorKeys: ["compound-interest", "fuel-consumption"], reviewedAt: "2026-08-28", reviewedBy: "LankaCalc சதவீதக் கணிப்பான் விவரக்குறிப்பு",
+  },
+};
+
+const ageContent: Record<Locale, CalculatorContent> = {
+  en: {
+    directAnswer: "The age calculator returns completed calendar years and elapsed calendar days between a date of birth and an as-of date. It uses date-only proleptic Gregorian arithmetic, with 28 February as the anniversary of a 29 February birthday in non-leap years. It does not determine legal age or provide legal advice.",
+    instructions: ["Enter the date of birth as a valid calendar date.", "Enter an as-of date on or after the date of birth.", "Calculate completed years and elapsed days between the dates."],
+    formula: { expression: "years = calendar-year difference adjusted for the anniversary; days = floor((as-of UTC - birth UTC) / 86,400,000)", explanation: "Completed years count whole anniversaries. Elapsed days exclude the starting date, and both outputs are exact integers.", variables: [{ symbol: "years", meaning: "whole anniversaries reached by the as-of date" }, { symbol: "days", meaning: "calendar days elapsed from birth date to as-of date" }] },
+    workedExample: { title: "Example: 29 February 2000 to 28 February 2023", input: "The date of birth is 2000-02-29 and the as-of date is 2023-02-28.", result: "The result is 23 completed years and 8,400 elapsed days; the leap-day anniversary rule applies.", fixture: { input: { dateOfBirth: "2000-02-29", asOfDate: "2023-02-28" }, expectedResult: { completedYears: 23, totalDays: 8400 } } },
+    assumptions: ["Age means completed calendar years, not fractional years.", "Elapsed days do not include the starting date.", "Dates use the proleptic Gregorian calendar without a time or timezone."],
+    exclusions: ["Legal age rules, eligibility decisions, and legal advice", "Times of day, timezones, and leap seconds", "Historical calendar changes"],
+    commonMistakes: ["Entering the as-of date before the birth date", "Using a locale-formatted date instead of a valid calendar date", "Treating elapsed days as inclusive of the starting date"],
+    faqs: [{ question: "Does this determine whether someone is legally an adult?", answer: "No. Legal age rules and legal advice are explicitly excluded; the calculator reports calendar arithmetic only." }, { question: "How is a 29 February birthday handled?", answer: "In a non-leap year, 28 February is treated as that birthday's anniversary." }, { question: "Are both dates included in elapsed days?", answer: "No. Elapsed days do not include the starting date, so equal dates return zero days." }],
+    relatedCalculatorKeys: ["percentage", "fuel-consumption"], reviewedAt: "2026-08-28", reviewedBy: "LankaCalc age calculator specification",
+  },
+  si: {
+    directAnswer: "වයස් ගණකය උපන් දිනයක් සහ ගණනය කරන දිනයක් අතර සම්පූර්ණ වූ දිනදර්ශන අවුරුදු සහ ගත වූ දින ගණන පෙන්වයි. වේලාවක් නොමැති ප්‍රොලෙප්ටික් ග්‍රෙගෝරියානු දිනදර්ශනය භාවිත කරන අතර අධික අවුරුද්දක් නොවන විට පෙබරවාරි 29 උපන්දිනයේ සංවත්සරය පෙබරවාරි 28 ලෙස සලකයි. නීතිමය වයස තීරණය කිරීමක් හෝ නීති උපදෙස් ලබාදීමක් නොකරයි.",
+    instructions: ["උපන් දිනය වලංගු දිනදර්ශන දිනයක් ලෙස ඇතුළත් කරන්න.", "උපන් දිනයට සමාන හෝ පසු දිනයක් ලෙස ගණනය කරන දිනය ඇතුළත් කරන්න.", "දිනයන් අතර සම්පූර්ණ අවුරුදු සහ ගත වූ දින ගණනය කරන්න."],
+    formula: { expression: "අවුරුදු = සංවත්සරයට සකස් කළ දිනදර්ශන අවුරුදු වෙනස; දින = floor((ගණනය කරන UTC දිනය - උපන් UTC දිනය) / 86,400,000)", explanation: "සම්පූර්ණ අවුරුදු ගණන් කරන්නේ සම්පූර්ණ වූ සංවත්සරයි. ගත වූ දිනවල ආරම්භක දිනය ඇතුළත් නොවන අතර ප්‍රතිඵල දෙකම නිශ්චිත පූර්ණ සංඛ්‍යා වේ.", variables: [{ symbol: "අවුරුදු", meaning: "ගණනය කරන දිනය වන විට සම්පූර්ණ වූ සංවත්සර" }, { symbol: "දින", meaning: "උපන් දිනයේ සිට ගණනය කරන දිනය දක්වා ගත වූ දින" }] },
+    workedExample: { title: "උදාහරණය: 2000 පෙබරවාරි 29 සිට 2023 පෙබරවාරි 28", input: "උපන් දිනය 2000-02-29 සහ ගණනය කරන දිනය 2023-02-28 වේ.", result: "ප්‍රතිඵලය සම්පූර්ණ අවුරුදු 23ක් සහ ගත වූ දින 8,400කි; අධික දින සංවත්සර නීතිය අදාළ වේ.", fixture: { input: { dateOfBirth: "2000-02-29", asOfDate: "2023-02-28" }, expectedResult: { completedYears: 23, totalDays: 8400 } } },
+    assumptions: ["වයස යනු භාගික අවුරුදු නොව සම්පූර්ණ දිනදර්ශන අවුරුදුයි.", "ගත වූ දිනවල ආරම්භක දිනය ඇතුළත් නොවේ.", "දිනයන් වේලාවක් හෝ කාල කලාපයක් නොමැති ප්‍රොලෙප්ටික් ග්‍රෙගෝරියානු දිනදර්ශනය භාවිත කරයි."],
+    exclusions: ["නීතිමය වයස් නීති, සුදුසුකම් තීරණ සහ නීති උපදෙස්", "දවසේ වේලා, කාල කලාප සහ අධික තත්පර", "ඓතිහාසික දිනදර්ශන වෙනස්කම්"],
+    commonMistakes: ["උපන් දිනයට පෙර දිනයක් ගණනය කරන දිනය ලෙස ඇතුළත් කිරීම", "වලංගු දිනදර්ශන දිනයක් වෙනුවට ප්‍රාදේශීය ආකෘතියක දිනයක් භාවිත කිරීම", "ගත වූ දිනවලට ආරම්භක දිනයද ඇතුළත් යැයි සිතීම"],
+    faqs: [{ question: "යමෙකු නීතිමය වැඩිහිටියෙකුදැයි මෙය තීරණය කරයිද?", answer: "නැත. නීතිමය වයස් නීති සහ නීති උපදෙස් පැහැදිලිවම බැහැර කර ඇති අතර මෙය දිනදර්ශන ගණිතය පමණක් පෙන්වයි." }, { question: "පෙබරවාරි 29 උපන්දිනයක් සලකන්නේ කෙසේද?", answer: "අධික අවුරුද්දක් නොවන විට පෙබරවාරි 28 එම උපන්දිනයේ සංවත්සරය ලෙස සලකයි." }, { question: "ගත වූ දිනවලට දිනයන් දෙකම ඇතුළත්ද?", answer: "නැත. ආරම්භක දිනය ඇතුළත් නොවන නිසා සමාන දිනයන්ට දින ශූන්‍යයක් ලැබේ." }],
+    relatedCalculatorKeys: ["percentage", "fuel-consumption"], reviewedAt: "2026-08-28", reviewedBy: "LankaCalc වයස් ගණක පිරිවිතරය",
+  },
+  ta: {
+    directAnswer: "வயதுக் கணிப்பான் பிறந்த தேதிக்கும் கணக்கிடும் தேதிக்கும் இடையிலான நிறைவடைந்த நாட்காட்டி ஆண்டுகளையும் கடந்த நாட்களையும் காட்டுகிறது. நேரமற்ற நீட்டிக்கப்பட்ட கிரிகோரியன் நாட்காட்டிக் கணிதத்தைப் பயன்படுத்தி, நெட்டாண்டல்லாத ஆண்டில் பெப்ரவரி 29 பிறந்தநாளின் ஆண்டுநிறைவை பெப்ரவரி 28 எனக் கருதுகிறது. சட்ட வயதைத் தீர்மானிப்பதோ சட்ட ஆலோசனை வழங்குவதோ இல்லை.",
+    instructions: ["பிறந்த தேதியைச் செல்லுபடியான நாட்காட்டித் தேதியாக உள்ளிடுங்கள்.", "பிறந்த தேதிக்குச் சமமான அல்லது பிந்தைய கணக்கிடும் தேதியை உள்ளிடுங்கள்.", "தேதிகளுக்கு இடையிலான நிறைவடைந்த ஆண்டுகளையும் கடந்த நாட்களையும் கணக்கிடுங்கள்."],
+    formula: { expression: "ஆண்டுகள் = ஆண்டுநிறைவுக்கு ஏற்பச் சரிசெய்த நாட்காட்டி ஆண்டு வேறுபாடு; நாட்கள் = floor((கணக்கிடும் UTC தேதி - பிறந்த UTC தேதி) / 86,400,000)", explanation: "நிறைவடைந்த ஆண்டுகள் முழுமையான ஆண்டுநிறைவுகளை எண்ணுகின்றன. கடந்த நாட்களில் தொடக்கத் தேதி சேராது; இரண்டு முடிவுகளும் துல்லிய முழு எண்கள்.", variables: [{ symbol: "ஆண்டுகள்", meaning: "கணக்கிடும் தேதிக்குள் எட்டிய முழு ஆண்டுநிறைவுகள்" }, { symbol: "நாட்கள்", meaning: "பிறந்த தேதியிலிருந்து கணக்கிடும் தேதி வரை கடந்த நாட்கள்" }] },
+    workedExample: { title: "உதாரணம்: 29 பெப்ரவரி 2000 முதல் 28 பெப்ரவரி 2023", input: "பிறந்த தேதி 2000-02-29; கணக்கிடும் தேதி 2023-02-28.", result: "முடிவு 23 நிறைவடைந்த ஆண்டுகளும் 8,400 கடந்த நாட்களும்; நெட்டுநாள் ஆண்டுநிறைவு விதி பொருந்தும்.", fixture: { input: { dateOfBirth: "2000-02-29", asOfDate: "2023-02-28" }, expectedResult: { completedYears: 23, totalDays: 8400 } } },
+    assumptions: ["வயது என்பது நிறைவடைந்த நாட்காட்டி ஆண்டுகள்; பகுதியாண்டுகள் அல்ல.", "கடந்த நாட்களில் தொடக்கத் தேதி சேராது.", "தேதிகள் நேரமோ நேர மண்டலமோ இல்லாத நீட்டிக்கப்பட்ட கிரிகோரியன் நாட்காட்டியைப் பயன்படுத்துகின்றன."],
+    exclusions: ["சட்ட வயது விதிகள், தகுதித் தீர்மானங்கள் மற்றும் சட்ட ஆலோசனை", "நாளின் நேரங்கள், நேர மண்டலங்கள் மற்றும் நெட்டுவினாடிகள்", "வரலாற்று நாட்காட்டி மாற்றங்கள்"],
+    commonMistakes: ["பிறந்த தேதிக்கு முந்தைய கணக்கிடும் தேதியை உள்ளிடுதல்", "செல்லுபடியான நாட்காட்டித் தேதிக்குப் பதிலாக வட்டார வடிவத் தேதியைப் பயன்படுத்துதல்", "கடந்த நாட்களில் தொடக்கத் தேதியும் சேரும் எனக் கருதுதல்"],
+    faqs: [{ question: "ஒருவர் சட்டப்படி வயதுவந்தவரா என்பதை இது தீர்மானிக்குமா?", answer: "இல்லை. சட்ட வயது விதிகளும் சட்ட ஆலோசனையும் வெளிப்படையாக விலக்கப்பட்டுள்ளன; இது நாட்காட்டிக் கணிதத்தை மட்டும் காட்டுகிறது." }, { question: "பெப்ரவரி 29 பிறந்தநாள் எவ்வாறு கையாளப்படுகிறது?", answer: "நெட்டாண்டல்லாத ஆண்டில் பெப்ரவரி 28 அந்தப் பிறந்தநாளின் ஆண்டுநிறைவாகக் கருதப்படுகிறது." }, { question: "கடந்த நாட்களில் இரண்டு தேதிகளும் சேருமா?", answer: "இல்லை. தொடக்கத் தேதி சேராது; ஆகவே சமமான தேதிகள் பூச்சிய நாட்களைத் தருகின்றன." }],
+    relatedCalculatorKeys: ["percentage", "fuel-consumption"], reviewedAt: "2026-08-28", reviewedBy: "LankaCalc வயதுக் கணிப்பான் விவரக்குறிப்பு",
+  },
+};
+
 const contentByCalculator = {
   "brick-block": {
     en: {
@@ -639,11 +783,15 @@ const contentByCalculator = {
       relatedCalculatorKeys: ["concrete", "brick-block"], reviewedAt: "2026-08-28", reviewedBy: "LankaCalc கூரைப் பொருள் அளவுக் கணிப்பான் விவரக்குறிப்பு",
     },
   },
+  age: ageContent,
+  area: areaContent,
   concrete: concreteContent,
   "compound-interest": compoundInterestContent,
+  "fuel-consumption": fuelConsumptionContent,
   "loan-affordability": loanAffordabilityContent,
   "loan-emi": loanEmiContent,
   paint: paintContent,
+  percentage: percentageContent,
   "tile-quantity": tileQuantityContent,
 } satisfies Record<string, Record<Locale, CalculatorContent>>;
 
