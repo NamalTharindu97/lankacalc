@@ -28,4 +28,19 @@ describe("calculator editorial content", () => {
       }
     }
   });
+
+  it("keeps every localized worked example aligned with its executable calculator", () => {
+    for (const key of getCalculatorContentKeys()) {
+      const calculator = getCalculator(key);
+      expect(calculator?.execution).toBe("browser");
+      if (!calculator || calculator.execution !== "browser") continue;
+
+      for (const locale of locales) {
+        const fixture = getCalculatorContent(key, locale)?.workedExample.fixture;
+        expect(fixture).toBeDefined();
+        const result = calculator.calculate(fixture?.input);
+        expect(result.result).toMatchObject(fixture?.expectedResult ?? {});
+      }
+    }
+  });
 });
