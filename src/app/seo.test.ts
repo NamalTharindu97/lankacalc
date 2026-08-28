@@ -56,6 +56,7 @@ describe("SEO metadata routes", () => {
     expect(calculatorMetadata.openGraph?.images).toEqual(rootMetadata.openGraph?.images);
     expect(categoryMetadata.openGraph?.images).toEqual(rootMetadata.openGraph?.images);
     expect(proxyConfig.matcher[0]).toContain("opengraph-image");
+    expect(proxyConfig.matcher[0]).toContain("llms.txt");
   });
 
   it("publishes reciprocal canonical and language graphs for every launch page", async () => {

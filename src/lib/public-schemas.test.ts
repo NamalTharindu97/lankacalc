@@ -38,16 +38,17 @@ describe("public structured data", () => {
     })));
   });
 
-  it("matches calculator review and FAQ content", () => {
+  it("matches calculator review, instructions, and FAQ content", () => {
     vi.stubEnv("SITE_URL", "https://www.example.lk");
     const calculator = getLaunchCalculator("ta", "percentage")!;
     const category = getLaunchCategory("ta", "everyday")!;
     const content = getCalculatorContent("percentage", "ta")!;
     const schemas = getCalculatorSchemas("ta", calculator, category, content);
 
-    expect(schemas.map(schema => schema["@type"])).toEqual(["WebPage", "WebApplication", "BreadcrumbList", "FAQPage"]);
+    expect(schemas.map(schema => schema["@type"])).toEqual(["WebPage", "WebApplication", "BreadcrumbList", "HowTo", "FAQPage"]);
     expect(schemas[0]).toMatchObject({ dateModified: content.reviewedAt, inLanguage: "ta-LK", url: "https://www.example.lk/ta/calculators/percentage" });
-    expect(schemas[3].mainEntity).toEqual(content.faqs.map(faq => ({ "@type": "Question", name: faq.question, acceptedAnswer: { "@type": "Answer", text: faq.answer } })));
+    expect(schemas[3].step).toEqual(content.instructions.map((instruction, index) => ({ "@type": "HowToStep", position: index + 1, name: instruction, text: instruction })));
+    expect(schemas[4].mainEntity).toEqual(content.faqs.map(faq => ({ "@type": "Question", name: faq.question, acceptedAnswer: { "@type": "Answer", text: faq.answer } })));
   });
 
   it("matches visible trust-page review metadata and breadcrumb", () => {
