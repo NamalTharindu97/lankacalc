@@ -5,10 +5,12 @@ import sitemap from "@/app/sitemap";
 import { generateMetadata as generateCalculatorMetadata } from "@/app/[locale]/calculators/[calculator]/page";
 import { generateMetadata as generateCategoryMetadata } from "@/app/[locale]/categories/[category]/page";
 import { generateMetadata as generateLocaleMetadata } from "@/app/[locale]/layout";
+import { generateMetadata as generateTrustMetadata } from "@/app/[locale]/[trustPage]/page";
 import { metadata as rootMetadata } from "@/app/layout";
 import { config as proxyConfig } from "@/proxy";
 import { getLaunchCategories, getLaunchCalculators } from "@/i18n/catalog";
 import { languageAlternates, locales, localizedPath } from "@/i18n/config";
+import { trustPageSlugs } from "@/i18n/trust-content";
 
 describe("SEO metadata routes", () => {
   afterEach(() => {
@@ -20,7 +22,7 @@ describe("SEO metadata routes", () => {
     const entries = sitemap();
 
     expect(entries).toHaveLength(
-      (getLaunchCalculators("en").length + getLaunchCategories("en").length + 1) * 3,
+      (getLaunchCalculators("en").length + getLaunchCategories("en").length + trustPageSlugs.length + 1) * 3,
     );
     expect(entries[0]).toMatchObject({ url: "https://www.example.lk/en", priority: 1 });
     expect(Object.keys(entries[0].alternates?.languages ?? {})).toEqual(["en-LK", "si-LK", "ta-LK", "x-default"]);
@@ -60,6 +62,12 @@ describe("SEO metadata routes", () => {
     for (const locale of locales) {
       const homeMetadata = await generateLocaleMetadata({ params: Promise.resolve({ locale }) });
       expect(homeMetadata.alternates).toEqual({ canonical: localizedPath(locale), languages: languageAlternates() });
+
+      for (const trustPage of trustPageSlugs) {
+        const pathname = `/${trustPage}`;
+        const metadata = await generateTrustMetadata({ params: Promise.resolve({ locale, trustPage }) });
+        expect(metadata.alternates).toEqual({ canonical: localizedPath(locale, pathname), languages: languageAlternates(pathname) });
+      }
 
       for (const category of getLaunchCategories(locale)) {
         const pathname = `/categories/${category.slug}`;

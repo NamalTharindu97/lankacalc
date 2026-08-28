@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { getCalculatorContent } from "@/domain/calculators/content";
 import { getLaunchCalculator, getLaunchCategory } from "@/i18n/catalog";
-import { getCalculatorSchemas, getCategorySchemas, getHomeSchemas } from "@/lib/public-schemas";
+import { getTrustPage } from "@/i18n/trust-content";
+import { getCalculatorSchemas, getCategorySchemas, getHomeSchemas, getTrustPageSchemas } from "@/lib/public-schemas";
 
 describe("public structured data", () => {
   afterEach(() => {
@@ -47,5 +48,18 @@ describe("public structured data", () => {
     expect(schemas.map(schema => schema["@type"])).toEqual(["WebPage", "WebApplication", "BreadcrumbList", "FAQPage"]);
     expect(schemas[0]).toMatchObject({ dateModified: content.reviewedAt, inLanguage: "ta-LK", url: "https://www.example.lk/ta/calculators/percentage" });
     expect(schemas[3].mainEntity).toEqual(content.faqs.map(faq => ({ "@type": "Question", name: faq.question, acceptedAnswer: { "@type": "Answer", text: faq.answer } })));
+  });
+
+  it("matches visible trust-page review metadata and breadcrumb", () => {
+    vi.stubEnv("SITE_URL", "https://www.example.lk");
+    const page = getTrustPage("en", "methodology");
+    const schemas = getTrustPageSchemas("en", page);
+
+    expect(schemas.map(schema => schema["@type"])).toEqual(["WebPage", "BreadcrumbList"]);
+    expect(schemas[0]).toMatchObject({ name: page.title, dateModified: page.reviewedAt, inLanguage: "en-LK", url: "https://www.example.lk/en/methodology" });
+    expect(schemas[1].itemListElement).toEqual([
+      { "@type": "ListItem", position: 1, name: "LankaCalc", item: "https://www.example.lk/en" },
+      { "@type": "ListItem", position: 2, name: page.title, item: "https://www.example.lk/en/methodology" },
+    ]);
   });
 });
