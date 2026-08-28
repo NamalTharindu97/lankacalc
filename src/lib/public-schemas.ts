@@ -1,6 +1,7 @@
 import type { CalculatorContent } from "@/domain/calculators/content";
 import type { LocalizedCalculator, LocalizedCategory } from "@/i18n/catalog";
 import { languageTags, localizedPath, type Locale } from "@/i18n/config";
+import type { LocalizedTrustPage } from "@/i18n/trust-content";
 import { absoluteUrl, siteName } from "@/lib/site";
 
 export function getHomeSchemas(locale: Locale, description: string): Array<Record<string, unknown>> {
@@ -9,6 +10,19 @@ export function getHomeSchemas(locale: Locale, description: string): Array<Recor
   return [
     { "@context": "https://schema.org", "@type": "WebSite", name: siteName, description, url, inLanguage: languageTags[locale], publisher: { "@type": "Organization", name: siteName, url } },
     { "@context": "https://schema.org", "@type": "Organization", name: siteName, url, description },
+  ];
+}
+
+export function getTrustPageSchemas(locale: Locale, page: LocalizedTrustPage): Array<Record<string, unknown>> {
+  const homeUrl = absoluteUrl(localizedPath(locale));
+  const pageUrl = absoluteUrl(localizedPath(locale, `/${page.slug}`));
+
+  return [
+    { "@context": "https://schema.org", "@type": "WebPage", name: page.title, description: page.description, url: pageUrl, inLanguage: languageTags[locale], dateModified: page.reviewedAt, reviewedBy: { "@type": "Organization", name: siteName, url: homeUrl } },
+    { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
+      { "@type": "ListItem", position: 1, name: siteName, item: homeUrl },
+      { "@type": "ListItem", position: 2, name: page.title, item: pageUrl },
+    ] },
   ];
 }
 

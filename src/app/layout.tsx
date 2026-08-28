@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { getSiteUrl, siteDescription, siteName, socialImage } from "@/lib/site";
 import { copy } from "@/i18n/copy";
 import { defaultLocale, isLocale, localizedPath } from "@/i18n/config";
+import { listTrustPages } from "@/i18n/trust-content";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -42,6 +43,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const pathname = requestHeaders.get("x-lankacalc-pathname") ?? "/";
   const localizedLaunch = requestHeaders.has("x-lankacalc-locale");
   const text = copy[locale];
+  const trustPages = listTrustPages(locale);
   const skipLabel = locale === "si" ? "ප්‍රධාන අන්තර්ගතයට යන්න" : locale === "ta" ? "முதன்மை உள்ளடக்கத்திற்குச் செல்" : "Skip to content";
   const mobileNavigationLabel = locale === "si" ? "ජංගම සංචාලනය" : locale === "ta" ? "கைபேசி வழிசெலுத்தல்" : "Mobile navigation";
 
@@ -79,9 +81,11 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           </header>
           <main className="min-h-[calc(100vh-3.5rem)]" id="main-content">{children}</main>
           <footer className="border-t bg-muted/50">
-            <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-6 text-xs text-muted-foreground sm:px-6 lg:px-8">
-               <p>{text.footer}</p>
-               <p className="text-right">{text.footerDetail}</p>
+            <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 text-xs text-muted-foreground sm:px-6 md:grid-cols-[1fr_2fr] lg:px-8">
+               <div><p>{text.footer}</p><p className="mt-2">{text.footerDetail}</p></div>
+               <nav aria-label={locale === "si" ? "විශ්වාසය සහ ප්‍රතිපත්ති" : locale === "ta" ? "நம்பிக்கையும் கொள்கையும்" : "Trust and policies"} className="flex flex-wrap gap-x-5 gap-y-3 md:justify-end">
+                 {trustPages.map(page => <Link className="underline-offset-4 hover:text-foreground hover:underline" href={localizedPath(locale, `/${page.slug}`)} key={page.slug}>{page.title}</Link>)}
+               </nav>
             </div>
           </footer>
         </ThemeProvider>

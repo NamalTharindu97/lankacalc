@@ -2,11 +2,13 @@ import type { MetadataRoute } from "next";
 
 import { getLaunchCategories, getLaunchCalculators } from "@/i18n/catalog";
 import { languageAlternates, locales, localizedPath } from "@/i18n/config";
+import { trustPageSlugs } from "@/i18n/trust-content";
 import { absoluteUrl } from "@/lib/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes = [
     { pathname: "", priority: 1 },
+    ...trustPageSlugs.map(slug => ({ pathname: `/${slug}`, priority: 0.6 })),
     ...getLaunchCategories("en").map(category => ({ pathname: `/categories/${category.slug}`, priority: 0.9 })),
     ...getLaunchCalculators("en").map(calculator => ({ pathname: `/calculators/${calculator.key}`, priority: 0.8 })),
   ];
