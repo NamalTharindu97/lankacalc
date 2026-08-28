@@ -3,6 +3,15 @@ import type { LocalizedCalculator, LocalizedCategory } from "@/i18n/catalog";
 import { languageTags, localizedPath, type Locale } from "@/i18n/config";
 import { absoluteUrl, siteName } from "@/lib/site";
 
+export function getHomeSchemas(locale: Locale, description: string): Array<Record<string, unknown>> {
+  const url = absoluteUrl(localizedPath(locale));
+
+  return [
+    { "@context": "https://schema.org", "@type": "WebSite", name: siteName, description, url, inLanguage: languageTags[locale], publisher: { "@type": "Organization", name: siteName, url } },
+    { "@context": "https://schema.org", "@type": "Organization", name: siteName, url, description },
+  ];
+}
+
 export function getCategorySchemas(locale: Locale, category: LocalizedCategory, description: string): Array<Record<string, unknown>> {
   const homeUrl = absoluteUrl(localizedPath(locale));
   const categoryUrl = absoluteUrl(localizedPath(locale, `/categories/${category.slug}`));

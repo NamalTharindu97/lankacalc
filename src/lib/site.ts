@@ -3,6 +3,7 @@ const developmentSiteUrl = "http://localhost:3000";
 export const siteName = "LankaCalc";
 export const siteDescription =
   "Transparent calculators for Sri Lanka with visible workings, assumptions, and source-aware results.";
+export const socialImage = { url: "/opengraph-image", width: 1200, height: 630, alt: `${siteName} - ${siteDescription}` };
 
 type SiteEnvironment = {
   NODE_ENV?: string;
