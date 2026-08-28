@@ -59,7 +59,12 @@ export function getCalculatorSchemas(locale: Locale, calculator: LocalizedCalcul
     ] },
   ];
 
-  if (content) schemas.push({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: content.faqs.map(faq => ({ "@type": "Question", name: faq.question, acceptedAnswer: { "@type": "Answer", text: faq.answer } })) });
+  if (content) {
+    schemas.push(
+      { "@context": "https://schema.org", "@type": "HowTo", name: calculator.name, description: calculator.summary, step: content.instructions.map((instruction, index) => ({ "@type": "HowToStep", position: index + 1, name: instruction, text: instruction })) },
+      { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: content.faqs.map(faq => ({ "@type": "Question", name: faq.question, acceptedAnswer: { "@type": "Answer", text: faq.answer } })) },
+    );
+  }
 
   return schemas;
 }
