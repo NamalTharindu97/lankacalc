@@ -15,7 +15,8 @@ export function LanguageSwitcher({ locale, pathname, label }: { locale: Locale; 
           key={item}
           hrefLang={`${item}-LK`}
         >
-          {names[item]}
+          <span className="sm:hidden">{item.toUpperCase()}</span>
+          <span className="hidden sm:inline">{names[item]}</span>
         </Link>
       ))}
     </nav>
