@@ -10,7 +10,7 @@ import { getLaunchCategories, getLaunchCategory } from "@/i18n/catalog";
 import { copy } from "@/i18n/copy";
 import { isLocale, languageAlternates, localizedPath, openGraphLocales } from "@/i18n/config";
 import { getCategorySchemas } from "@/lib/public-schemas";
-import { siteName } from "@/lib/site";
+import { siteName, socialImage } from "@/lib/site";
 
 type Params = Promise<{ locale: string; category: string }>;
 
@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const pathname = `/categories/${category.slug}`;
   const title = `${category.name} | ${siteName}`;
   const description = copy[values.locale].categoryIntro;
-  return { title, description, alternates: { canonical: localizedPath(values.locale, pathname), languages: languageAlternates(pathname) }, openGraph: { title, description, url: localizedPath(values.locale, pathname), siteName, locale: openGraphLocales[values.locale], type: "website" } };
+  return { title, description, alternates: { canonical: localizedPath(values.locale, pathname), languages: languageAlternates(pathname) }, openGraph: { title, description, url: localizedPath(values.locale, pathname), siteName, locale: openGraphLocales[values.locale], type: "website", images: [socialImage] } };
 }
 
 export default async function CategoryPage({ params }: { params: Params }) {

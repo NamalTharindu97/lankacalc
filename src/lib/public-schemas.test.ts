@@ -2,11 +2,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { getCalculatorContent } from "@/domain/calculators/content";
 import { getLaunchCalculator, getLaunchCategory } from "@/i18n/catalog";
-import { getCalculatorSchemas, getCategorySchemas } from "@/lib/public-schemas";
+import { getCalculatorSchemas, getCategorySchemas, getHomeSchemas } from "@/lib/public-schemas";
 
 describe("public structured data", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
+  });
+
+  it("identifies LankaCalc as the localized website publisher", () => {
+    vi.stubEnv("SITE_URL", "https://www.example.lk");
+
+    expect(getHomeSchemas("en", "Transparent calculations")).toEqual([
+      { "@context": "https://schema.org", "@type": "WebSite", name: "LankaCalc", description: "Transparent calculations", url: "https://www.example.lk/en", inLanguage: "en-LK", publisher: { "@type": "Organization", name: "LankaCalc", url: "https://www.example.lk/en" } },
+      { "@context": "https://schema.org", "@type": "Organization", name: "LankaCalc", url: "https://www.example.lk/en", description: "Transparent calculations" },
+    ]);
   });
 
   it("matches a category's visible breadcrumb and calculator list", () => {

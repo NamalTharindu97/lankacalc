@@ -12,7 +12,7 @@ import { getCalculatorContent } from "@/domain/calculators/content";
 import { copy } from "@/i18n/copy";
 import { isLocale, languageAlternates, languageTags, localizedPath, openGraphLocales, type Locale } from "@/i18n/config";
 import { getCalculatorSchemas } from "@/lib/public-schemas";
-import { siteName } from "@/lib/site";
+import { siteName, socialImage } from "@/lib/site";
 
 type Params = Promise<{ locale: string; calculator: string }>;
 
@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const calculator = getLaunchCalculator(values.locale, values.calculator);
   if (!calculator) return { title: copy[values.locale].notFound, robots: { index: false } };
   const pathname = `/calculators/${calculator.key}`;
-  return { title: calculator.name, description: calculator.summary, alternates: { canonical: localizedPath(values.locale, pathname), languages: languageAlternates(pathname) }, openGraph: { type: "website", locale: openGraphLocales[values.locale], siteName, title: calculator.name, description: calculator.summary, url: localizedPath(values.locale, pathname) } };
+  return { title: calculator.name, description: calculator.summary, alternates: { canonical: localizedPath(values.locale, pathname), languages: languageAlternates(pathname) }, openGraph: { type: "website", locale: openGraphLocales[values.locale], siteName, title: calculator.name, description: calculator.summary, url: localizedPath(values.locale, pathname), images: [socialImage] } };
 }
 
 export default async function CalculatorPage({ params }: { params: Params }) {

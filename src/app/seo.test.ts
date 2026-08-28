@@ -2,6 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
+import { generateMetadata as generateCalculatorMetadata } from "@/app/[locale]/calculators/[calculator]/page";
+import { generateMetadata as generateCategoryMetadata } from "@/app/[locale]/categories/[category]/page";
+import { metadata as rootMetadata } from "@/app/layout";
+import { config as proxyConfig } from "@/proxy";
 import { getLaunchCategories, getLaunchCalculators } from "@/i18n/catalog";
 
 describe("SEO metadata routes", () => {
@@ -38,5 +42,15 @@ describe("SEO metadata routes", () => {
       sitemap: "https://www.example.lk/sitemap.xml",
       host: "https://www.example.lk",
     });
+  });
+
+  it("attaches the generated social image to public metadata", async () => {
+    const calculatorMetadata = await generateCalculatorMetadata({ params: Promise.resolve({ locale: "ta", calculator: "percentage" }) });
+    const categoryMetadata = await generateCategoryMetadata({ params: Promise.resolve({ locale: "si", category: "build" }) });
+
+    expect(rootMetadata.openGraph?.images).toEqual([{ url: "/opengraph-image", width: 1200, height: 630, alt: expect.stringContaining("LankaCalc") }]);
+    expect(calculatorMetadata.openGraph?.images).toEqual(rootMetadata.openGraph?.images);
+    expect(categoryMetadata.openGraph?.images).toEqual(rootMetadata.openGraph?.images);
+    expect(proxyConfig.matcher[0]).toContain("opengraph-image");
   });
 });

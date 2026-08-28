@@ -6,7 +6,7 @@ import { AccountBar } from "@/components/account-bar";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { getSiteUrl, siteDescription, siteName } from "@/lib/site";
+import { getSiteUrl, siteDescription, siteName, socialImage } from "@/lib/site";
 import { copy } from "@/i18n/copy";
 import { defaultLocale, isLocale, localizedPath } from "@/i18n/config";
 import "./globals.css";
@@ -20,10 +20,18 @@ export const metadata: Metadata = {
   description: siteDescription,
   applicationName: siteName,
   robots: { index: false, follow: false },
+  openGraph: {
+    type: "website",
+    siteName,
+    title: "LankaCalc | Clear calculations for Sri Lanka",
+    description: siteDescription,
+    images: [socialImage],
+  },
   twitter: {
     card: "summary",
     title: "LankaCalc | Clear calculations for Sri Lanka",
     description: siteDescription,
+    images: [socialImage],
   },
 };
 
