@@ -11,7 +11,8 @@ import { getLaunchCalculator, getLaunchCalculators, getLaunchCategories } from "
 import { getCalculatorContent } from "@/domain/calculators/content";
 import { copy } from "@/i18n/copy";
 import { isLocale, languageAlternates, languageTags, localizedPath, openGraphLocales, type Locale } from "@/i18n/config";
-import { absoluteUrl, siteName } from "@/lib/site";
+import { getCalculatorSchemas } from "@/lib/public-schemas";
+import { siteName } from "@/lib/site";
 
 type Params = Promise<{ locale: string; calculator: string }>;
 
@@ -48,18 +49,9 @@ export default async function CalculatorPage({ params }: { params: Params }) {
     const related = getLaunchCalculator(locale, key);
     return related ? [related] : [];
   });
-  const url = absoluteUrl(localizedPath(values.locale, `/calculators/${calculator.key}`));
   const categoryPath = `/categories/${category?.slug ?? ""}`;
   const reviewedDate = content ? new Intl.DateTimeFormat(languageTags[locale], { dateStyle: "long", timeZone: "UTC" }).format(new Date(`${content.reviewedAt}T00:00:00Z`)) : null;
-  const schemas: Array<Record<string, unknown>> = [
-    { "@context": "https://schema.org", "@type": "WebApplication", name: calculator.name, description: calculator.summary, url, applicationCategory: `${calculator.category}Application`, operatingSystem: "Any", browserRequirements: "Requires JavaScript", isAccessibleForFree: true, inLanguage: languageTags[values.locale], provider: { "@type": "Organization", name: siteName, url: absoluteUrl(localizedPath(values.locale)) } },
-    { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
-      { "@type": "ListItem", position: 1, name: siteName, item: absoluteUrl(localizedPath(values.locale)) },
-      { "@type": "ListItem", position: 2, name: category?.name ?? calculator.category, item: absoluteUrl(localizedPath(values.locale, categoryPath)) },
-      { "@type": "ListItem", position: 3, name: calculator.name, item: url },
-    ] },
-  ];
-  if (content) schemas.push({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: content.faqs.map(faq => ({ "@type": "Question", name: faq.question, acceptedAnswer: { "@type": "Answer", text: faq.answer } })) });
+  const schemas = getCalculatorSchemas(locale, calculator, category!, content);
   return <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
     <StructuredData data={schemas} />
     <Breadcrumbs label={labels.breadcrumb} items={[{ label: siteName, href: localizedPath(values.locale) }, { label: category?.name ?? calculator.category, href: localizedPath(values.locale, categoryPath) }, { label: calculator.shortName }]} />
