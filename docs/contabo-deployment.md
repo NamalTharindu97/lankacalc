@@ -52,6 +52,19 @@ With Cloudflare, use Full (strict) TLS and a dedicated origin certificate. Do no
 - Confirm `/robots.txt`, `/sitemap.xml`, canonical redirects, and structured data after setting the final domain.
 - Confirm only SSH, HTTP, and HTTPS are publicly reachable.
 
+Before enabling indexing, run the launch contract against the public hostname. `EXPECTED_SITE_URL` is the canonical metadata origin; `APP_BASE_URL` may point to the public hostname or the private verification port. Set `REDIRECT_FROM_URL` to a secondary hostname such as the apex or `www` variant when that redirect exists.
+
+```sh
+EXPECTED_SITE_URL=https://example.lk \
+APP_BASE_URL=https://example.lk \
+REDIRECT_FROM_URL=https://www.example.lk \
+npm run test:launch
+```
+
+The verifier requires HTTPS, successful health and readiness checks, the `/en` root redirect, indexable pages, canonical and reciprocal language links, a canonical social image, valid JSON-LD, a canonical sitemap, and working `llms.txt`. It rejects local origins in public metadata. For a loopback rehearsal only, set `ALLOW_INSECURE_LAUNCH_CHECK=true`; never use that override as evidence that the public edge passed.
+
+After the verifier passes, confirm Cloudflare uses proxied DNS, Full (strict) TLS, an origin certificate, no caching for private or API routes, and canonical redirects at the edge. Then submit the canonical sitemap to Google Search Console and Bing Webmaster Tools. Keep `PUBLIC_INDEXING_ENABLED=false` until native-language review is complete and immediately return it to `false` if launch validation fails.
+
 ## Backup And Rollback
 
 Create encrypted daily `pg_dump` backups and copy them off the VPS. Test restoration into a temporary database. To roll back application code, start the previously recorded image and rerun health checks; restore the database only when a migration is incompatible with the previous release.
