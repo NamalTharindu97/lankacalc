@@ -18,7 +18,7 @@ docker network create --driver bridge --subnet 172.30.0.0/24 edge
 
 ## Environment
 
-Copy `.env.example` to `/etc/lankacalc/production.env` and replace every placeholder. Set `SITE_URL` and `BETTER_AUTH_URL` to the same canonical HTTPS origin. Admin, reviewer, worker, database, and auth secrets must be independent random values; leave optional operator tokens unset to disable those capabilities.
+Copy `.env.example` to `/etc/lankacalc/production.env` and replace every placeholder. Set `SITE_URL` and `BETTER_AUTH_URL` to the same canonical HTTPS origin. Keep `PUBLIC_INDEXING_ENABLED=false` until the permanent domain, native-language review, and launch checks are complete; set it to `true` only for the public launch. Admin, reviewer, worker, database, and auth secrets must be independent random values; leave optional operator tokens unset to disable those capabilities.
 
 Never run `npm run db:seed:dev-rules` in production. Regulated calculators must remain unavailable until independently reviewed rules and sources are published through the production rule workflow.
 

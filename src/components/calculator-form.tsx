@@ -7,7 +7,7 @@ import { AlertCircle, Calculator, CheckCircle2, Loader2, Save, X } from "lucide-
 
 import { AuthDialog } from "@/components/auth-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -308,7 +308,7 @@ export function CalculatorForm({ calculator, locale = "en", copy, anonymous = fa
               01
             </div>
             <div>
-               <CardTitle className="text-lg">{text.values}</CardTitle>
+               <h2 className="text-lg font-semibold leading-none tracking-tight">{text.values}</h2>
                <p className="text-sm text-muted-foreground">{text.valuesHelp}</p>
             </div>
           </div>
@@ -362,7 +362,7 @@ export function CalculatorForm({ calculator, locale = "en", copy, anonymous = fa
               02
             </div>
             <div>
-               <CardTitle className="text-lg">{text.result}</CardTitle>
+               <h2 className="text-lg font-semibold leading-none tracking-tight">{text.result}</h2>
                <p className="text-sm text-muted-foreground">{text.resultHelp}</p>
             </div>
           </div>
