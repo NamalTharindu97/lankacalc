@@ -26,7 +26,7 @@ The table is grouped by readiness tier and is sortable by key. “Tests” means
 
 | Key | Classification | Implementation / tests | Spec / official-source status | Dev rule | Decisive blocker | Tier |
 |---|---|---|---|---|---|---|
-| `lease` | configurable | Server v1.1.0; lending tests include category/date LTV behavior | Spec remains v1.0.0 static/user-rate text; lending source dossier exists | Yes | Reconcile spec with server v1.1.0 CBSL LTV contract, then independently review source, formula, and fixtures | R1 |
+| `lease` | configurable | Server v1.1.0; lending tests include category/date LTV behavior | v1.1.0 configurable/server spec and lending source dossier align with current code | Yes | Independently review the CBSL source revisions, category mapping, effective date, formulas, rounding, and candidate fixtures | R1 |
 | `loan-schedule` | configurable | Server v1.1.0; user/platform AWPR and schedule tests | v1.1.0 spec and lending dossier; observation needs refresh/review | Yes | Refresh current official AWPR revision and independently review observation selection and schedule fixtures | R1 |
 | `sscl-check` | regulated | Server v1.0.0; business-tax tests | Detailed spec cites IRD material but explicitly lacks independent content approval | Yes | Complete official source-revision and independent legal/accounting review package | R1 |
 | `fuel-cost` | configurable | Server v1.0.0; fuel tests | Spec and fuel dossier exist; exact pump-price source evidence is incomplete | No | Capture exact official dated price source, transcribe/review it, and create validated rule fixtures | R1 |
@@ -54,14 +54,14 @@ The table is grouped by readiness tier and is sortable by key. “Tests” means
 - **No production-ready calculators:** none of the 22 has repository evidence satisfying the complete readiness standard, especially independent approval, published runtime provenance, and native-reviewed EN/SI/TA content.
 - **Dev seed is not approval:** `scripts/seed-dev-rules.ts` identifies its actor as `local-smoke-test`. Its records and fixtures support local execution only and must never be treated as reviewed, production-approved, or publishable evidence.
 - **Runtime provenance is mandatory:** every server-authoritative result that resolves platform or regulated data must attach the actual applicable rule version, effective date, official source revisions, and latest successful verification time. A spec citation, source URL, seed payload, or empty provenance array is not a substitute; resolution must fail closed when required provenance is absent.
-- **Lease drift is decisive:** `docs/calculators/lease.md` describes static v1.0.0 user-rate behavior, while `src/domain/calculators/lending-calculators.ts` implements server v1.1.0 platform LTV checks by vehicle category and date.
+- **Lease documentation is reconciled, not approved:** `docs/calculators/lease.md` now matches server v1.1.0 platform LTV behavior and its candidate fixtures. The CBSL source revisions, category mapping, effective date, formula, rounding, fixtures, and translations still require independent review before publication.
 - **Formal tax gaps:** the freelance and WHT specifications lack demonstrated formal approval and explicit Golden Fixtures sections.
 - **Non-domestic electricity risk:** the many category, block, time-of-use, fixed, and demand-charge values increase source-table and transcription risk; neither a dev payload nor tests independently validate the official tariff reading.
 - **Localization is incomplete:** localization targets and English inventories are not evidence of native-reviewed Sinhala and Tamil. No candidate may clear readiness without recorded EN/SI/TA editorial review.
 
 ## Evidence Work Order
 
-1. Reconcile the lease specification to v1.1.0 LTV behavior and independently verify the CBSL direction, categories, effective date, formulas, and golden cases.
+1. Independently verify the reconciled lease v1.1.0 package against the CBSL direction, categories, effective date, formulas, rounding, and candidate golden cases.
 2. Refresh loan-schedule AWPR observations from the exact official CBSL revision; review date selection, units, rounding, and platform-rate fixtures.
 3. Build the SSCL source/revision package and obtain independent legal/accounting review of scope, thresholds, dates, formula, and fixtures.
 4. Capture the exact official fuel-price source and date, review transcription, then add a local dev rule with checksum-matched fixtures for smoke testing only.
