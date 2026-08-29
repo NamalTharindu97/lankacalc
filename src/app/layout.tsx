@@ -79,7 +79,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
               </nav>
             ) : null}
           </header>
-          <main className="min-h-[calc(100vh-3.5rem)]" id="main-content">{children}</main>
+          <main className="min-h-[calc(100vh-3.5rem)]" id="main-content" tabIndex={-1}>{children}</main>
           <footer className="border-t bg-muted/50">
             <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 text-xs text-muted-foreground sm:px-6 md:grid-cols-[1fr_2fr] lg:px-8">
                <div><p>{text.footer}</p><p className="mt-2">{text.footerDetail}</p></div>
