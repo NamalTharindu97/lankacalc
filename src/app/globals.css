@@ -14,7 +14,7 @@
   --color-secondary: oklch(0.965 0.004 247);
   --color-secondary-foreground: oklch(0.205 0.015 247);
   --color-muted: oklch(0.965 0.004 247);
-  --color-muted-foreground: oklch(0.556 0.014 247);
+  --color-muted-foreground: oklch(0.53 0.014 247);
   --color-accent: oklch(0.965 0.004 247);
   --color-accent-foreground: oklch(0.205 0.015 247);
   --color-destructive: oklch(0.577 0.245 27.325);
