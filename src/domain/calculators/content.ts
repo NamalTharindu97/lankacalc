@@ -1,6 +1,6 @@
 import type { Locale } from "@/i18n/config";
 
-export type CalculatorContent = {
+type CalculatorEditorialCopy = {
   directAnswer: string;
   instructions: string[];
   formula: {
@@ -26,7 +26,23 @@ export type CalculatorContent = {
   reviewedBy: string;
 };
 
-const loanEmiContent: Record<Locale, CalculatorContent> = {
+export type CalculatorContentContributor = {
+  name: string;
+  role: string;
+};
+
+export type CalculatorContentSource = {
+  title: string;
+  kind: "calculation-specification";
+  repositoryPath: `docs/calculators/${string}.md`;
+};
+
+export type CalculatorContent = CalculatorEditorialCopy & {
+  contributors: readonly CalculatorContentContributor[];
+  sources: readonly CalculatorContentSource[];
+};
+
+const loanEmiContent: Record<Locale, CalculatorEditorialCopy> = {
   en: {
     directAnswer: "A loan EMI is the fixed monthly installment needed to repay a loan over a selected term at a fixed interest rate. This calculator estimates the regular installment, adjusted final installment, total interest, and total repayment. It does not include lender fees, insurance, taxes, or variable-rate changes.",
     instructions: [
@@ -115,7 +131,7 @@ const loanEmiContent: Record<Locale, CalculatorContent> = {
   },
 };
 
-const loanAffordabilityContent: Record<Locale, CalculatorContent> = {
+const loanAffordabilityContent: Record<Locale, CalculatorEditorialCopy> = {
   en: {
     directAnswer: "Loan affordability estimates a possible new monthly payment from income, living expenses, existing debts, and a debt-to-income cap you choose. It then converts that payment into a maximum fixed-rate loan and shows a higher-rate stress case. The result is an estimate, not loan approval, a credit decision, or financial advice.",
     instructions: ["Enter monthly take-home income, living expenses, and existing debt payments in whole rupees.", "Choose the maximum share of income that total debt payments may use.", "Enter the proposed term, expected annual rate, and a stress premium to compare a higher-rate case."],
@@ -196,7 +212,7 @@ const loanAffordabilityContent: Record<Locale, CalculatorContent> = {
   },
 };
 
-const compoundInterestContent: Record<Locale, CalculatorContent> = {
+const compoundInterestContent: Record<Locale, CalculatorEditorialCopy> = {
   en: {
     directAnswer: "Compound interest adds each period's interest to the balance, so later interest is earned on both the original principal and earlier interest. This calculator projects a final amount and total interest using a fixed nominal annual rate, duration, and annual, quarterly, monthly, or daily compounding.",
     instructions: ["Enter the starting principal in Sri Lankan rupees.", "Enter the nominal annual interest rate and investment duration.", "Select how often interest compounds, then calculate the projection."],
@@ -277,7 +293,7 @@ const compoundInterestContent: Record<Locale, CalculatorContent> = {
   },
 };
 
-const tileQuantityContent: Record<Locale, CalculatorContent> = {
+const tileQuantityContent: Record<Locale, CalculatorEditorialCopy> = {
   en: {
     directAnswer: "The tile quantity calculator estimates the whole number of tiles needed for a rectangular floor or wall area. It accounts for the entered tile dimensions, a uniform joint, and a wastage percentage, rounding both the base count and final count upward. It is an arithmetic estimate, not a layout, engineering, or purchasing specification.",
     instructions: ["Enter the rectangular area's length and width and select their unit.", "Enter each tile's length and width in millimetres and the uniform joint width.", "Enter a wastage percentage, then calculate the estimated whole-tile counts."],
@@ -358,7 +374,7 @@ const tileQuantityContent: Record<Locale, CalculatorContent> = {
   },
 };
 
-const paintContent: Record<Locale, CalculatorContent> = {
+const paintContent: Record<Locale, CalculatorEditorialCopy> = {
   en: {
     directAnswer: "The paint quantity calculator estimates whole litres for an entered surface area, number of coats, coverage per litre, and wastage percentage. It converts square feet when selected, calculates the litres before wastage, applies wastage, and rounds the quantity to buy upward to a whole litre. It is not a professional paint or purchasing specification.",
     instructions: ["Enter the surface area and select square metres or square feet.", "Enter the number of full coats and the paint coverage in square metres per litre.", "Enter a wastage percentage, then calculate the estimated litres."],
@@ -439,7 +455,7 @@ const paintContent: Record<Locale, CalculatorContent> = {
   },
 };
 
-const concreteContent: Record<Locale, CalculatorContent> = {
+const concreteContent: Record<Locale, CalculatorEditorialCopy> = {
   en: {
     directAnswer: "The concrete quantity calculator estimates fresh concrete volume for a rectangular slab, footing, form, or excavation from its length, width, and depth. It converts all three dimensions from the selected unit to metres, calculates cubic metres, and adds the entered wastage percentage. It does not determine concrete mix, strength, structural dimensions, or an amount to purchase.",
     instructions: ["Enter the rectangular length, width, and depth or thickness.", "Select the single unit used for all three dimensions.", "Enter a wastage percentage, then calculate the base, wastage, and total volumes in cubic metres."],
@@ -520,7 +536,7 @@ const concreteContent: Record<Locale, CalculatorContent> = {
   },
 };
 
-const areaContent: Record<Locale, CalculatorContent> = {
+const areaContent: Record<Locale, CalculatorEditorialCopy> = {
   en: {
     directAnswer: "The area calculator finds the area of one flat rectangle, triangle, or circle using dimensions in metres, feet, or centimetres. It returns the selected square unit and the normalized area in square metres. It does not calculate irregular or composite areas.",
     instructions: ["Select rectangle, triangle, or circle.", "Select one unit for every dimension and enter the active shape's required measurements.", "Calculate the area in the selected square unit and its square-metre equivalent."],
@@ -556,7 +572,7 @@ const areaContent: Record<Locale, CalculatorContent> = {
   },
 };
 
-const fuelConsumptionContent: Record<Locale, CalculatorContent> = {
+const fuelConsumptionContent: Record<Locale, CalculatorEditorialCopy> = {
   en: {
     directAnswer: "The fuel consumption calculator converts distance travelled and fuel used for the same journey into kilometres per litre and litres per 100 kilometres. It accepts kilometres or miles and litres, US gallons, or imperial gallons. It does not calculate fuel price or trip cost.",
     instructions: ["Enter the distance and select kilometres or miles.", "Enter the fuel used and select litres, US gallons, or imperial gallons.", "Calculate both canonical metric consumption measures."],
@@ -592,7 +608,7 @@ const fuelConsumptionContent: Record<Locale, CalculatorContent> = {
   },
 };
 
-const percentageContent: Record<Locale, CalculatorContent> = {
+const percentageContent: Record<Locale, CalculatorEditorialCopy> = {
   en: {
     directAnswer: "The percentage calculator answers only 'What is X percent of Y?' by multiplying the value by the percentage and dividing by 100. The value's meaning and unit come from the user. It does not calculate percentage change, reverse percentages, ratios, or percentage increases and decreases.",
     instructions: ["Enter the percentage, including a negative percentage when needed.", "Enter the value whose percentage you want.", "Calculate the percentage value, rounded to at most six decimal places."],
@@ -628,7 +644,7 @@ const percentageContent: Record<Locale, CalculatorContent> = {
   },
 };
 
-const ageContent: Record<Locale, CalculatorContent> = {
+const ageContent: Record<Locale, CalculatorEditorialCopy> = {
   en: {
     directAnswer: "The age calculator returns completed calendar years and elapsed calendar days between a date of birth and an as-of date. It uses date-only proleptic Gregorian arithmetic, with 28 February as the anniversary of a 29 February birthday in non-leap years. It does not determine legal age or provide legal advice.",
     instructions: ["Enter the date of birth as a valid calendar date.", "Enter an as-of date on or after the date of birth.", "Calculate completed years and elapsed days between the dates."],
@@ -793,10 +809,23 @@ const contentByCalculator = {
   paint: paintContent,
   percentage: percentageContent,
   "tile-quantity": tileQuantityContent,
-} satisfies Record<string, Record<Locale, CalculatorContent>>;
+} satisfies Record<string, Record<Locale, CalculatorEditorialCopy>>;
+
+const contributorRoles: Record<Locale, string> = {
+  en: "Formula, fixture, and editorial maintenance",
+  si: "සූත්‍ර, පරීක්ෂණ උදාහරණ සහ සංස්කරණ නඩත්තුව",
+  ta: "சூத்திரம், சோதனை உதாரணம் மற்றும் ஆசிரியப் பராமரிப்பு",
+};
 
 export function getCalculatorContent(key: string, locale: Locale): CalculatorContent | undefined {
-  return contentByCalculator[key as keyof typeof contentByCalculator]?.[locale];
+  const copy = contentByCalculator[key as keyof typeof contentByCalculator]?.[locale];
+  if (!copy) return undefined;
+
+  return {
+    ...copy,
+    contributors: [{ name: "LankaCalc repository maintainers", role: contributorRoles[locale] }],
+    sources: [{ title: copy.reviewedBy, kind: "calculation-specification", repositoryPath: `docs/calculators/${key}.md` }],
+  };
 }
 
 export function getCalculatorContentKeys(): string[] {
