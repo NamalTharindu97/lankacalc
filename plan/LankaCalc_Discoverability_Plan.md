@@ -19,6 +19,21 @@ The first public scope remains the 13 calculators with `execution === "browser"`
 
 ## 3. Delivery Sequence
 
+### Implementation Status (2026-08-29)
+
+| Stage | Status | Evidence and remaining gate |
+|---|---|---|
+| 1. Shared public GUI | Engineering complete | Keyboard-visible skip navigation, mobile navigation, localized breadcrumbs, focus handling, related calculators, and responsive result presentation are implemented. A 12-route browser matrix across all locales and both themes has no serious or critical automated WCAG findings or 320 px overflow. |
+| 2. Typed editorial content | Complete | `CalculatorContent` includes executable fixtures, contributors, review dates, and version-controlled calculation-specification sources. Tests reject unknown calculator references and fixture drift. |
+| 3. Enrich 13 calculators | Engineering complete; indexing gate open | All 13 browser calculators have equivalent English, Sinhala, and Tamil content. Native-speaker approval of Sinhala and Tamil remains mandatory before indexing. |
+| 4. Structured data and SEO | Pre-launch engineering complete | The sitemap contains 78 localized public routes. Canonical, reciprocal `hreflang`, social metadata, and schema parity are test-enforced. Mobile Lighthouse performance is 97-99 and desktop performance is 100; accessibility, best practices, and SEO are 100 in the expanded representative matrix. |
+| 5. Authority and trust | Complete for launch scope | Eight localized trust pages are linked from the footer. Regulated provenance remains a publication gate because regulated calculators are not in public scope. |
+| 6. AI answer readiness | Complete for launch scope | `llms.txt` is conservative. The launch verifier requires server-rendered answer, formula, example, limitation, contributor, source, and review sections on every calculator and exact representative answer text across all four categories. |
+| 7. Public domain launch | Blocked | Requires the permanent hostname and canonical variant, Cloudflare and Caddy activation, native-language approval, search-platform setup, and the final indexed `test:launch` run. Production remains private and explicitly `noindex,nofollow`. |
+| 8. Remaining calculators | Not approved for publication | Existing candidate specifications and tests are preparatory only. Each calculator must independently pass the source, formula, rule, fixture, translation, and review sequence below. |
+
+Current repository evidence is `main` through PR #56 with 44 test files and 598 tests passing. PRs #40-#56 implement and harden Stages 1-6. The private production deployment remains at the previously verified pre-launch revision until these post-#51 changes are deliberately deployed; this does not change the public launch gate.
+
 ### Stage 1: Shared Public GUI Foundation
 
 Deliverables:
@@ -236,17 +251,21 @@ Use one coherent PR per slice:
 9. Native-speaker translation corrections
 10. Permanent-domain launch configuration
 
-## 6. Current Sprint
+## 6. Current Work
 
-The first sprint starts with:
+Completed in the current discoverability sequence:
 
-- Public API-link removal
-- Skip navigation
-- Mobile public navigation
-- Localized breadcrumbs
-- Related calculators
-- Typed calculator content contract
-- Loan EMI reference content
-- Matching `WebPage`, `BreadcrumbList`, and FAQ structured data
+- Category-specific trilingual descriptions, use cases, limitations, and calculator-selection guidance
+- Full public-scope editorial provenance with contributors and version-controlled specification sources
+- Keyboard, 320 px reflow, light-theme contrast, dark-theme, locale, and representative automated accessibility checks
+- Initial-HTML answer extraction checks in the fail-closed launch verifier
+- Comprehensive structured-data parity and URL validation across every locale and public entity
+- Expanded mobile and desktop Lighthouse checks for home, category, calculator, and trust routes
 
-The reference implementation must be reviewed before applying the pattern to the other 12 launch calculators.
+Remaining work that does not authorize indexing:
+
+- Audit unpublished calculators against the Stage 8 readiness sequence without adding them to navigation or sitemap
+- Improve repeatable private-production deployment, rollback, and verification tooling
+- Deploy the completed pre-launch changes while preserving `PUBLIC_INDEXING_ENABLED=false`
+
+External launch gates remain unchanged: obtain the permanent domain and canonical decision, configure Cloudflare and shared Caddy, complete Sinhala and Tamil native-speaker review, run the indexed launch contract, and only then submit the sitemap to search platforms.
