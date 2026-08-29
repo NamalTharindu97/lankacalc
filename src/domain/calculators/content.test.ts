@@ -13,6 +13,16 @@ describe("calculator editorial content", () => {
         expect(content?.directAnswer.length).toBeGreaterThan(80);
         expect(content?.faqs.length).toBeGreaterThanOrEqual(2);
         expect(Number.isNaN(Date.parse(content?.reviewedAt ?? ""))).toBe(false);
+        expect(content?.contributors).toEqual([
+          expect.objectContaining({ name: "LankaCalc repository maintainers", role: expect.any(String) }),
+        ]);
+        expect(content?.sources).toEqual([
+          expect.objectContaining({
+            kind: "calculation-specification",
+            repositoryPath: `docs/calculators/${key}.md`,
+            title: content?.reviewedBy,
+          }),
+        ]);
       }
     }
   });
