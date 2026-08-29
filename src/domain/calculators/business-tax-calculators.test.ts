@@ -1319,6 +1319,31 @@ describe("SSCL check engine", () => {
     });
   });
 
+  it("requires turnover to exceed rather than equal each quarterly threshold", () => {
+    const oldThreshold = calculateSsclCheck(
+      {
+        ...ssclBaseInput,
+        turnoverCategory: "service-provider",
+        quarterlyTurnover: 15000000,
+        rollingFourQuarterTurnover: 60000000,
+      },
+      ssclCheckPayload.ssclCheck,
+    );
+    const newThreshold = calculateSsclCheck(
+      {
+        ...ssclBaseInput,
+        turnoverCategory: "service-provider",
+        periodEndDate: "2026-09-30",
+        quarterlyTurnover: 9000000,
+        rollingFourQuarterTurnover: 36000000,
+      },
+      ssclCheckPayload.ssclCheck,
+    );
+
+    expect(oldThreshold).toMatchObject({ registrationStatus: "not-required", ssclPayable: "0.00" });
+    expect(newThreshold).toMatchObject({ registrationStatus: "not-required", ssclPayable: "0.00" });
+  });
+
   it("exempts financial services subject to 20.5% VAT from the exemption date onward", () => {
     const result = calculateSsclCheck(
       {
@@ -1340,24 +1365,19 @@ describe("SSCL check engine", () => {
     });
   });
 
-  it("still subjects financial services to the old rules before the exemption date", () => {
-    const result = calculateSsclCheck(
-      {
-        ...ssclBaseInput,
-        turnoverCategory: "financial-service",
-        periodEndDate: "2025-09-30",
-        quarterlyTurnover: 10000000,
-        rollingFourQuarterTurnover: 30000000,
-      },
-      ssclCheckPayload.ssclCheck,
-    );
-
-    expect(result).toMatchObject({
-      periodStartDate: "2025-07-01",
-      exemptionApplied: false,
-      registrationStatus: "not-required",
-      ssclPayable: "0.00",
-    });
+  it("fails closed for financial services before the exemption date", () => {
+    expect(() =>
+      calculateSsclCheck(
+        {
+          ...ssclBaseInput,
+          turnoverCategory: "financial-service",
+          periodEndDate: "2025-09-30",
+          quarterlyTurnover: 10000000,
+          rollingFourQuarterTurnover: 30000000,
+        },
+        ssclCheckPayload.ssclCheck,
+      ),
+    ).toThrow("VAT attributable-value-addition method");
   });
 
   it("reports the annual-threshold leg as indeterminate when the four-quarter turnover is missing", () => {

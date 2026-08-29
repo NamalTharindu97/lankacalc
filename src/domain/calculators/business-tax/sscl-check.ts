@@ -185,6 +185,12 @@ export function calculateSsclCheck(
   const exemptionApplied =
     isFinancialService && parsedPayload.financialServicesExemptFrom <= periodStartDate;
 
+  if (isFinancialService && !exemptionApplied) {
+    throw new RangeError(
+      "Pre-exemption financial services require the VAT attributable-value-addition method, which this calculator does not model.",
+    );
+  }
+
   const quarterlyTurnover = decimal(parsedInput.quarterlyTurnover ?? 0);
   const liableTurnover = exemptionApplied ? decimal(0) : quarterlyTurnover.mul(decimal(fractionPercent).div(100));
 

@@ -14,8 +14,8 @@
 - Status: Approved candidate specification
 - Implementation use: approved for implementation and automated fixture testing within this scope
 - Production publication: blocked pending independent formula/accounting review
-- Source research and link verification: 2026-08-16
-- Source dossier: `docs/business-and-tax-product-spec.md`
+- Source research and link verification: 2026-08-29
+- Source dossier: `docs/sscl-rule-sources.md`
 
 Approval as an implementation candidate does not authorize a public production result. The rule must remain unpublished until an independent reviewer confirms the rate, liable fractions, registration thresholds, exemption scope, rounding, effective dates, and treatment of turnover.
 
@@ -26,7 +26,7 @@ Approval as an implementation candidate does not authorize a public production r
 | `asOfDate` | string | calendar date | yes | Valid `YYYY-MM-DD`; must resolve to the rule effective from `2024-01-01` |
 | `turnoverCategory` | enum | — | yes | `importer`, `manufacturer`, `service-provider`, `financial-service`, `land-improvement`, `wholesale-retail-distributor`, or `wholesale-retail-other` |
 | `periodEndDate` | string | calendar date | yes | Must be the last day of March, June, September, or December |
-| `quarterlyTurnover` | integer | LKR | yes for non-exempt categories | `0` to `10,000,000,000`; whole rupees; optional for `financial-service` |
+| `quarterlyTurnover` | integer | LKR | yes for non-exempt, non-financial categories | `0` to `10,000,000,000`; whole rupees; optional for exempt `financial-service` periods |
 | `rollingFourQuarterTurnover` | integer | LKR | no | `0` to `10,000,000,000`; whole rupees; completes the annual-threshold leg of the registration check |
 
 `quarterlyTurnover` is total turnover for the quarter ending on `periodEndDate` before deducting the liable fraction. `rollingFourQuarterTurnover` is the total over the current quarter and the previous three. The upper bounds are product safety bounds, not statutory thresholds. For an exempt `financial-service` period, quarterly turnover is optional.
@@ -92,7 +92,7 @@ Registration status:
 - `not-required` — both turnover figures are known and neither exceeds its threshold.
 - `indeterminate` — quarterly turnover is below the quarter threshold but the four-quarter turnover was not provided.
 
-`deregistrationEligible` is `yes` only when the four-quarter turnover is known, is below the annual threshold, the category is not `importer`, and the exemption does not apply.
+`deregistrationEligible` is `yes` only when the four-quarter turnover is known, does not exceed the annual threshold, the category is not `importer`, and the exemption does not apply.
 
 ## Rounding Order
 
@@ -109,7 +109,7 @@ For example, an importer with `T = 1,000,020` gives `liableTurnover = 1,000,020`
 - Turnover is the total value of chargeable transactions before the liability fraction; the calculator does not decide whether a transaction is chargeable.
 - SSCL is estimated only for a quarter where the business is required or mandatory to register; a below-threshold business is not estimated as paying SSCL.
 - The registration threshold is tested on the current quarter and the previous three quarters.
-- Financial services subject to VAT at 20.5% are exempt from SSCL for quarters commencing on or after the exemption date; earlier quarters remain subject.
+- Financial services subject to VAT at 20.5% are exempt from SSCL for quarters commencing on or after the exemption date. Earlier financial-service periods require the VAT attributable-value-addition method and fail closed because this calculator does not collect or model that base.
 - Exemptions outside the financial-services 20.5% VAT rule, input-credit/offset mechanisms, penalties, and interest are not modelled.
 - The threshold figures effective from `2026-07-01` are statutory and are modelled as a dated schedule entry, not as a proposed change.
 - A registration decision must be confirmed with the Inland Revenue Department before acting on it.
@@ -119,18 +119,19 @@ For example, an importer with `T = 1,000,020` gives `liableTurnover = 1,000,020`
 
 - A `periodEndDate` that is not the last day of March, June, September, or December is rejected.
 - A missing `quarterlyTurnover` for any non-financial category is rejected.
-- A financial-service input may omit both turnover figures and returns `exempt` for an exempt period.
+- A financial-service input may omit both turnover figures and returns `exempt` for an exempt period; a pre-exemption financial-service period fails as unsupported.
 - Without `rollingFourQuarterTurnover` and without a quarterly trigger, the status is `indeterminate` and no SSCL is estimated.
 - A quarter with turnover exactly equal to a threshold does not exceed it.
 - If `asOfDate` cannot resolve to a reviewed active rule version, calculation fails rather than silently using this candidate.
 
 ## Official Sources
 
-- [Social Security Contribution Levy Act, No. 25 of 2022](https://www.ird.gov.lk/en/publications/Social%20Security%20Contribution%20Levy/Social%20Security%20Contribution%20Levy%20Act%20No.%2025%20of%202022.pdf): charge of levy, liable fraction of turnover, and the 2.5% rate.
-- [Social Security Contribution Levy (Amendment) Act, No. 29 of 2023](https://www.ird.gov.lk/en/publications/SSCL%20Acts/SSCL%20Amendment%20Act%20No.%2029%20of%202023.pdf): deduction of the liable fraction and related amendments.
-- [Social Security Contribution Levy (Amendment) Act, No. 11 of 2025](https://www.ird.gov.lk/en/publications/SSCL%20Acts/SSCL%20Amendment%20Act%20No.%2011%20of%202025.pdf): reduction of registration thresholds to LKR 36,000,000 annual effective from 2026-07-01.
-- [Social Security Contribution Levy (Amendment) Act, No. 39 of 2025](https://www.ird.gov.lk/en/publications/SSCL%20Acts/SSCL%20Amendment%20Act%20No.%2039%20of%202025.pdf): exemption of financial services subject to VAT at 20.5% with effect from 2025-12-17.
-- [IRD SSCL overview](https://www.ird.gov.lk/en/type%20of%20taxes/sitepages/social%20security%20contribution%20levy.aspx): liable fractions, registration thresholds, and registration obligations.
+- [Social Security Contribution Levy Act, No. 25 of 2022](https://www.ird.gov.lk/en/publications/Acts_SSCL/SSCL_Act_No.%2025_2022_E.pdf): charge of levy, liable fraction of turnover, the 2.5% rate, and registration obligations.
+- [Social Security Contribution Levy (Amendment) Act, No. 15 of 2023](https://www.ird.gov.lk/en/publications/Acts_SSCL/SSCL_Act_No._15_2023_E.pdf): amendments to the exempt-turnover schedules.
+- [Social Security Contribution Levy (Amendment) Act, No. 15 of 2024](https://www.ird.gov.lk/en/publications/Acts_SSCL/SSCL_(Amd)_Act_No_15_of%202024_E.pdf): amendments incorporated into the current consolidated text.
+- [Social Security Contribution Levy (Amendment) Act, No. 24 of 2025](https://www.ird.gov.lk/en/publications/Acts_SSCL/SSCL_Act_No_24_2025_E.pdf): exemption of financial services subject to VAT at 20.5%, effective when the Act was certified on `2025-12-17`.
+- [Social Security Contribution Levy (Amendment) Act, No. 10 of 2026](https://www.ird.gov.lk/en/publications/Acts_SSCL/SSCL_Act_No_10-2026_E.pdf): reduction of registration thresholds to LKR 9,000,000 per quarter and LKR 36,000,000 over four consecutive quarters for periods commencing on or after `2026-07-01`.
+- [Consolidated SSCL Act incorporating amendments up to 30 June 2026](https://www.ird.gov.lk/en/publications/Acts_SSCL/SSCL_Cons_Act_-_2026_Changes.pdf): current cross-check of the principal Act and amendments.
 
 ## Golden Fixtures
 
@@ -144,12 +145,11 @@ All fixtures use `asOfDate: "2026-08-16"` and are candidate fixtures transcribed
 | wholesale-retail-distributor | 2026-09-30 | 8000000 | 40000000 | 2.5% | `"2000000"` | `"50000.00"` | required (annual trigger) |
 | service-provider | 2026-09-30 | 10000000 | — | 2.5% | `"10000000"` | `"250000.00"` | required (new quarter threshold) |
 | financial-service | 2026-06-30 | 100000000 | — | 2.5% | `"0"` | `"0.00"` | exempt |
-| financial-service | 2025-09-30 | 10000000 | 30000000 | 2.5% | `"10000000"` | `"0.00"` | not-required (pre-exemption) |
 | importer | 2026-06-30 | 1000020 | — | 2.5% | `"1000020"` | `"25001.00"` | rounding observable |
 
 ## Provenance
 
-Every result must include the resolved calculation version, rule version, effective date, all attached IRD source references, and the latest successful source verification time. The source-link verification date is `2026-08-16`; it is not a substitute for independent content review. Regulated execution is server-authoritative. Missing, draft-only, stale-without-policy, or unresolved rule/source provenance must fail closed rather than return an unversioned result.
+Every result must include the resolved calculation version, rule version, effective date, all attached IRD source references, and the latest successful source verification time. The source-link verification date is `2026-08-29`; it is not a substitute for independent content review. Regulated execution is server-authoritative. Missing, draft-only, stale-without-policy, or unresolved rule/source provenance must fail closed rather than return an unversioned result.
 
 ## Localization Strings
 
