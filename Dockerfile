@@ -17,6 +17,11 @@ COPY src/server/db ./src/server/db
 COPY src/server/env.ts ./src/server/env.ts
 CMD ["npm", "run", "db:migrate"]
 
+FROM node:22-alpine AS verifier
+WORKDIR /app
+COPY scripts/verify-edge.mjs scripts/verify-launch.mjs scripts/verify-private.mjs ./scripts/
+CMD ["node", "scripts/verify-edge.mjs"]
+
 FROM base AS builder
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG BETTER_AUTH_SECRET

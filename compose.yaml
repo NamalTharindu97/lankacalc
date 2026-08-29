@@ -82,5 +82,16 @@ services:
       db:
         condition: service_healthy
 
+  verify:
+    profiles: ["tools"]
+    build:
+      context: .
+      target: verifier
+    environment:
+      APP_BASE_URL: http://proxy
+    depends_on:
+      proxy:
+        condition: service_healthy
+
 volumes:
   postgres-data:

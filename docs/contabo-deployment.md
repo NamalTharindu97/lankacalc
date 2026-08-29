@@ -24,7 +24,7 @@ Never run `npm run db:seed:dev-rules` in production. Regulated calculators must 
 
 ## Initial Deployment
 
-Use the same Compose files and project name for every command:
+Use the same Compose files and project name for every command. The `verify` tools image avoids requiring Node or npm on the host:
 
 ```sh
 export COMPOSE_ENV_FILES=/etc/lankacalc/production.env
@@ -33,10 +33,27 @@ docker compose -p lankacalc-production -f compose.yaml -f compose.production.yam
 docker compose -p lankacalc-production -f compose.yaml -f compose.production.yaml up -d db
 docker compose -p lankacalc-production -f compose.yaml -f compose.production.yaml run --rm migrate
 docker compose -p lankacalc-production -f compose.yaml -f compose.production.yaml up -d web proxy
-APP_BASE_URL=http://127.0.0.1:3100 npm run test:edge
+docker compose -p lankacalc-production -f compose.yaml -f compose.production.yaml run --rm verify
+docker compose -p lankacalc-production -f compose.yaml -f compose.production.yaml run --rm verify node scripts/verify-private.mjs
 ```
 
 Application startup never applies migrations. Back up PostgreSQL before every migration and retain the previous application image for rollback.
+
+## Repeatable Private Release
+
+For pre-launch updates, keep `PUBLIC_INDEXING_ENABLED=false` explicit in `/etc/lankacalc/production.env`, fast-forward the clean checkout to the reviewed commit, and run:
+
+```sh
+sudo ./scripts/deploy-production.sh "$(git rev-parse HEAD)"
+```
+
+The script refuses a dirty or unexpected revision, validates Compose and the private indexing gate, starts PostgreSQL, creates a compressed pre-migration dump and SHA-256 checksum, records the previous web image, builds the web/migration/verifier images, runs migrations, starts the application, and executes edge plus private-deployment contracts. Defaults are:
+
+- Backups: `/var/backups/lankacalc/pre-release-<UTC timestamp>.sql.gz`
+- Release records: `/var/lib/lankacalc/releases/<UTC timestamp>.env`
+- Compose project: `lankacalc-production`
+
+Override locations only with `PRODUCTION_ENV_FILE`, `BACKUP_DIRECTORY`, or `RELEASE_DIRECTORY`. Copy encrypted backups off the VPS separately; a local dump is not an off-server backup.
 
 ## Shared Caddy
 
@@ -67,4 +84,12 @@ After the verifier passes, confirm Cloudflare uses proxied DNS, Full (strict) TL
 
 ## Backup And Rollback
 
-Create encrypted daily `pg_dump` backups and copy them off the VPS. Test restoration into a temporary database. To roll back application code, start the previously recorded image and rerun health checks; restore the database only when a migration is incompatible with the previous release.
+Create encrypted daily `pg_dump` backups and copy them off the VPS. Test restoration into a temporary database. Every guarded release records `PREVIOUS_WEB_IMAGE`, `DATABASE_BACKUP`, and checksums before migration.
+
+To roll back application code, pass the failed deployment's release record:
+
+```sh
+sudo ./scripts/rollback-production.sh /var/lib/lankacalc/releases/<UTC timestamp>.env
+```
+
+The rollback script verifies the recorded image still exists, retags it as the Compose web image, starts it without building, and reruns edge and private-indexing checks. It deliberately does not restore PostgreSQL. Review the migration direction and application compatibility first; restore the recorded dump only when an incompatible migration requires it, and test the restore procedure in an isolated database before using it on production.
