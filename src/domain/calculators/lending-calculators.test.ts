@@ -21,6 +21,7 @@ const observedLendingRatesPayload = {
       { rateType: "awpr", label: "Average Weighted Prime Lending Rate (monthly)", value: "8.99", observedOn: "2026-01-31" },
       { rateType: "awpr", label: "Average Weighted Prime Lending Rate (monthly)", value: "9.39", observedOn: "2026-03-31" },
       { rateType: "awpr", label: "Average Weighted Prime Lending Rate (monthly)", value: "9.75", observedOn: "2026-05-31" },
+      { rateType: "awpr", label: "Average Weighted Prime Lending Rate (monthly)", value: "10.34", observedOn: "2026-06-30" },
     ],
   },
 } satisfies { observedLendingRates: ObservedLendingRatesPayload };
@@ -174,12 +175,29 @@ describe("loan schedule calculator", () => {
 
     expect(calculation.result).toMatchObject({
       rateSource: "platform",
-      appliedAnnualRatePercent: "9.75",
+      appliedAnnualRatePercent: "10.34",
       rateLabel: "Average Weighted Prime Lending Rate (monthly)",
-      rateObservationDate: "2026-05-31",
+      rateObservationDate: "2026-06-30",
       rateAuthority: "Central Bank of Sri Lanka",
-      monthlyPayment: "87799.66",
+      monthlyPayment: "88074.10",
+      totalCost: "1056889.16",
     });
+  });
+
+  it("resolves observations across the June boundary", () => {
+    const beforeBoundary = resolveObservedRate(
+      observedLendingRatesPayload.observedLendingRates,
+      "2026-06-29",
+      "awpr",
+    );
+    const onBoundary = resolveObservedRate(
+      observedLendingRatesPayload.observedLendingRates,
+      "2026-06-30",
+      "awpr",
+    );
+
+    expect(beforeBoundary).toMatchObject({ value: "9.75", observedOn: "2026-05-31" });
+    expect(onBoundary).toMatchObject({ value: "10.34", observedOn: "2026-06-30" });
   });
 
   it("resolves the observation on or before the calculation date", () => {

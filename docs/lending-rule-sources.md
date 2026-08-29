@@ -4,7 +4,7 @@
 
 This dossier records the primary sources and candidate rule findings for the Stage 5 lending calculators (`loan-schedule` and `lease`). The candidate findings are sufficient to implement code and automated fixtures within the narrow documented scope. They are not approval for public production publication: published rules still require attached source revisions, passing fixtures, and independent review of rate-setting authority and coverage.
 
-Research retrieved and link-verified: 2026-08-16.
+Research retrieved and link-verified: 2026-08-29.
 
 ## Status
 
@@ -20,8 +20,8 @@ Issuing authority: Central Bank of Sri Lanka (CBSL).
 
 ### Official Sources
 
-- [CBSL Statistics — Interest Rates](https://www.cbsl.gov.lk/en/statistics/statistical-tables/interest-rates) publishes the monthly average weighted prime lending rate (AWPR) and related interest-rate tables.
-- [CBSL Economic and Financial Statistics / monthly bulletin PDFs](https://www.cbsl.gov.lk/en/publications/economic-and-financial-reports/economic-and-financial-statistics) carry the detailed monthly AWPR series; the January 2026 bulletin reports AWPR at 8.99% and the May 2026 bulletin at 9.75%.
+- [CBSL Monetary and Interest Rate Statistics](https://www.cbsl.gov.lk/en/economic-and-statistical-charts/monetary-and-interest-rate-statistics) publishes the monthly average weighted prime lending rate (AWPR) and related interest-rate publications.
+- [CBSL Economic and Financial Statistics / monthly bulletin PDFs](https://www.cbsl.gov.lk/en/publications/economic-and-financial-reports/economic-and-financial-statistics) carry the detailed monthly AWPR series; the January 2026 bulletin reports AWPR at 8.99%, the May 2026 bulletin at 9.75%, and the [June 2026 bulletin](https://www.cbsl.gov.lk/sites/default/files/cbslweb_documents/statistics/monthly_bulletin_monetary_and_interest_rate_statistics_june_2026.pdf) at 10.34%.
 - [CBSL — Main Publications](https://www.cbsl.gov.lk/en/publications) hosts the monthly bulletins used for cross-checking the statistics-page series.
 - [CBSL Act Directions No. 02 of 2025: Loan to Value Ratios for Credit Facilities Granted in Respect of Motor Vehicles](https://www.cbsl.gov.lk/sites/default/files/cbslweb_documents/laws/cdg/CBSL_Act_Directions_No_2_of_2025.pdf) sets the maximum loan-to-value ratios for motor-vehicle finance leases and credit, effective 2025-07-18.
 - [CBSL FAQ on LTV Ratios for Credit Facilities Granted in Respect of Motor Vehicles](https://www.cbsl.gov.lk/sites/default/files/cbslweb_documents/laws/cdg/faq_on_loan_to_value_ratios_for_credit_facilities_granted_in_respect_of_motor_vehicles_e.pdf) clarifies how the caps apply, including the flat cap for vehicles already used in Sri Lanka for more than one year.
@@ -37,11 +37,13 @@ Each monthly AWPR value was cross-checked between the CBSL Statistics page serie
 | 2026-01-31 | 8.99 |
 | 2026-03-31 | 9.39 |
 | 2026-05-31 | 9.75 |
+| 2026-06-30 | 10.34 |
 
 Notes:
 
 - The AWPR is a weighted average of prime lending rates offered to the best customers by commercial banks; it is a market benchmark, not a regulatory ceiling, and individual loan rates vary by lender, credit profile, and product.
 - Only months with a verified bulletin value are recorded in the rule. An `asOfDate` before the first recorded observation fails as out of range.
+- The resolver currently has no maximum-age cutoff: an `asOfDate` after the latest recorded observation continues to use that observation. A freshness limit requires a separately reviewed product and rule-policy decision.
 - The lease calculator does not use the AWPR series; CBSL does not publish a single equivalent series for licensed finance company lease pricing.
 
 ## Candidate Motor-Vehicle Loan-to-Value Caps (CBSL, effective 2025-07-18)
@@ -65,4 +67,4 @@ Notes:
 
 - The AWPR changes monthly; the rule version must carry an explicit observation date and the calculation must resolve the applicable observation by date.
 - This dossier records the published series and its public announcement; it does not independently verify each bank's reported prime rate submissions.
-- Values were verified on 2026-08-16 against the January and May 2026 bulletins. Later bulletins require a new rule version.
+- Values were verified on 2026-08-29 against the January, May, and June 2026 bulletins. The June bulletin was published on 2026-07-31 and reports the June monthly AWPR as 10.34%. No July or August 2026 monthly bulletin was available from the official CBSL publication pages on the verification date; later observations require another rule version.

@@ -444,6 +444,12 @@ const observedLendingRatesPayload = {
       value: "9.75",
       observedOn: "2026-05-31",
     },
+    {
+      rateType: "awpr",
+      label: "Average Weighted Prime Lending Rate (monthly)",
+      value: "10.34",
+      observedOn: "2026-06-30",
+    },
   ],
 } as const;
 
@@ -999,7 +1005,7 @@ const devRules: DevRuleInput[] = [
     scope: "lk",
     name: "CBSL observed lending rates",
     description: "Platform-observed CBSL monthly AWPR observations with source and date for the loan-schedule calculator.",
-    version: "1.0.0",
+    version: "1.1.0",
     effectiveFrom: "2026-01-01",
     payload: observedLendingRatesPayload as unknown as JsonValue,
     sources: [
@@ -1016,6 +1022,12 @@ const devRules: DevRuleInput[] = [
         url: "https://www.cbsl.gov.lk/sites/default/files/cbslweb_documents/statistics/monthly_bulletin_monetary_and_interest_rate_statistics_may_2026.pdf",
       },
       {
+        key: "cbsl-june-2026-bulletin",
+        authority: "Central Bank of Sri Lanka",
+        title: "Interest Rates, Money, and Credit Developments, June 2026 (Volume 07 Issue 06)",
+        url: "https://www.cbsl.gov.lk/sites/default/files/cbslweb_documents/statistics/monthly_bulletin_monetary_and_interest_rate_statistics_june_2026.pdf",
+      },
+      {
         key: "cbsl-january-2026-bulletin",
         authority: "Central Bank of Sri Lanka",
         title: "Monthly Bulletin of Monetary and Interest Rate Statistics - 2026 January",
@@ -1030,8 +1042,30 @@ const devRules: DevRuleInput[] = [
         } as unknown as JsonValue,
         expected: [
           ["rateType", "awpr"],
+          ["value", "10.34"],
+          ["observedOn", "2026-06-30"],
+        ],
+      },
+      {
+        name: "resolves the May observation before the June boundary",
+        input: {
+          asOfDate: "2026-06-29",
+        } as unknown as JsonValue,
+        expected: [
+          ["rateType", "awpr"],
           ["value", "9.75"],
           ["observedOn", "2026-05-31"],
+        ],
+      },
+      {
+        name: "resolves the June observation on its observation date",
+        input: {
+          asOfDate: "2026-06-30",
+        } as unknown as JsonValue,
+        expected: [
+          ["rateType", "awpr"],
+          ["value", "10.34"],
+          ["observedOn", "2026-06-30"],
         ],
       },
       {
