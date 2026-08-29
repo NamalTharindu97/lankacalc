@@ -188,6 +188,8 @@ Exit gate:
 
 ### Stage 8: Publish Remaining Calculators Safely
 
+The current evidence-gap inventory and review order are maintained in `plan/LankaCalc_Unpublished_Calculator_Readiness_Audit.md`. Its readiness tiers prioritize review work only and do not authorize publication.
+
 For each server-authoritative or regulated calculator:
 
 1. Verify official sources.
