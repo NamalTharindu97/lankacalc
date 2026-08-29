@@ -490,10 +490,24 @@ describe("lending calculator fixtures", () => {
   it.each([
     ["lease", { asOfDate: "2026-08-16", rateSource: "user", assetValue: "2000000", deposit: "200000", residualValue: "400000", annualRatePercent: "12", termMonths: "24", processingFeePercent: "1" }, { financedAmount: "1400000.00", monthlyPayment: "65902.86", balloonPayment: "400000.00", totalInstallments: "1581668.64", totalInterest: "181668.64", processingFeeAmount: "20000.00", totalCost: "2201668.64" }],
     ["lease", { asOfDate: "2026-08-16", rateSource: "user", assetValue: "1200000", deposit: "120000", residualValue: "0", annualRatePercent: "0", termMonths: "12", processingFeePercent: "0" }, { financedAmount: "1080000.00", monthlyPayment: "90000.00", totalInstallments: "1080000.00", totalInterest: "0.00", totalCost: "1200000.00" }],
-  ])("matches the approved lease fixture through the domain for %s", (key, input, expected) => {
+    ["lease", { asOfDate: "2026-08-16", rateSource: "platform", assetValue: "2000000", deposit: "200000", residualValue: "400000", annualRatePercent: "12", termMonths: "24", processingFeePercent: "1", vehicleClass: "motor-car", vehicleUsedMoreThanOneYear: "no" }, { effectiveLtvPercent: "90.00", maxLtvPercent: "60", rateObservationDate: "2025-07-18", rateAuthority: "Central Bank of Sri Lanka" }],
+    ["lease", { asOfDate: "2026-08-16", rateSource: "platform", assetValue: "2000000", deposit: "1000000", residualValue: "400000", annualRatePercent: "12", termMonths: "24", processingFeePercent: "1", vehicleClass: "motor-car", vehicleUsedMoreThanOneYear: "no" }, { effectiveLtvPercent: "50.00", maxLtvPercent: "60" }],
+    ["lease", { asOfDate: "2026-08-16", rateSource: "platform", assetValue: "1000000", deposit: "400000", residualValue: "0", annualRatePercent: "12", termMonths: "24", processingFeePercent: "0", vehicleClass: "three-wheeler", vehicleUsedMoreThanOneYear: "no" }, { effectiveLtvPercent: "60.00", maxLtvPercent: "50" }],
+    ["lease", { asOfDate: "2026-08-16", rateSource: "platform", assetValue: "2000000", deposit: "400000", residualValue: "400000", annualRatePercent: "12", termMonths: "24", processingFeePercent: "1", vehicleClass: "motor-car", vehicleUsedMoreThanOneYear: "yes" }, { effectiveLtvPercent: "80.00", maxLtvPercent: "70" }],
+  ])("matches the candidate lease fixture through the domain for %s", (key, input, expected) => {
     const direct = leaseCalculator.calculate(input, vehicleLeaseLtvPayload);
 
     expect(direct.result).toMatchObject(expected);
+  });
+
+  it("keeps lease registry metadata aligned with the configurable server specification", () => {
+    expect(leaseCalculator).toMatchObject({
+      key: "lease",
+      classification: "configurable",
+      execution: "server",
+      version: "1.1.0",
+      ruleDependencies: [{ key: "vehicle-lease-ltv-lk-2026", scope: "lk" }],
+    });
   });
 
   it("publishes the lending calculators in the registry", () => {
