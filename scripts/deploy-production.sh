@@ -13,7 +13,7 @@ environment_file="${PRODUCTION_ENV_FILE:-/etc/lankacalc/production.env}"
 backup_directory="${BACKUP_DIRECTORY:-/var/backups/lankacalc}"
 release_directory="${RELEASE_DIRECTORY:-/var/lib/lankacalc/releases}"
 compose=(docker compose --env-file "$environment_file" -p "$project" -f compose.yaml -f compose.production.yaml)
-git_command=(git -c "safe.directory=$PWD")
+git_command=(git --no-optional-locks -c "safe.directory=$PWD")
 
 [[ -f "$environment_file" ]] || { echo "Missing production environment: $environment_file" >&2; exit 1; }
 actual_commit="$("${git_command[@]}" rev-parse HEAD)"
