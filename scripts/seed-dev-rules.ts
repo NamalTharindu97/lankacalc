@@ -729,7 +729,7 @@ const devRules: DevRuleInput[] = [
     scope: "lk",
     name: "Sri Lanka SSCL rates and registration thresholds",
     description: "SSCL 2.5% rate, liable fractions, registration thresholds, and financial-services exemption.",
-    version: "1.0.0",
+    version: "1.1.0",
     effectiveFrom: "2024-01-01",
     payload: ssclCheckPayload as unknown as JsonValue,
     sources: [
@@ -737,13 +737,37 @@ const devRules: DevRuleInput[] = [
         key: "sscl-act-2022",
         authority: "Inland Revenue Department Sri Lanka",
         title: "Social Security Contribution Levy Act, No. 25 of 2022",
-        url: "https://www.ird.gov.lk/en/publications/Social%20Security%20Contribution%20Levy/Social%20Security%20Contribution%20Levy%20Act%20No.%2025%20of%202022.pdf",
+        url: "https://www.ird.gov.lk/en/publications/Acts_SSCL/SSCL_Act_No.%2025_2022_E.pdf",
       },
       {
-        key: "ird-sscl-overview",
+        key: "sscl-amendment-act-2023",
         authority: "Inland Revenue Department Sri Lanka",
-        title: "IRD SSCL overview",
-        url: "https://www.ird.gov.lk/en/type%20of%20taxes/sitepages/social%20security%20contribution%20levy.aspx",
+        title: "Social Security Contribution Levy (Amendment) Act, No. 15 of 2023",
+        url: "https://www.ird.gov.lk/en/publications/Acts_SSCL/SSCL_Act_No._15_2023_E.pdf",
+      },
+      {
+        key: "sscl-amendment-act-2024",
+        authority: "Inland Revenue Department Sri Lanka",
+        title: "Social Security Contribution Levy (Amendment) Act, No. 15 of 2024",
+        url: "https://www.ird.gov.lk/en/publications/Acts_SSCL/SSCL_(Amd)_Act_No_15_of%202024_E.pdf",
+      },
+      {
+        key: "sscl-amendment-act-2025",
+        authority: "Inland Revenue Department Sri Lanka",
+        title: "Social Security Contribution Levy (Amendment) Act, No. 24 of 2025",
+        url: "https://www.ird.gov.lk/en/publications/Acts_SSCL/SSCL_Act_No_24_2025_E.pdf",
+      },
+      {
+        key: "sscl-amendment-act-2026",
+        authority: "Inland Revenue Department Sri Lanka",
+        title: "Social Security Contribution Levy (Amendment) Act, No. 10 of 2026",
+        url: "https://www.ird.gov.lk/en/publications/Acts_SSCL/SSCL_Act_No_10-2026_E.pdf",
+      },
+      {
+        key: "sscl-consolidated-act-2026",
+        authority: "Inland Revenue Department Sri Lanka",
+        title: "Consolidated Social Security Contribution Levy Act incorporating amendments up to 30 June 2026",
+        url: "https://www.ird.gov.lk/en/publications/Acts_SSCL/SSCL_Cons_Act_-_2026_Changes.pdf",
       },
     ],
     fixtures: [
@@ -799,6 +823,33 @@ const devRules: DevRuleInput[] = [
         expected: [
           ["registrationStatus", "required"],
           ["ssclPayable", "50000.00"],
+        ],
+      },
+      {
+        name: "old quarterly threshold equality does not trigger registration",
+        input: {
+          asOfDate: "2026-08-16",
+          turnoverCategory: "service-provider",
+          periodEndDate: "2026-06-30",
+          quarterlyTurnover: 15000000,
+          rollingFourQuarterTurnover: 60000000,
+        } as unknown as JsonValue,
+        expected: [
+          ["registrationStatus", "not-required"],
+          ["ssclPayable", "0.00"],
+        ],
+      },
+      {
+        name: "new quarterly threshold triggers only when exceeded",
+        input: {
+          asOfDate: "2026-08-16",
+          turnoverCategory: "service-provider",
+          periodEndDate: "2026-09-30",
+          quarterlyTurnover: 9000001,
+        } as unknown as JsonValue,
+        expected: [
+          ["registrationStatus", "required"],
+          ["ssclPayable", "225000.00"],
         ],
       },
       {
