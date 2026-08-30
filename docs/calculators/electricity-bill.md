@@ -7,7 +7,7 @@
 - Owner: LankaCalc regulated energy calculation kernel
 - Classification: regulated
 - Calculation version: `1.0.0`
-- Candidate rule version: `electricity-domestic-standard-2026-05-11-candidate`
+- Candidate rule version: `electricity-domestic-standard-2026-05-11-candidate-v1.1`
 
 ## Approval And Review
 
@@ -95,9 +95,9 @@ Excluded: LECO, time-of-use and industrial/commercial tariffs, net-metering and 
 
 ## Official Sources
 
-- [PUCSL approved domestic tariff calculator](https://www.pucsl.gov.lk/electricity/electricity-tariff-calculator/)
-- [CEB current tariffs](https://ceb.lk/rates-and-tariffs/en)
-- PUCSL decision for the approved tariff effective 11 May 2026
+- [PUCSL approved domestic tariff calculator](https://www.pucsl.gov.lk/calculator/)
+- [PUCSL approved tariff schedule effective 11 May 2026 (Annex 2)](https://www.pucsl.gov.lk/wp-content/uploads/2026/05/Annex-2-Approved-Tariff-Tabel_May-2026.pdf)
+- [PUCSL decision continuing the same tariff from 31 July 2026](https://www.pucsl.gov.lk/wp-content/uploads/2026/07/Full-Decision-on-Electricity-Tariffs-July-2026.pdf)
 
 The rule version must attach the PUCSL decision effective 11 May 2026 for the domestic block rates and fixed charges, the SSCL rate set under the Social Security Contribution Levy (Amendment) Act, and current operational guidance as separate source records or revisions.
 
@@ -114,6 +114,8 @@ These are candidate calculations, not official worked examples. All use a 30-day
 | `unitsConsumed: 100`, `billingDays: 30` | `category: "61-180"`, `energyCharge: "1720.00"`, `fixedCharge: "1000.00"`, `tariffCharge: "2720.00"`, `sscLAmount: "68.00"`, `totalPayable: "2788.00"` |
 | `unitsConsumed: 210`, `billingDays: 30` | `category: "above 180"`, `energyCharge: "8850.00"`, `fixedCharge: "2500.00"`, `tariffCharge: "11350.00"`, `sscLAmount: "283.75"`, `totalPayable: "11633.75"` |
 | `unitsConsumed: 62`, `billingDays: 31` | `category: "0-60"`, `energyCharge: "434.00"`, `fixedCharge: "210.00"`, `tariffCharge: "644.00"`, `sscLAmount: "16.10"`, `totalPayable: "660.10"` |
+
+Exact 30-day transition fixtures additionally cover `30/31`, `90/91`, `120/121`, and `180/181` units. They assert both the energy-rate transition and the fixed-charge tier selected from PUCSL Annex 2.
 
 ## Provenance
 

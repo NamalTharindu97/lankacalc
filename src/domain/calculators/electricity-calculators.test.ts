@@ -117,6 +117,26 @@ describe("domestic electricity bill engine", () => {
     });
   });
 
+  it.each([
+    [30, "0-60", "150.00", "80.00", "235.75"],
+    [31, "0-60", "159.00", "210.00", "378.23"],
+    [60, "0-60", "420.00", "210.00", "645.75"],
+    [61, "61-180", "860.00", "400.00", "1291.50"],
+    [90, "61-180", "1440.00", "400.00", "1886.00"],
+    [91, "61-180", "1468.00", "1000.00", "2529.70"],
+    [120, "61-180", "2280.00", "1000.00", "3362.00"],
+    [121, "61-180", "2324.00", "1500.00", "3919.60"],
+    [180, "61-180", "4920.00", "1500.00", "6580.50"],
+    [181, "above 180", "5950.00", "2500.00", "8661.25"],
+  ])("bills the %i-unit tariff transition", (unitsConsumed, category, energyCharge, fixedCharge, totalPayable) => {
+    const result = electricityBillCalculator.calculate(
+      { asOfDate: "2026-08-14", unitsConsumed, billingDays: 30 },
+      electricityPayloads,
+    );
+
+    expect(result.result).toMatchObject({ category, energyCharge, fixedCharge, totalPayable });
+  });
+
   it("moves into the 61-180 category from 61 units", () => {
     const result = electricityBillCalculator.calculate(
       { asOfDate: "2026-08-14", unitsConsumed: 61, billingDays: 30 },
