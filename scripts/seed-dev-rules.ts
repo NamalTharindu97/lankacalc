@@ -32,6 +32,7 @@ type DevRuleInput = {
   description: string;
   version: string;
   effectiveFrom: string;
+  effectiveTo?: string | null;
   payload: JsonValue;
   sources: SourceInput[];
   fixtures: FixtureInput[];
@@ -465,6 +466,29 @@ const fuelPumpPricesPayload = {
   ],
 } as const;
 
+const apitPayload = {
+  rounding: "ceiling-whole-rupee",
+  brackets: [
+    { upperBound: "150000", rate: "0", deduction: "0" },
+    { upperBound: "233333", rate: "0.06", deduction: "9000" },
+    { upperBound: "275000", rate: "0.18", deduction: "37000" },
+    { upperBound: "316667", rate: "0.24", deduction: "53500" },
+    { upperBound: "358333", rate: "0.30", deduction: "72500" },
+    { rate: "0.36", deduction: "94000" },
+  ],
+} as const;
+
+const epfPayload = {
+  employeeRate: "0.08",
+  employerRate: "0.12",
+  rounding: "half-up-cent",
+} as const;
+
+const etfPayload = {
+  employerRate: "0.03",
+  rounding: "exact-cent-only",
+} as const;
+
 const vehicleLeaseLtvPayload = {
   authority: "cbsl",
   effectiveFrom: "2025-07-18",
@@ -509,6 +533,147 @@ const vehicleLeaseLtvPayload = {
 } as const;
 
 const devRules: DevRuleInput[] = [
+  {
+    key: "apit-primary-regular-monthly",
+    calculatorKey: "apit",
+    scope: "standard",
+    name: "APIT regular primary monthly employment",
+    description: "IRD Table 01 monthly APIT effective 2025-04-01 for confirmed supported scenarios.",
+    version: "1.0.0",
+    effectiveFrom: "2025-04-01",
+    effectiveTo: "2026-03-31",
+    payload: apitPayload as unknown as JsonValue,
+    sources: [
+      {
+        key: "apit-ird-amendment-act-2025-02",
+        authority: "Inland Revenue Department, Sri Lanka",
+        title: "Inland Revenue (Amendment) Act, No. 2 of 2025",
+        url: "https://www.ird.gov.lk/en/publications/Acts_Income%20Tax_2017/IR_Act_No_02-2025_E.pdf",
+        publishedOn: "2025-03-20",
+      },
+      {
+        key: "apit-ird-table-01-instructions-2025-2026",
+        authority: "Inland Revenue Department, Sri Lanka",
+        title: "How to apply APIT Table 01 for 2025-2026",
+        url: "https://www.ird.gov.lk/en/publications/APIT_Tax_Tables/2025-2026/Table%20-%201/02.%20APIT_2526_Table_01_Text.pdf",
+      },
+      {
+        key: "apit-ird-table-01-lookup-2025-2026",
+        authority: "Inland Revenue Department, Sri Lanka",
+        title: "APIT Table 01 full lookup for 2025-2026",
+        url: "https://www.ird.gov.lk/en/publications/APIT_Tax_Tables/2025-2026/Table%20-%201/02.%20APIT_2526_Table_01.pdf",
+      },
+      {
+        key: "apit-ird-guideline-2025-2026",
+        authority: "Inland Revenue Department, Sri Lanka",
+        title: "Guideline on Advance Personal Income Tax for 2025-2026",
+        url: "https://www.ird.gov.lk/en/publications/APIT_Tax_Tables/2025-2026/Guide/APIT_2526_Guideline.pdf",
+      },
+    ],
+    fixtures: [
+      [149999, 0, "0"], [150000, 0, "0"], [150001, 1, "1"],
+      [233332, 1, "5000"], [233333, 1, "5000"], [233334, 2, "5001"],
+      [274999, 2, "12500"], [275000, 2, "12500"], [275001, 3, "12501"],
+      [316666, 3, "22500"], [316667, 3, "22501"], [316668, 4, "22501"],
+      [358332, 4, "35000"], [358333, 4, "35000"], [358334, 5, "35001"],
+    ].map(([income, bracketIndex, tax]) => ({
+      name: `Table 01 boundary at LKR ${income}`,
+      input: { monthlyTaxableIncome: String(income) } as unknown as JsonValue,
+      expected: [["tax", tax], ["selectedBracket.index", bracketIndex]],
+    })),
+  },
+  {
+    key: "epf-standard-contribution",
+    calculatorKey: "epf",
+    scope: "standard",
+    name: "Standard EPF contribution",
+    description: "Standard covered-employment EPF contributions from 1981-01-01.",
+    version: "1.0.0",
+    effectiveFrom: "1981-01-01",
+    payload: epfPayload as unknown as JsonValue,
+    sources: [
+      {
+        key: "epf-act-1958-15",
+        authority: "Employees' Provident Fund Department, Central Bank of Sri Lanka",
+        title: "Employees' Provident Fund Act, No. 15 of 1958",
+        url: "https://epf.lk/wp-content/uploads/2018/09/act_of_1958.pdf",
+      },
+      {
+        key: "epf-amendment-act-1981-26",
+        authority: "Employees' Provident Fund Department, Central Bank of Sri Lanka",
+        title: "Employees' Provident Fund (Amendment) Act, No. 26 of 1981",
+        url: "https://epf.lk/wp-content/uploads/2018/09/amendment_19811.pdf",
+      },
+      {
+        key: "epf-amendment-act-1985-01",
+        authority: "Employees' Provident Fund Department, Central Bank of Sri Lanka",
+        title: "Employees' Provident Fund (Amendment) Act, No. 1 of 1985",
+        url: "https://epf.lk/wp-content/uploads/2018/09/amendment_1985.pdf",
+      },
+      {
+        key: "epf-remitting-contributions",
+        authority: "Employees' Provident Fund Department, Central Bank of Sri Lanka",
+        title: "Remitting EPF contributions",
+        url: "https://epf.lk/?p=171",
+      },
+    ],
+    fixtures: [
+      ["0", "0.00", "0.00", "0.00"],
+      ["1", "0.08", "0.12", "0.20"],
+      ["12345.67", "987.65", "1481.48", "2469.13"],
+      ["100.05", "8.00", "12.01", "20.01"],
+      ["100.04", "8.00", "12.00", "20.00"],
+      ["100000", "8000.00", "12000.00", "20000.00"],
+    ].map(([earnings, employee, employer, total]) => ({
+      name: `EPF contribution at LKR ${earnings}`,
+      input: { eligibleEarnings: earnings } as unknown as JsonValue,
+      expected: [["employee.amount", employee], ["employer.amount", employer], ["totalContribution", total]],
+    })),
+  },
+  {
+    key: "etf-standard-contribution",
+    calculatorKey: "etf",
+    scope: "standard",
+    name: "Standard private-sector ETF contribution",
+    description: "Employer-only 3% ETF for confirmed broad private-sector coverage from 1982-01-01.",
+    version: "1.0.0",
+    effectiveFrom: "1982-01-01",
+    payload: etfPayload as unknown as JsonValue,
+    sources: [
+      {
+        key: "etf-act-1980-46",
+        authority: "Employees' Trust Fund Board",
+        title: "Employees' Trust Fund Act, No. 46 of 1980",
+        url: "https://etfb.lk/wp-content/uploads/2026/04/1980_46.pdf",
+      },
+      {
+        key: "etf-gazette-171-2",
+        authority: "Employees' Trust Fund Board",
+        title: "Gazette No. 171/2 dated 14 December 1981",
+        url: "https://etfb.lk/wp-content/uploads/2026/04/09-II-English.pdf",
+        publishedOn: "1981-12-14",
+      },
+      {
+        key: "etf-amendment-act-1993-18",
+        authority: "Employees' Trust Fund Board",
+        title: "Employees' Trust Fund (Amendment) Act, No. 18 of 1993",
+        url: "https://etfb.lk/wp-content/uploads/2026/04/1993_18.pdf",
+      },
+      {
+        key: "etf-employer-details",
+        authority: "Employees' Trust Fund Board",
+        title: "ETF employer eligibility and contribution details",
+        url: "https://etfb.lk/employer-details/",
+      },
+    ],
+    fixtures: [
+      ["0", "0.00"], ["1", "0.03"], ["12345", "370.35"], ["100000", "3000.00"],
+    ].map(([earnings, employer]) => ({
+      name: `ETF contribution at LKR ${earnings}`,
+      input: { eligibleEarnings: earnings } as unknown as JsonValue,
+      expected: [["employer.amount", employer]],
+    })),
+  },
   {
     key: "electricity-domestic-standard",
     calculatorKey: "electricity-bill",
@@ -1511,9 +1676,18 @@ async function provisionRule(rule: DevRuleInput): Promise<void> {
       ruleDefinitionId: definition.id,
       version: rule.version,
       effectiveFrom: rule.effectiveFrom,
+      effectiveTo: rule.effectiveTo,
       payload: rule.payload,
       payloadSchemaVersion: "1",
     }, DEV_ACTOR);
+  } else if (version.status === "draft") {
+    version = await platform.updateDraft(version.id, {
+      version: rule.version,
+      effectiveFrom: rule.effectiveFrom,
+      effectiveTo: rule.effectiveTo,
+      payload: rule.payload,
+      payloadSchemaVersion: "1",
+    });
   }
 
   const base = Date.now();

@@ -14,7 +14,7 @@
 - Status: Approved candidate specification
 - Implementation use: approved for implementation and automated fixture testing within this scope
 - Production publication: blocked pending independent formula/accounting review
-- Source research and link verification: 2026-08-14
+- Source research and link verification: 2026-08-30
 - Source dossier: `docs/employment-rule-sources.md`
 
 The candidate implements only the standard 8% employee and 12% employer contributions for employment already determined to be covered. Approval does not authorize public production publication or a coverage decision.
@@ -107,7 +107,7 @@ At `100.04`, the independently calculated 20% amount would round to `20.01`; the
 
 ## Provenance
 
-Every result must include the calculation version, resolved EPF rule version and effective date, attached legal and operational sources, and latest successful source verification time. Link verification on `2026-08-14` confirms source availability, not independent formula/accounting approval. Regulated execution is server-authoritative and must fail if a reviewed applicable rule or required source provenance cannot be resolved.
+Every result must include the calculation version, resolved EPF rule version and effective date, attached legal and operational sources, and latest successful source verification time. Link verification on `2026-08-30` confirms source availability, not independent formula/accounting approval. Regulated execution is server-authoritative and must fail if a reviewed applicable rule or required source provenance cannot be resolved.
 
 ## Localization Strings
 
