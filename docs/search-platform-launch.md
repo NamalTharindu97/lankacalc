@@ -87,33 +87,25 @@ Record successful verification, owner accounts, and UTC timestamps. DNS verifica
 
 ## Enable Public Indexing
 
-The guarded private deployment script intentionally refuses `PUBLIC_INDEXING_ENABLED=true`. Public activation is an explicit operator change, not a normal private release.
+Public activation is an explicit mode of the guarded release script, not an ordinary private release.
 
 1. Confirm the production checkout is clean and at the recorded reviewed revision.
 2. Confirm a current pre-change backup, external probes, and rollback decision owner.
 3. Change only `PUBLIC_INDEXING_ENABLED=false` to `PUBLIC_INDEXING_ENABLED=true` in `/etc/lankacalc/production.env`.
-4. Recreate the web container so the process receives the new environment; do not seed rules or run unrelated migrations.
+4. Run the guarded public release with the reviewed revision and canonical origins; do not seed rules.
 
 ```sh
-export COMPOSE_ENV_FILES=/etc/lankacalc/production.env
-docker compose --env-file "$COMPOSE_ENV_FILES" \
-  -p lankacalc-production \
-  -f compose.yaml \
-  -f compose.production.yaml \
-  up -d --no-build --force-recreate web proxy
+sudo EXPECTED_SITE_URL=https://example.lk \
+  REDIRECT_FROM_URL=https://www.example.lk \
+  PREVIOUS_DEPLOYMENT_VISIBILITY=private \
+  ./scripts/deploy-production.sh "$(git rev-parse HEAD)" public
 ```
 
-5. Purge only affected HTML/metadata cache entries at Cloudflare if caching configuration requires it.
-6. Run the launch contract against the public edge:
+For the first public launch, `PREVIOUS_DEPLOYMENT_VISIBILITY=private` ensures rollback verifies the preceding private image under `PUBLIC_INDEXING_ENABLED=false`. Use `public` for later public-to-public releases. The script checks the clean revision and public environment gate, rebuilds with indexing enabled, creates a pre-migration backup, records the previous image and rollback visibility, runs migrations, and executes internal edge plus public launch contracts. Preserve its release record and successful output.
 
-```sh
-EXPECTED_SITE_URL=https://example.lk \
-APP_BASE_URL=https://example.lk \
-REDIRECT_FROM_URL=https://www.example.lk \
-npm run test:launch
-```
+5. Purge only affected HTML/metadata cache entries at Cloudflare if caching configuration requires it, then rerun the launch contract if a stale cached response caused the first public check to fail.
 
-Do not set `ALLOW_INSECURE_LAUNCH_CHECK=true`. Preserve the successful output, sitemap URL count, revision, and UTC timestamp.
+Do not set `ALLOW_INSECURE_LAUNCH_CHECK=true`. Preserve the successful output, sitemap URL count, revision, release record, and UTC timestamp.
 
 ## Manual Launch Verification
 
@@ -185,7 +177,7 @@ Stop launch for any of these conditions:
 To contain indexing:
 
 1. Set `PUBLIC_INDEXING_ENABLED=false` in the production environment.
-2. Recreate `web` and `proxy` with the same no-build Compose command.
+2. Run `sudo ./scripts/deploy-production.sh "$(git rev-parse HEAD)"` to rebuild and verify the current revision in private mode. Do not rely on recreating the public image because indexing configuration is also present during the Next.js build.
 3. Purge affected Cloudflare HTML/metadata cache entries.
 4. Run `APP_BASE_URL=https://example.lk npm run test:private` and confirm public pages emit `noindex,nofollow`.
 5. Remove the sitemap submission from Google/Bing only when the incident owner determines that continued crawling is harmful; removal is not a substitute for `noindex` or access control.
@@ -199,7 +191,7 @@ Do not use `robots.txt` disallow as the sole emergency de-indexing control becau
 - [ ] Pre-launch gates approved with named owners.
 - [ ] Google Domain property verified with two organization-controlled owners.
 - [ ] Bing site verified with two organization-controlled administrators.
-- [ ] Reviewed revision activated with only the indexing flag changed.
+- [ ] Reviewed revision activated through guarded public release mode.
 - [ ] Public launch contract passed without insecure override.
 - [ ] Manual canonical, locale, metadata, structured-data, and privacy checks passed.
 - [ ] Canonical sitemap accepted by Google and Bing with expected URL counts.

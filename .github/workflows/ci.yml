@@ -45,6 +45,7 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - run: bash -n scripts/*.sh
       - run: docker compose build web migrate
       - run: docker run --rm --volume "$PWD/deploy/nginx.conf:/etc/nginx/nginx.conf:ro" nginx:1.27-alpine nginx -t
       - run: docker compose up --detach db web proxy

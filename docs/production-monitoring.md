@@ -153,13 +153,13 @@ Do not paste unreviewed logs into public issues or chat systems.
 
 ## Rollback And Recovery
 
-For a compatible application regression while `PUBLIC_INDEXING_ENABLED=false`, use the failed deployment's release record:
+For a compatible application regression, use the failed deployment's release record:
 
 ```sh
 sudo ./scripts/rollback-production.sh /var/lib/lankacalc/releases/<UTC timestamp>.env
 ```
 
-The script intentionally refuses an indexed-production environment. Public rollback is not automated; use an approved forward fix or first follow the incident owner's documented public containment decision rather than changing the indexing flag ad hoc. The script restores the previous application image and reruns private edge checks. It does not reverse migrations or restore PostgreSQL. Before rollback:
+The script restores the previous application image and reruns edge verification plus the recorded rollback target's private or public contract. A first-public-launch rollback targets private and requires changing `PUBLIC_INDEXING_ENABLED` back to `false`; a later public-to-public rollback keeps it `true` and reuses the recorded canonical origins. A legacy record defaults to private. It does not reverse migrations or restore PostgreSQL. Before rollback:
 
 - compare the failed release's migrations with the previous image;
 - prefer a forward fix when the old image cannot safely use the migrated schema;
