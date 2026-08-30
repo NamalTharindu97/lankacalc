@@ -59,9 +59,9 @@ The operator GUI is available at `http://localhost:3000/admin/rules`. Tokens sta
 
 APIT, EPF, ETF, Salary, and Take-home are server-authoritative regulated calculators. They fail closed until their official sources, fixtures, and effective-dated rules are independently reviewed and published. See `docs/employment-rule-publication.md` for the release procedure and `docs/employment-rule-sources.md` for the source dossier.
 
-## Docker Deployment
+## Local Docker Stack
 
-Set a strong `POSTGRES_PASSWORD` in `.env`. Build and start PostgreSQL, the web application, and the Nginx edge proxy:
+Set a development `POSTGRES_PASSWORD` in `.env`. Build and start PostgreSQL, the web application, and the local Nginx proxy:
 
 ```sh
 docker compose up -d --build db web proxy
@@ -73,7 +73,35 @@ Apply migrations as a separate operator action:
 docker compose --profile tools run --rm migrate
 ```
 
-Only Nginx publishes the application port. It enforces request-size and calculation-rate limits while replacing client IP headers before forwarding to Next.js. Production should terminate TLS in this Nginx. If a separate trusted proxy terminates TLS, configure Nginx `set_real_ip_from` with only that proxy's CIDR and set the matching `real_ip_header` before deployment; otherwise all users will share the proxy's rate-limit identity. Back up the PostgreSQL volume before storing user data.
+Only the local Nginx proxy publishes the application port. It enforces request-size and calculation-rate limits before forwarding to Next.js. Run `npm run test:edge` against the running stack.
+
+## Self-Hosted Production
+
+Production uses `compose.production.yaml` over `compose.yaml`. PostgreSQL has no host port, Nginx binds only to the loopback verification port, and standalone Caddy on the fixed external `edge` network is the only public origin connection. Cloudflare terminates browser-facing TLS; Caddy connects to Nginx, whose trusted proxy range is restricted by `deploy/nginx.production.conf`.
+
+Production requirements:
+
+- Store the root-owned mode-`600` environment at `/etc/lankacalc/production.env`.
+- Set `SITE_URL` and `BETTER_AUTH_URL` to the same canonical HTTPS origin.
+- Keep `PUBLIC_INDEXING_ENABLED=false` until every domain, language, monitoring, backup, and search-launch gate passes.
+- Apply migrations explicitly; application startup never migrates.
+- Never run `npm run db:seed:dev-rules` in production.
+- Keep regulated calculators fail-closed until independently reviewed rules and source revisions are published.
+
+Deploy a reviewed private revision from a clean checkout with:
+
+```sh
+sudo ./scripts/deploy-production.sh "$(git rev-parse HEAD)"
+```
+
+The guarded release creates a pre-migration database dump and checksum, records the previous image, builds and migrates explicitly, starts the stack, and runs edge plus private-indexing verification. Public mode is a separate explicit operation after all launch gates pass. Rollback uses the failed release record and does not restore PostgreSQL.
+
+Operational documentation:
+
+- `docs/contabo-deployment.md`: initial setup, private/public releases, shared Caddy, verification, and rollback.
+- `docs/production-monitoring.md`: monitoring, alerting, incident response, and recovery verification.
+- `docs/production-backups.md`: encrypted off-server backups and isolated restore exercises.
+- `docs/search-platform-launch.md`: indexing activation, Google/Bing submission, observation, and containment.
 
 ## Architecture
 
