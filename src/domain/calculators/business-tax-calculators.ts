@@ -272,19 +272,28 @@ const withholdingTaxRule: RuleDependency = {
 
 const paymentTypeOptions = [
   { label: "Select the payment type", value: "" },
-  { label: "Interest or discount", value: "interest" },
+  { label: "Interest or discount to a resident individual", value: "interest-resident" },
   { label: "Dividend", value: "dividend" },
   { label: "Rent to a resident person", value: "rent-resident" },
   { label: "Rent to a non-resident person", value: "rent-non-resident" },
   { label: "Service fee to a resident individual", value: "service-fee-resident" },
   { label: "Service fee to a non-resident person", value: "service-fee-non-resident" },
-  { label: "Royalty", value: "royalty" },
+  { label: "Royalty to a resident person", value: "royalty-resident" },
+  { label: "Royalty to a non-resident person", value: "royalty-non-resident" },
 ];
+
+const nonResidentPaymentTypes = ["rent-non-resident", "service-fee-non-resident", "royalty-non-resident"];
 
 const selfDeclarationOptions = [
   { label: "Select an option", value: "" },
   { label: "No — deduct the tax", value: "no" },
   { label: "Yes — self-declaration on file", value: "yes" },
+];
+
+const confirmationOptions = [
+  { label: "Select an option", value: "" },
+  { label: "No", value: "no" },
+  { label: "Yes — I confirm", value: "yes" },
 ];
 
 const withholdingTaxMetadata = {
@@ -294,13 +303,15 @@ const withholdingTaxMetadata = {
   summary: "Estimate withholding or advance income tax on interest, dividends, rent, service fees, and royalties by payment date.",
   category: "Business & Tax",
   classification: "regulated",
-  version: "1.0.0",
+  version: "2.0.0",
   accent: "rose",
   fields: [
     { name: "asOfDate", label: "Payment date", type: "date", required: true, min: "2025-04-01", max: "9999-12-31", description: "The date of the payment. The rate is selected by the payment date." },
     { name: "paymentType", label: "Payment type", type: "select", required: true, options: paymentTypeOptions, description: "The kind of payment being made. This selects the withholding or advance income tax rate and whether it is a final or creditable tax." },
     { name: "grossAmount", label: "Gross payment amount", type: "number", required: true, min: 0, max: 10_000_000_000, maxDecimalPlaces: 0, step: 1, suffix: "LKR", description: "The gross amount of the payment, before any deduction. For rent or a resident service fee, use the total paid to this recipient in the calendar month." },
-    { name: "interestSelfDeclaration", label: "Interest self-declaration (optional)", type: "select", required: false, options: selfDeclarationOptions, visibleWhen: { field: "paymentType", equals: "interest" }, description: "A resident individual whose total assessable income does not exceed the personal relief may declare to the payer to stop advance income tax on interest." },
+    { name: "interestSelfDeclaration", label: "Valid interest self-declaration (optional)", type: "select", required: false, options: selfDeclarationOptions, visibleWhen: { field: "paymentType", equals: "interest-resident" }, description: "Confirm only when the resident individual has a valid declaration on file that they do not derive taxable income for the relevant year of assessment." },
+    { name: "residentServiceScopeConfirmed", label: "Service is listed for this payment date", type: "select", required: true, options: confirmationOptions, visibleWhen: { field: "paymentType", equals: "service-fee-resident" }, description: "Confirm that the service is within the reviewed section 85(1C) scope effective on the payment date. The listed professions expanded on 3 June 2026." },
+    { name: "nonResidentConditionsConfirmed", label: "Non-resident domestic-rate conditions", type: "select", required: true, options: confirmationOptions, visibleWhen: { field: "paymentType", in: nonResidentPaymentTypes }, description: "Confirm that no treaty reduction or exemption applies and the payment is not attributable to a Sri Lankan permanent establishment." },
   ],
 } satisfies CalculatorMetadata;
 
@@ -325,6 +336,8 @@ export const withholdingTaxCalculator = defineRegulatedCalculator({
       thresholdExceeded:
         calculation.thresholdExceeded === null ? "n/a" : calculation.thresholdExceeded ? "yes" : "no",
       selfDeclarationApplied: calculation.selfDeclarationApplied ? "yes" : "no",
+      serviceScopeRevision: calculation.serviceScopeRevision ?? "n/a",
+      serviceScopeEffectiveFrom: calculation.serviceScopeEffectiveFrom ?? "n/a",
       wthAmount: calculation.wthAmount,
       netPayment: calculation.netPayment,
       treatment: calculation.treatment,
@@ -349,10 +362,10 @@ export const withholdingTaxCalculator = defineRegulatedCalculator({
       breakdown,
       assumptions: [
         `Withholding and advance income tax are deducted at the rate for the payment date, effective ${payload.effectiveFrom} as published by the Inland Revenue Department.`,
-        "Interest, rent, service fees, and royalties are creditable against the recipient's annual return; dividends are a final tax.",
+        "Resident interest, rent, service fees, and royalties are creditable; dividends and confirmed qualifying non-resident payments are final withholding payments.",
         "Rent to a resident person and service fees to a resident individual are taxed only when the calendar-month aggregate exceeds the LKR 100000 threshold; the gross amount entered is treated as the calendar-month aggregate.",
-        `The interest self-declaration applies to a resident individual whose total assessable income does not exceed the personal relief of LKR ${payload.personalRelief}.`,
-        "Tax is rounded once to the nearest rupee.",
+        "An interest self-declaration is applied only when the payer confirms that the resident individual has a valid declaration because they do not derive taxable income for the relevant year of assessment.",
+        `Tax is calculated once to two decimal places (${payload.rounding}); no nearest-rupee convention is assumed.`,
       ],
       warnings: [
         "This is an estimate for payer guidance, not tax, legal, or accounting advice.",

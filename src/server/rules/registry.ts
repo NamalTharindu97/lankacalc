@@ -223,7 +223,7 @@ export const ruleHandlers: Readonly<Record<string, RuleHandler>> = {
     },
   },
   "withholding-tax-lk-2026": {
-    payloadSchemaVersion: "1",
+    payloadSchemaVersion: "2",
     validatePayload(payload) {
       withholdingTaxPayloadSchema.parse(payload);
     },
