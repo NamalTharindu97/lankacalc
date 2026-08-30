@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { authenticateOperator, canPerform } from "@/server/admin-auth";
 import { getDatabase } from "@/server/db/client";
+import { getOperationalStatus } from "@/server/operations/status";
 import { isoDateSchema } from "@/server/rules/date";
 import { getRulePlatform } from "@/server/rules/registry";
 import type { JsonValue } from "@/server/rules/json";
@@ -227,7 +228,13 @@ export async function POST(request: Request) {
         data = await rules.getHistory(input.ruleVersionId);
         break;
       case "dashboard":
-        data = { ...await rules.getDashboard(), operator };
+        {
+          const [dashboard, operations] = await Promise.all([
+            rules.getDashboard(),
+            getOperationalStatus(database),
+          ]);
+          data = { ...dashboard, operations, operator };
+        }
         break;
     }
     return NextResponse.json({ data });

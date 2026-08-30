@@ -97,6 +97,8 @@ Create alerts when the selected monitoring/logging stack can measure these signa
 
 Do not alert on raw request bodies, calculation inputs, saved-calculation contents, report contents, email addresses, tokens, cookies, or database credentials.
 
+The protected rule desk's aggregate operational panel is the privacy-safe application source for reminder delivery states, overdue retries, stale claims, report states, stuck jobs, and oldest ages. It deliberately excludes report errors, provider details, identifiers, and user content. Monitoring integrations should consume equivalent aggregate signals rather than scraping sensitive database rows.
+
 ## Logging
 
 Production Compose rotates each service's local JSON logs at 10 MB with five files. This bounds local disk use but is not durable centralized retention.

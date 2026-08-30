@@ -373,6 +373,7 @@ Deliverables:
 - Expiring private download URLs
 - Report version and provenance
 - Deletion and retention policy
+- Privacy-safe aggregate operator visibility for queued, stuck, ready, and failed jobs
 
 Exit criteria:
 
@@ -417,7 +418,7 @@ Exit criteria:
 - Duplicate scheduler runs do not duplicate notifications.
 - Date-only obligations behave correctly in `Asia/Colombo`.
 - Unsubscribed users receive no delivery.
-- Delivery failure is visible to operators.
+- Delivery failure, overdue retries, and stale claims are visible to operators as aggregate counts and oldest ages without user or reminder content.
 
 ## 10. Stage 5: Remaining LankaCalc Families
 

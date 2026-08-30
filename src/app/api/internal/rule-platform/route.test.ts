@@ -43,14 +43,43 @@ describe("POST /api/internal/rule-platform", () => {
       body: JSON.stringify({ action: "dashboard" }),
     }));
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
+    const body = await response.json();
+    expect(body).toMatchObject({
       data: {
         operator: { name: "test-reviewer", role: "reviewer" },
         sources: expect.any(Array),
         definitions: expect.any(Array),
         versions: expect.any(Array),
+        operations: {
+          generatedAt: expect.any(String),
+          thresholdsSeconds: { reminderStaleClaim: 1800, reportStuck: 900 },
+          reminders: {
+            deliveries: { pending: expect.any(Number), claimed: expect.any(Number), failed: expect.any(Number) },
+            overduePending: { count: expect.any(Number) },
+            staleClaimed: { count: expect.any(Number) },
+          },
+          reports: {
+            jobs: { queued: expect.any(Number), generating: expect.any(Number), failed: expect.any(Number) },
+            stuckQueued: { count: expect.any(Number) },
+            stuckGenerating: { count: expect.any(Number) },
+          },
+        },
       },
     });
+
+    const operations = body.data.operations as Record<string, unknown>;
+    const prohibitedKeys = new Set([
+      "id", "userId", "email", "title", "note", "actionUrl", "snapshot", "pdf",
+      "errorMessage", "detail", "fileName", "savedCalculationId", "reminderId", "deliveryId",
+    ]);
+    function visit(value: unknown): void {
+      if (!value || typeof value !== "object") return;
+      for (const [key, child] of Object.entries(value)) {
+        expect(prohibitedKeys.has(key)).toBe(false);
+        visit(child);
+      }
+    }
+    visit(operations);
   });
 
   it("rejects oversized bodies before dispatch", async () => {

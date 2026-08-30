@@ -36,6 +36,10 @@ Reminder statuses: `active` → `delivered` | `failed` | `cancelled`. Delivery s
 
 The route at `/api/internal/reminders/process` requires the `WORKER_API_TOKEN` bearer token (compared with a timing-safe constant-time check) so the endpoint is safe to expose to a cron/queue worker.
 
+## Operator visibility
+
+The protected rule desk dashboard exposes aggregate delivery counts, attempt outcomes, overdue pending deliveries, claims stale beyond 30 minutes, failed deliveries, and oldest timestamps/ages. Administrators and reviewers can read this summary with their existing operator token. It does not expose delivery/reminder IDs, users, email addresses, titles, notes, action URLs, provider details, or failure text, and observation never claims or retries a delivery.
+
 ## Email provider
 
 `src/server/email/provider.ts` defines an `EmailProvider` interface. `getEmailProvider()` returns `SmtpEmailProvider` (nodemailer) when `SMTP_HOST` is configured, otherwise `SimulatedEmailProvider`, which records messages in `console.info` with the simulated delivery time. In development the simulated provider is the default, so the full lifecycle (create → schedule → process → send → reconcile) runs without an SMTP server. The scheduler accepts the provider as an argument, so tests inject a fake that can force transient or permanent failures.
@@ -64,7 +68,8 @@ Environment (`src/server/env.ts`): `WORKER_API_TOKEN`, `SMTP_HOST`, `SMTP_PORT` 
 
 ```text
 src/server/reminders/service.ts       CRUD, scheduling, unsubscribe, processDueDeliveries
-src/server/reminders/service.test.ts  behavior against the test database (14 tests)
+src/server/reminders/service.test.ts  behavior against the test database
+src/server/operations/status.ts       aggregate privacy-safe operator health
 src/server/email/provider.ts          EmailProvider, SMTP + simulated implementations
 src/app/api/v1/reminders/route.ts     POST/GET reminders
 src/app/api/v1/reminders/[id]/route.ts GET/PATCH/DELETE a reminder

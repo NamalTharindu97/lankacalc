@@ -165,6 +165,24 @@ describe("reminder API", () => {
     expect(reminder?.status).toBe("delivered");
   });
 
+  it("claims each due delivery once across concurrent scheduler runs", async () => {
+    const headers = await signUp();
+    const firstProvider = new FakeEmailProvider();
+    const secondProvider = new FakeEmailProvider();
+    const { reminderId } = await createDueTomorrowReminder(headers);
+    const now = new Date("2026-09-30T04:00:00.000Z");
+
+    const results = await Promise.all([
+      processDueDeliveries(now, firstProvider),
+      processDueDeliveries(now, secondProvider),
+    ]);
+
+    expect(results.reduce((total, result) => total + result.processed, 0)).toBe(1);
+    expect(firstProvider.sent.length + secondProvider.sent.length).toBe(1);
+    const deliveries = await deliveriesFor(reminderId);
+    expect(deliveries[0]).toMatchObject({ status: "sent", attempts: 1 });
+  });
+
   it("records delivery attempts before sending and surfaces failures to operators", async () => {
     const headers = await signUp();
     const provider = new FakeEmailProvider();
