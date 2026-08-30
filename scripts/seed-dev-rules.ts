@@ -515,7 +515,7 @@ const devRules: DevRuleInput[] = [
     scope: "standard",
     name: "CEB standard domestic electricity tariff",
     description: "CEB standard domestic tariff effective 2026-05-11 (candidate spec values).",
-    version: "1.0.0",
+    version: "1.1.0",
     effectiveFrom: "2026-05-11",
     payload: electricityPayload as unknown as JsonValue,
     sources: [
@@ -527,10 +527,18 @@ const devRules: DevRuleInput[] = [
         publishedOn: "2026-05-09",
       },
       {
-        key: "electricity-ceb-rates-tariffs",
-        authority: "Ceylon Electricity Board",
-        title: "CEB rates and tariffs",
-        url: "https://ceb.lk/rates-and-tariffs/en",
+        key: "electricity-pucsl-tariff-schedule-2026-05-11",
+        authority: "Public Utilities Commission of Sri Lanka",
+        title: "Approved tariff schedule effective 11 May 2026 (Annex 2)",
+        url: "https://www.pucsl.gov.lk/wp-content/uploads/2026/05/Annex-2-Approved-Tariff-Tabel_May-2026.pdf",
+        publishedOn: "2026-05-09",
+      },
+      {
+        key: "electricity-pucsl-decision-2026-07-31",
+        authority: "Public Utilities Commission of Sri Lanka",
+        title: "Decision on electricity tariffs effective 31 July 2026",
+        url: "https://www.pucsl.gov.lk/wp-content/uploads/2026/07/Full-Decision-on-Electricity-Tariffs-July-2026.pdf",
+        publishedOn: "2026-07-30",
       },
     ],
     fixtures: [
@@ -559,6 +567,24 @@ const devRules: DevRuleInput[] = [
         ],
       },
       {
+        name: "first fixed tier at the 30-unit boundary",
+        input: { unitsConsumed: 30, billingDays: 30 } as unknown as JsonValue,
+        expected: [
+          ["energyCharge", "150.00"],
+          ["fixedCharge", "80.00"],
+          ["totalPayable", "235.75"],
+        ],
+      },
+      {
+        name: "second fixed tier begins at 31 units",
+        input: { unitsConsumed: 31, billingDays: 30 } as unknown as JsonValue,
+        expected: [
+          ["energyCharge", "159.00"],
+          ["fixedCharge", "210.00"],
+          ["totalPayable", "378.23"],
+        ],
+      },
+      {
         name: "moves into the 61-180 category",
         input: { unitsConsumed: 61, billingDays: 30 } as unknown as JsonValue,
         expected: [
@@ -572,6 +598,62 @@ const devRules: DevRuleInput[] = [
         expected: [
           ["category", "61-180"],
           ["totalPayable", "2788.00"],
+        ],
+      },
+      {
+        name: "61-90 fixed tier boundary",
+        input: { unitsConsumed: 90, billingDays: 30 } as unknown as JsonValue,
+        expected: [
+          ["energyCharge", "1440.00"],
+          ["fixedCharge", "400.00"],
+          ["totalPayable", "1886.00"],
+        ],
+      },
+      {
+        name: "91-120 fixed tier begins",
+        input: { unitsConsumed: 91, billingDays: 30 } as unknown as JsonValue,
+        expected: [
+          ["energyCharge", "1468.00"],
+          ["fixedCharge", "1000.00"],
+          ["totalPayable", "2529.70"],
+        ],
+      },
+      {
+        name: "91-120 fixed tier boundary",
+        input: { unitsConsumed: 120, billingDays: 30 } as unknown as JsonValue,
+        expected: [
+          ["energyCharge", "2280.00"],
+          ["fixedCharge", "1000.00"],
+          ["totalPayable", "3362.00"],
+        ],
+      },
+      {
+        name: "121-180 fixed tier begins",
+        input: { unitsConsumed: 121, billingDays: 30 } as unknown as JsonValue,
+        expected: [
+          ["energyCharge", "2324.00"],
+          ["fixedCharge", "1500.00"],
+          ["totalPayable", "3919.60"],
+        ],
+      },
+      {
+        name: "61-180 category upper boundary",
+        input: { unitsConsumed: 180, billingDays: 30 } as unknown as JsonValue,
+        expected: [
+          ["category", "61-180"],
+          ["energyCharge", "4920.00"],
+          ["fixedCharge", "1500.00"],
+          ["totalPayable", "6580.50"],
+        ],
+      },
+      {
+        name: "above-180 category begins",
+        input: { unitsConsumed: 181, billingDays: 30 } as unknown as JsonValue,
+        expected: [
+          ["category", "above 180"],
+          ["energyCharge", "5950.00"],
+          ["fixedCharge", "2500.00"],
+          ["totalPayable", "8661.25"],
         ],
       },
       {

@@ -10,7 +10,7 @@ Research retrieved and link-verified: 2026-08-16.
 
 | Rule area | Research status | Publication status |
 |---|---|---|
-| Domestic tariff effective 11 May 2026 | PUCSL decision, effective date, no-change-under-180-units, and 18% above-180 revision verified against PUCSL and media announcements; block rates and fixed charges transcribed as candidates | Approved implementation candidate; blocked pending independent review and transcription verification against the PUCSL tariff table |
+| Domestic tariff effective 11 May 2026 | Every domestic block rate and fixed charge verified directly against PUCSL Annex 2; the July 2026 decision continues the same tariff from 31 July until the next revision | Approved implementation candidate; blocked pending independent tariff/accounting review |
 | Non-domestic tariffs effective 11 May 2026 | Category structure, 18% application scope, and per-category rates transcribed from the Wikipedia transcription of the PUCSL tariff table and corroborated against the April 2026 base and media announcements; the official PUCSL tariff table is published as an image, so every value requires transcription verification | Candidate only; blocked pending transcription verification against the PUCSL tariff table and independent review |
 | Billing-period proration | PUCSL and LECO official calculators both state block limits are adjusted to the billing period | Implemented and fixture-tested |
 | Social Security Contribution Levy (SSCL) | 2.5% applied on the tariff charge, corroborated by independent calculators | Approved implementation candidate; blocked pending independent review |
@@ -23,11 +23,12 @@ Issuing authorities: Public Utilities Commission of Sri Lanka (PUCSL), the Ceylo
 ### Official Sources
 
 - [PUCSL — Electricity Tariff Revision, 2026 May](https://www.pucsl.gov.lk/electricity-tariff-revision-2026-may/) publishes the tariff decision and the tariff table (published 2026-05-09, effective 2026-05-11). The tariff table is published as an image; the candidate matrices below are transcriptions.
+- [PUCSL - Approved Tariff Schedule, Annex 2](https://www.pucsl.gov.lk/wp-content/uploads/2026/05/Annex-2-Approved-Tariff-Tabel_May-2026.pdf) is the authority-hosted tariff table for a 30-day billing cycle, effective 11 May 2026. Its domestic section directly states every rate and fixed charge in the candidate payload.
+- [PUCSL - Decision on Electricity Tariffs effective 31 July 2026](https://www.pucsl.gov.lk/wp-content/uploads/2026/07/Full-Decision-on-Electricity-Tariffs-July-2026.pdf) states on pages 4 and 8 that the Commission decided to continue the existing end-user tariff until the next revision.
 - [PUCSL — Electricity Bill Calculator (Domestic Users)](https://www.pucsl.gov.lk/calculator/) states the approved tariff is effective from 11 May 2026 and that tariff block limits are adjusted according to the selected billing period before calculating the bill.
 - [PUCSL — End User Tariff Decisions](https://www.pucsl.gov.lk/end-user-tariff-decisions/) hosts the tariff decision archive and the 2026 May tariff schedule.
 - [PUCSL — Extraordinary Tariff Review, April 2026](https://www.pucsl.gov.lk/extraordinary-tariff-review-april-2026/) and the [PUCSL press release of 2026-05-09](https://www.pucsl.gov.lk/press-rel-2026-05-09/) are the related decision documents for the 2026 May revision.
 - [PUCSL — Electricity Tariff Revision, 2026 Q2](https://www.pucsl.gov.lk/electricity-tariff-revision-2026-q2/) publishes the 2026-04-01 tariff decision that set the base non-domestic rates before the May extraordinary review.
-- [CEB — Rates and tariffs](https://ceb.lk/rates-and-tariffs/en) publishes the CEB domestic and non-domestic tariff schedules and official billing guidance.
 - [CEB Care — Bill Calculator](https://cebcare.ceb.lk/Incognito/BillCalculator) lists the official CEB tariff categories used for billing (Domestic, Domestic TOU, Industrial, General, Government, Hotel, Religious, Agriculture (71), and the Rate 2/3 bulk categories).
 
 ### Secondary Sources (transcription and corroboration)
@@ -39,7 +40,7 @@ Issuing authorities: Public Utilities Commission of Sri Lanka (PUCSL), the Ceylo
 
 ### Extraction Method
 
-The 2026 May tariff decision, its effective date, and the 18% application scope were cross-checked against the PUCSL tariff revision page and at least two independent media reports of the same decision. The candidate block rates, fixed charges, time-of-use rates, and demand charges were transcribed from the Wikipedia text rendering of the PUCSL table and compared against the guruwaraya transcription of the April 2026 base to identify which categories were revised on 11 May 2026. The official tariff table itself is published as an image on the PUCSL page, so every value still requires transcription verification against that table before publication. The billing-period proration method is confirmed by both official calculators (PUCSL and LECO), which state block limits are adjusted to the billing period.
+The domestic block rates and fixed charges were read directly from the domestic section of PUCSL Annex 2 and checked at every transition (`30/31`, `60/61`, `90/91`, `120/121`, and `180/181` units). The July decision confirms those rates remain current from 31 July 2026. Non-domestic rates retain their separate transcription caveats. The billing-period proration method is confirmed by both official calculators (PUCSL and LECO), which state block limits are adjusted to the billing period.
 
 ## Candidate Tariff Matrix (CEB standard domestic, effective 2026-05-11)
 
@@ -75,6 +76,7 @@ Notes:
 - The fixed charge is the tier of the block containing the billed consumption; the 0-30 block's 80.00 LKR fixed charge applies even at zero consumption.
 - A consumption that spans a category boundary bills its low units in the lower block and moves the fixed charge to the tier containing the billed consumption.
 - The 2026 May revision leaves tariffs unchanged for consumption up to 180 units and applies an 18% increase above 180 units; the candidate matrix reflects that structure for the domestic category.
+- The PUCSL decision effective 31 July 2026 continues this same tariff until the next revision, so the payload remains applicable to the August 2026 fixtures.
 - VAT is treated as included in the approved tariff charges; no separate VAT line is modeled.
 
 ## Candidate Non-Domestic Tariff Matrix (CEB, effective 2026-05-11)
@@ -164,7 +166,7 @@ The following are excluded from the candidate: LECO tariffs (including LECO pre-
 
 ## Limitations
 
-- The official PUCSL tariff table is published as an image; the candidate block rates, fixed charges, time-of-use rates, and demand charges require transcription verification against that table and the tariff decision before any public publication. Discrepancies already observed between transcriptions (EVCS-1 off-peak 15.00 vs 31.00; EVCS-2 fixed/demand column order; Rate 3 demand charges present in April but absent in the May rendering) must be resolved against the official table.
+- Domestic block rates and fixed charges have been verified against the official PUCSL Annex 2. Non-domestic time-of-use rates and demand charges retain separate transcription and interpretation risks and remain outside this evidence slice.
 - Tariffs change by PUCSL decision; the rule version must carry an explicit effective date and the calculation must resolve the applicable version by date, failing closed when no reviewed version exists.
 - The candidate covers the CEB standard domestic and non-domestic tariffs only. LECO, time-of-use domestic/industrial options, net-metering and rooftop solar programs, concession and lifeline rates, fuel-adjustment charges, delayed-payment surcharges, and taxes other than the modeled SSCL are excluded.
 - This dossier records the decisions and their public announcements; it does not independently verify the cost-of-service study, revenue-deficit projections, or the regulatory basis for each charge.
