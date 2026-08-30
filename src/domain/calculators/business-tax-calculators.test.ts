@@ -100,9 +100,12 @@ const withholdingTaxPayload = {
   withholdingTax: {
     authority: "ird-income-tax-2025",
     effectiveFrom: "2025-04-01",
-    rounding: "nearest-rupee",
-    personalRelief: "1800000",
+    rounding: "two-decimal",
     monthlyThreshold: "100000",
+    residentServiceScopeRevisions: [
+      { effectiveFrom: "2025-04-01", revision: "section-85-1c-2025" },
+      { effectiveFrom: "2026-06-03", revision: "section-85-1c-2026" },
+    ],
     rates: {
       interest: [{ effectiveFrom: "2025-04-01", ratePercent: "10" }],
       dividend: [{ effectiveFrom: "2025-04-01", ratePercent: "15" }],
@@ -117,7 +120,7 @@ const withholdingTaxPayload = {
 
 const interestInput = {
   asOfDate: "2026-08-16",
-  paymentType: "interest",
+  paymentType: "interest-resident",
   grossAmount: 200000,
   interestSelfDeclaration: undefined,
 } as const;
@@ -756,7 +759,7 @@ describe("regulated withholding tax calculator definition", () => {
       ruleVersions: [],
       sources: [],
       result: {
-        paymentTypeLabel: "Interest or discount",
+        paymentTypeLabel: "Interest or discount to a resident individual",
         ratePercent: "10",
         wthAmount: "20000.00",
         netPayment: "180000.00",
@@ -770,14 +773,14 @@ describe("regulated withholding tax calculator definition", () => {
 });
 
 describe("withholding tax engine", () => {
-  it("deducts AIT at 10% on interest to a resident or non-resident", () => {
+  it("deducts creditable AIT at 10% on interest to a resident individual", () => {
     const result = calculateWithholdingTax(
       { ...interestInput },
       withholdingTaxPayload.withholdingTax,
     );
 
     expect(result).toMatchObject({
-      paymentType: "interest",
+      paymentType: "interest-resident",
       ratePercent: "10",
       wthAmount: "20000.00",
       netPayment: "180000.00",
@@ -855,7 +858,7 @@ describe("withholding tax engine", () => {
 
   it("deducts 5% AIT on service fees to a resident individual above the threshold", () => {
     const result = calculateWithholdingTax(
-      { asOfDate: "2026-08-16", paymentType: "service-fee-resident", grossAmount: 250000 },
+      { asOfDate: "2026-08-16", paymentType: "service-fee-resident", grossAmount: 250000, residentServiceScopeConfirmed: "yes" },
       withholdingTaxPayload.withholdingTax,
     );
 
@@ -864,12 +867,14 @@ describe("withholding tax engine", () => {
       wthAmount: "12500.00",
       netPayment: "237500.00",
       treatment: "creditable",
+      serviceScopeRevision: "section-85-1c-2026",
+      serviceScopeEffectiveFrom: "2026-06-03",
     });
   });
 
   it("deducts nothing for a resident service fee at or below the threshold", () => {
     const result = calculateWithholdingTax(
-      { asOfDate: "2026-08-16", paymentType: "service-fee-resident", grossAmount: 100000 },
+      { asOfDate: "2026-08-16", paymentType: "service-fee-resident", grossAmount: 100000, residentServiceScopeConfirmed: "yes" },
       withholdingTaxPayload.withholdingTax,
     );
 
@@ -882,7 +887,7 @@ describe("withholding tax engine", () => {
 
   it("deducts 14% on service fees to a non-resident person without a threshold gate", () => {
     const result = calculateWithholdingTax(
-      { asOfDate: "2026-08-16", paymentType: "service-fee-non-resident", grossAmount: 2000000 },
+      { asOfDate: "2026-08-16", paymentType: "service-fee-non-resident", grossAmount: 2000000, nonResidentConditionsConfirmed: "yes" },
       withholdingTaxPayload.withholdingTax,
     );
 
@@ -891,12 +896,13 @@ describe("withholding tax engine", () => {
       wthAmount: "280000.00",
       netPayment: "1720000.00",
       thresholdApplied: false,
+      treatment: "final",
     });
   });
 
   it("deducts 14% on rent to a non-resident person", () => {
     const result = calculateWithholdingTax(
-      { asOfDate: "2026-08-16", paymentType: "rent-non-resident", grossAmount: 200000 },
+      { asOfDate: "2026-08-16", paymentType: "rent-non-resident", grossAmount: 200000, nonResidentConditionsConfirmed: "yes" },
       withholdingTaxPayload.withholdingTax,
     );
 
@@ -904,12 +910,18 @@ describe("withholding tax engine", () => {
       ratePercent: "14",
       wthAmount: "28000.00",
       thresholdApplied: false,
+      treatment: "final",
     });
   });
 
-  it("deducts 14% on royalties as a creditable tax", () => {
+  it("distinguishes creditable resident royalties from final non-resident royalties", () => {
     const result = calculateWithholdingTax(
-      { asOfDate: "2026-08-16", paymentType: "royalty", grossAmount: 300000 },
+      { asOfDate: "2026-08-16", paymentType: "royalty-resident", grossAmount: 300000 },
+      withholdingTaxPayload.withholdingTax,
+    );
+
+    const nonResident = calculateWithholdingTax(
+      { asOfDate: "2026-08-16", paymentType: "royalty-non-resident", grossAmount: 300000, nonResidentConditionsConfirmed: "yes" },
       withholdingTaxPayload.withholdingTax,
     );
 
@@ -919,17 +931,18 @@ describe("withholding tax engine", () => {
       netPayment: "258000.00",
       treatment: "creditable",
     });
+    expect(nonResident).toMatchObject({ wthAmount: "42000.00", treatment: "final" });
   });
 
-  it("rounds the deduction once to the nearest rupee", () => {
+  it("preserves tax to two decimal places without nearest-rupee rounding", () => {
     const result = calculateWithholdingTax(
-      { asOfDate: "2026-08-16", paymentType: "service-fee-resident", grossAmount: 333333 },
+      { asOfDate: "2026-08-16", paymentType: "service-fee-resident", grossAmount: 333333, residentServiceScopeConfirmed: "yes" },
       withholdingTaxPayload.withholdingTax,
     );
 
     expect(result).toMatchObject({
-      wthAmount: "16667.00",
-      netPayment: "316666.00",
+      wthAmount: "16666.65",
+      netPayment: "316666.35",
     });
   });
 
@@ -946,16 +959,32 @@ describe("withholding tax engine", () => {
     };
 
     const earlier = calculateWithholdingTax(
-      { asOfDate: "2025-12-15", paymentType: "interest", grossAmount: 100000 },
+      { asOfDate: "2025-12-15", paymentType: "interest-resident", grossAmount: 100000 },
       twoTier,
     );
     const later = calculateWithholdingTax(
-      { asOfDate: "2026-06-15", paymentType: "interest", grossAmount: 100000 },
+      { asOfDate: "2026-06-15", paymentType: "interest-resident", grossAmount: 100000 },
       twoTier,
     );
 
     expect(earlier).toMatchObject({ ratePercent: "10", rateEffectiveFrom: "2025-04-01" });
     expect(later).toMatchObject({ ratePercent: "12", rateEffectiveFrom: "2026-01-01" });
+  });
+
+  it("fails closed before the first effective rate or service-scope revision", () => {
+    expect(() => calculateWithholdingTax(
+      { asOfDate: "2025-03-31", paymentType: "dividend", grossAmount: 100000 },
+      withholdingTaxPayload.withholdingTax,
+    )).toThrow("No withholding-tax rate is effective");
+
+    const laterScope = {
+      ...withholdingTaxPayload.withholdingTax,
+      residentServiceScopeRevisions: [{ effectiveFrom: "2026-06-03", revision: "section-85-1c-2026" }],
+    };
+    expect(() => calculateWithholdingTax(
+      { asOfDate: "2026-06-02", paymentType: "service-fee-resident", grossAmount: 200000, residentServiceScopeConfirmed: "yes" },
+      laterScope,
+    )).toThrow("No resident service scope is effective");
   });
 });
 
@@ -981,6 +1010,25 @@ describe("withholding tax schemas", () => {
     ).toBe(false);
   });
 
+  it("requires the applicable resident-service and non-resident confirmations", () => {
+    expect(withholdingTaxInputSchema.safeParse({
+      asOfDate: "2026-08-16",
+      paymentType: "service-fee-resident",
+      grossAmount: 200000,
+    }).success).toBe(false);
+    expect(withholdingTaxInputSchema.safeParse({
+      asOfDate: "2026-08-16",
+      paymentType: "rent-non-resident",
+      grossAmount: 200000,
+    }).success).toBe(false);
+    expect(withholdingTaxInputSchema.safeParse({
+      asOfDate: "2026-08-16",
+      paymentType: "rent-non-resident",
+      grossAmount: 200000,
+      nonResidentConditionsConfirmed: "yes",
+    }).success).toBe(true);
+  });
+
   it("rejects a rate schedule that is not strictly ascending", () => {
     const bad = {
       ...withholdingTaxPayload.withholdingTax,
@@ -993,6 +1041,16 @@ describe("withholding tax schemas", () => {
       },
     };
     expect(() => withholdingTaxPayloadSchema.parse(bad)).toThrow();
+  });
+
+  it("rejects a resident service scope schedule that is not strictly ascending", () => {
+    expect(() => withholdingTaxPayloadSchema.parse({
+      ...withholdingTaxPayload.withholdingTax,
+      residentServiceScopeRevisions: [
+        { effectiveFrom: "2026-06-03", revision: "new" },
+        { effectiveFrom: "2025-04-01", revision: "old" },
+      ],
+    })).toThrow();
   });
 });
 
