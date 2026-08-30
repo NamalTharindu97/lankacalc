@@ -42,11 +42,32 @@ type DashboardVersion = {
   publishedAt: string | null;
 };
 
+type AgedCount = { count: number; oldestAt: string | null; oldestAgeSeconds: number | null };
+
+type OperationalStatus = {
+  generatedAt: string;
+  thresholdsSeconds: { reminderStaleClaim: number; reportStuck: number };
+  reminders: {
+    deliveries: { pending: number; claimed: number; sent: number; skipped: number; failed: number };
+    attempts: { success: number; transientFailure: number; permanentFailure: number; skipped: number };
+    overduePending: AgedCount;
+    staleClaimed: AgedCount;
+    failed: AgedCount;
+  };
+  reports: {
+    jobs: { queued: number; generating: number; completed: number; ready: number; failed: number };
+    stuckQueued: AgedCount;
+    stuckGenerating: AgedCount;
+    failed: AgedCount;
+  };
+};
+
 type DashboardData = {
   sources: DashboardSource[];
   definitions: DashboardDefinition[];
   versions: DashboardVersion[];
   totals: { sources: number; definitions: number; drafts: number; published: number };
+  operations: OperationalStatus;
   operator: { name: string; role: "admin" | "reviewer" };
 };
 
@@ -60,6 +81,14 @@ function localDateTime(): string {
 function formatDate(value: string | null): string {
   if (!value) return "Not recorded";
   return new Intl.DateTimeFormat("en-LK", { dateStyle: "medium", timeStyle: value.includes("T") ? "short" : undefined }).format(new Date(value.includes("T") ? value : `${value}T00:00:00Z`));
+}
+
+function formatAge(seconds: number | null): string {
+  if (seconds === null) return "none";
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  if (seconds < 86_400) return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+  return `${Math.floor(seconds / 86_400)}d ${Math.floor((seconds % 86_400) / 3600)}h`;
 }
 
 function errorMessage(body: unknown, status: number): string {
@@ -212,6 +241,28 @@ export function RulePlatformConsole() {
             <article><span>02</span><strong>{dashboard.totals.definitions}</strong><p>rule definitions</p></article>
             <article><span>03</span><strong>{dashboard.totals.drafts}</strong><p>draft versions</p></article>
             <article><span>04</span><strong>{dashboard.totals.published}</strong><p>published versions</p></article>
+          </section>
+
+          <section className="operator-registers" aria-label="Operational job health">
+            <div className="register-panel">
+              <div className="register-heading"><div><span>Reminders</span><h2>Delivery health</h2></div><small>Updated {formatDate(dashboard.operations.generatedAt)}</small></div>
+              <div className="version-table">
+                <article><div><strong>{dashboard.operations.reminders.deliveries.pending} pending / {dashboard.operations.reminders.deliveries.claimed} claimed</strong><small>Current delivery queue</small></div><span className="status-pill">queue</span></article>
+                <article><div><strong>{dashboard.operations.reminders.overduePending.count} overdue</strong><small>Oldest {formatAge(dashboard.operations.reminders.overduePending.oldestAgeSeconds)}</small></div><span className={`status-pill ${dashboard.operations.reminders.overduePending.count ? "status-failed" : "status-published"}`}>due</span></article>
+                <article><div><strong>{dashboard.operations.reminders.staleClaimed.count} stale claims</strong><small>Oldest {formatAge(dashboard.operations.reminders.staleClaimed.oldestAgeSeconds)} / threshold {formatAge(dashboard.operations.thresholdsSeconds.reminderStaleClaim)}</small></div><span className={`status-pill ${dashboard.operations.reminders.staleClaimed.count ? "status-failed" : "status-published"}`}>claims</span></article>
+                <article><div><strong>{dashboard.operations.reminders.failed.count} failed deliveries</strong><small>Oldest {formatAge(dashboard.operations.reminders.failed.oldestAgeSeconds)} / {dashboard.operations.reminders.attempts.permanentFailure} permanent attempts</small></div><span className={`status-pill ${dashboard.operations.reminders.failed.count ? "status-failed" : "status-published"}`}>failed</span></article>
+              </div>
+            </div>
+
+            <div className="register-panel">
+              <div className="register-heading"><div><span>Reports</span><h2>Generation health</h2></div><small>No report content or errors</small></div>
+              <div className="version-table">
+                <article><div><strong>{dashboard.operations.reports.jobs.queued} queued / {dashboard.operations.reports.jobs.generating} generating</strong><small>{dashboard.operations.reports.jobs.ready} ready reports</small></div><span className="status-pill">queue</span></article>
+                <article><div><strong>{dashboard.operations.reports.stuckQueued.count} stuck queued</strong><small>Oldest {formatAge(dashboard.operations.reports.stuckQueued.oldestAgeSeconds)} / threshold {formatAge(dashboard.operations.thresholdsSeconds.reportStuck)}</small></div><span className={`status-pill ${dashboard.operations.reports.stuckQueued.count ? "status-failed" : "status-published"}`}>queued</span></article>
+                <article><div><strong>{dashboard.operations.reports.stuckGenerating.count} stuck generating</strong><small>Oldest {formatAge(dashboard.operations.reports.stuckGenerating.oldestAgeSeconds)}</small></div><span className={`status-pill ${dashboard.operations.reports.stuckGenerating.count ? "status-failed" : "status-published"}`}>running</span></article>
+                <article><div><strong>{dashboard.operations.reports.failed.count} failed jobs</strong><small>Oldest {formatAge(dashboard.operations.reports.failed.oldestAgeSeconds)} / legacy completed {dashboard.operations.reports.jobs.completed}</small></div><span className={`status-pill ${dashboard.operations.reports.failed.count ? "status-failed" : "status-published"}`}>failed</span></article>
+              </div>
+            </div>
           </section>
 
           <section className="operator-registers">

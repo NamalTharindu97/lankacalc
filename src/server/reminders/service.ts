@@ -512,19 +512,20 @@ function dueDeliveriesWhere(now: Date): SQL | undefined {
 }
 
 async function claimDueDeliveries(now: Date, database: Database) {
-  const rows = await database.transaction(async (tx) =>
-    tx.select()
+  return database.transaction(async (tx) => {
+    const rows = await tx.select()
       .from(schema.scheduledDeliveries)
       .where(dueDeliveriesWhere(now))
       .orderBy(asc(schema.scheduledDeliveries.scheduledFor))
       .limit(MAX_DELIVERIES_PER_RUN)
-      .for("update", { skipLocked: true }));
-  if (rows.length === 0) return rows;
+      .for("update", { skipLocked: true });
+    if (rows.length === 0) return rows;
 
-  await database.update(schema.scheduledDeliveries)
-    .set({ status: "claimed", updatedAt: now })
-    .where(inArray(schema.scheduledDeliveries.id, rows.map((row) => row.id)));
-  return rows;
+    await tx.update(schema.scheduledDeliveries)
+      .set({ status: "claimed", updatedAt: now })
+      .where(inArray(schema.scheduledDeliveries.id, rows.map((row) => row.id)));
+    return rows;
+  });
 }
 
 function buildMessage(

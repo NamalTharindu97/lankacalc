@@ -20,7 +20,7 @@ export type ReportApiResponse = {
 export const REPORT_VERSION = "1";
 const REPORT_DOWNLOAD_TTL_MS = 60 * 60 * 1000;
 const REPORT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
-const STUCK_JOB_TIMEOUT_MS = 15 * 60 * 1000;
+export const REPORT_STUCK_JOB_TIMEOUT_MS = 15 * 60 * 1000;
 
 type ReportRow = typeof schema.reports.$inferSelect;
 
@@ -297,7 +297,7 @@ export async function sweepExpiredReports(
     .where(and(eq(schema.reports.status, "ready"), lt(schema.reports.createdAt, cutOff)))
     .returning({ id: schema.reports.id });
 
-  const stuckCutOff = new Date(Date.now() - STUCK_JOB_TIMEOUT_MS);
+  const stuckCutOff = new Date(Date.now() - REPORT_STUCK_JOB_TIMEOUT_MS);
   const failResult = await database.update(schema.reports)
     .set({
       status: "failed",

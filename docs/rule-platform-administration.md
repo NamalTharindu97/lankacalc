@@ -26,7 +26,9 @@ The reviewer token can verify/check sources, run fixtures, compare a draft with 
 
 ## Operator GUI
 
-Open `/admin/rules` to use the protected rule desk. The GUI provides live source and version registers, guided forms for every lifecycle action, fixture/result output, and quick actions from existing records. It sends the same bounded requests documented below.
+Open `/admin/rules` to use the protected rule desk. The GUI provides live source and version registers, guided forms for every lifecycle action, fixture/result output, quick actions from existing records, and read-only reminder/report job health. It sends the same bounded requests documented below.
+
+The operational panel is available to administrators and reviewers. It contains only aggregate status counts, threshold values, and oldest-job timestamps/ages. It never returns row or user identifiers, email addresses, reminder content, report metadata/content, provider details, snapshots, PDFs, or failure text, and loading it does not process, retry, sweep, or otherwise mutate jobs.
 
 The bearer token remains only in React component memory. It is not placed in cookies, local storage, session storage, URLs, or server-rendered markup. Reloading or closing the tab clears it.
 
@@ -47,7 +49,7 @@ All requests are JSON with an `action` discriminator and are limited to 16 KiB a
 11. `promoteScheduled` records publication when scheduled versions reach their effective Sri Lankan business date.
 12. `retireRule` retires an active/scheduled version on an explicit effective date; corrections are new versions, never edits.
 13. `ruleHistory` returns the version, fixture evidence, and publication events.
-14. `dashboard` returns bounded source, definition, and version summaries for the protected GUI.
+14. `dashboard` returns bounded source, definition, version, and aggregate operational summaries for the protected GUI.
 
 The route's Zod discriminated union in `src/app/api/internal/rule-platform/route.ts` is the executable request contract.
 
