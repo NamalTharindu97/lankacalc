@@ -1140,7 +1140,7 @@ Before starting another major product track, confirm:
 4. Rules and data can be maintained at the required cadence.
 5. Source verification is sustainable.
 6. Privacy and safety risks are controlled.
-7. Operational incidents are manageable.
+7. Operational incidents have a named owner, tested alert path, severity and escalation policy, current recoverable backups, and exercised rollback/recovery procedures.
 8. Monetization is plausible without compromising result integrity.
 9. Shared modules are proven by real use rather than anticipated reuse.
 
