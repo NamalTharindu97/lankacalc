@@ -4,9 +4,11 @@
 
 The five regulated employment calculators execute only after the required rules have completed the protected source, fixture, review, and publication lifecycle. There are three rule definitions; Salary and Take-home reuse all three rather than duplicating rates.
 
+`npm run db:seed:dev-rules` creates and locally publishes development versions of these definitions with their candidate source and fixture packages. It is for local rule-desk and end-to-end testing only; local publication is not production approval, and the command must never be run in production.
+
 | Definition key | Scope | Owner calculator | Effective date for initial candidate |
 |---|---|---|---|
-| `apit-primary-regular-monthly` | `standard` | `apit` | `2025-04-01` |
+| `apit-primary-regular-monthly` | `standard` | `apit` | `2025-04-01` through `2026-03-31` |
 | `epf-standard-contribution` | `standard` | `epf` | `1981-01-01` |
 | `etf-standard-contribution` | `standard` | `etf` | `1982-01-01` for the initial broad private-sector scope |
 

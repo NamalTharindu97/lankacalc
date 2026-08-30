@@ -14,7 +14,7 @@
 - Status: Approved candidate specification
 - Implementation use: approved for implementation and automated fixture testing within this scope
 - Production publication: blocked pending independent formula/accounting review
-- Source research and link verification: 2026-08-14
+- Source research and link verification: 2026-08-30
 - Source dossier: `docs/employment-rule-sources.md`
 
 Approval as an implementation candidate does not authorize a public production result. The rule must remain unpublished until an independent reviewer confirms the formula, whole-rupee input contract, full-lookup-derived ceiling, effective date, and scope.
@@ -23,7 +23,7 @@ Approval as an implementation candidate does not authorize a public production r
 
 | Field | Type | Unit | Required | Bounds and validation |
 |---|---|---|---|---|
-| `asOfDate` | string | calendar date | yes | Valid `YYYY-MM-DD`; must resolve to the rule effective from `2025-04-01` |
+| `asOfDate` | string | calendar date | yes | Valid `YYYY-MM-DD`; this candidate resolves only from `2025-04-01` through `2026-03-31` |
 | `monthlyRegularEmploymentEarnings` | integer | LKR/month | yes | `0` to `1,000,000,000,000`, inclusive; whole rupees only |
 
 The amount is the already-classified Table 01 earnings for one calendar month of regular profits from primary employment. Finite JSON integers and numeric strings accepted by the shared numeric parser are valid only when their parsed value is a nonnegative whole number of LKR. Missing, blank, fractional, negative, non-finite, boolean, `null`, array, and object values are rejected. The upper bound is a product safety bound, not a statutory threshold.
@@ -72,7 +72,7 @@ The final ceiling is derived from the IRD full Table 01 lookup, not from a gener
 - The caller has already determined which earnings belong in the APIT base; the calculator does not classify payroll labels or decide tax status.
 - Bonuses and other lump sums, arrears, non-cash benefits, secondary or multiple employment, non-resident non-citizens, employer-paid tax and tax-on-tax, and mid-year cumulative cases are excluded.
 - EPF/ETF coverage decisions, higher fund rates, approved funds, and nonstandard employment arrangements are outside this calculator.
-- Historical APIT dates before `2025-04-01` require separately reviewed rule versions; this formula must not be back-applied.
+- APIT dates outside `2025-04-01` through `2026-03-31` require separately reviewed rule versions; this assessment-period formula must not be back- or forward-applied.
 - The result is an estimate of the supported Table 01 deduction, not tax, legal, payroll, or accounting advice.
 
 ## Boundary Cases
@@ -86,6 +86,7 @@ The final ceiling is derived from the IRD full Table 01 lookup, not from a gener
 ## Official Sources
 
 - [IRD Advance Personal Income Tax Tables](https://www.ird.gov.lk/en/publications/sitepages/apit_tax_tables.aspx?menuid=1502)
+- [Inland Revenue (Amendment) Act, No. 2 of 2025](https://www.ird.gov.lk/en/publications/Acts_Income%20Tax_2017/IR_Act_No_02-2025_E.pdf)
 - [IRD 2025-2026 APIT Index](https://www.ird.gov.lk/en/publications/APIT_Tax_Tables/2025-2026/Index/01.%20APIT_2526_Index.pdf)
 - [IRD How to apply Table 01](https://www.ird.gov.lk/en/publications/APIT_Tax_Tables/2025-2026/Table%20-%201/02.%20APIT_2526_Table_01_Text.pdf)
 - [IRD Table 01 full lookup](https://www.ird.gov.lk/en/publications/APIT_Tax_Tables/2025-2026/Table%20-%201/02.%20APIT_2526_Table_01.pdf)
@@ -115,7 +116,7 @@ All fixtures use `asOfDate: "2025-04-01"`. They are independently transcribed/ca
 
 ## Provenance
 
-Every result must include the resolved calculation version, rule version, effective date, all attached IRD source references, and the latest successful source verification time. The source-link verification date is `2026-08-14`; it is not a substitute for independent content review. Regulated execution is server-authoritative. Missing, draft-only, stale-without-policy, or unresolved rule/source provenance must fail closed rather than return an unversioned APIT result.
+Every result must include the resolved calculation version, rule version, effective date, all attached IRD source references, and the latest successful source verification time. The source-link verification date is `2026-08-30`; it is not a substitute for independent content review. Regulated execution is server-authoritative. Missing, draft-only, stale-without-policy, or unresolved rule/source provenance must fail closed rather than return an unversioned APIT result.
 
 ## Localization Strings
 

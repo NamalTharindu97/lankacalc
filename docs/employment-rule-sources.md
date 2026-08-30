@@ -4,13 +4,13 @@
 
 This dossier records the primary sources and candidate rule findings for the Stage 2 APIT, EPF, and ETF calculators. The candidate findings are sufficient to implement code and automated fixtures within the narrow documented scope. They are not approval for public production publication: published rules still require attached source revisions, passing fixtures, and independent formula/accounting review of legal scope, formula, and rounding.
 
-Research retrieved and link-verified: 2026-08-14.
+Research retrieved and link-verified: 2026-08-30.
 
 ## Status
 
 | Rule area | Research status | Publication status |
 |---|---|---|
-| APIT regular primary monthly rule from 2025-04-01 | Official index, instructions, full lookup, formula, whole-rupee input, and final ceiling identified | Approved implementation candidate; blocked pending independent formula/accounting review |
+| APIT regular primary monthly rule from 2025-04-01 through 2026-03-31 | Official index, instructions, full lookup, formula, whole-rupee input, and final ceiling identified | Approved implementation candidate; blocked pending independent formula/accounting review; later dates fail closed pending a separately reviewed table |
 | EPF standard contributions from 1981-01-01 | Rate, formula, statutory rounding, and current earnings definition identified | Approved implementation candidate; blocked pending independent formula/accounting review |
 | EPF before 1981-01-01 | The prior 6%/9% rates are visible in the consolidated Act, but covered-employment commencement instruments have not been catalogued | Out of initial historical scope |
 | ETF standard contributions | Rate, earnings definition, and staged coverage identified; whole-rupee MVP inputs always produce exact cents | Approved implementation candidate for whole-rupee inputs; blocked pending independent review |
@@ -22,6 +22,7 @@ Issuing authority: Inland Revenue Department, Sri Lanka.
 
 ### Official Sources
 
+- [IRD Acts](https://www.ird.gov.lk/en/publications/sitepages/Acts.aspx?menuid=1601) publishes the [Inland Revenue (Amendment) Act, No. 2 of 2025](https://www.ird.gov.lk/en/publications/Acts_Income%20Tax_2017/IR_Act_No_02-2025_E.pdf), certified 2025-03-20, and the consolidated Act incorporating changes through 2025-03-31.
 - [Advance Personal Income Tax Tables](https://www.ird.gov.lk/en/publications/sitepages/apit_tax_tables.aspx?menuid=1502) is the canonical IRD index. It currently preserves assessment-period collections from 2020-2021 through 2025-2026.
 - [2025-2026 APIT Index](https://www.ird.gov.lk/en/publications/APIT_Tax_Tables/2025-2026/Index/01.%20APIT_2526_Index.pdf) identifies Table 01 as the table for monthly tax deductions from regular profits from primary employment and distinguishes the other APIT cases.
 - [How to apply Table 01](https://www.ird.gov.lk/en/publications/APIT_Tax_Tables/2025-2026/Table%20-%201/02.%20APIT_2526_Table_01_Text.pdf) publishes the current monthly bands, percentages, and deductions effective from 2025-04-01.
@@ -33,7 +34,7 @@ The other documents linked by the 2025-2026 index cover lump-sum and terminal-be
 
 ### Candidate Current Regular-Monthly Rule
 
-Scope: one calendar month of regular profits from primary employment under Table 01, effective from 2025-04-01. Let `M` be the supported monthly APIT earnings amount, entered as a nonnegative whole number of LKR.
+Scope: one calendar month of regular profits from primary employment under the 2025/2026 Table 01, effective from 2025-04-01 through 2026-03-31. Let `M` be the supported monthly APIT earnings amount, entered as a nonnegative whole number of LKR.
 
 | Monthly APIT earnings `M` | Unrounded formula |
 |---:|---:|
@@ -63,7 +64,7 @@ The salary-family candidate treats `basicPay + additionalFundEarnings + apitOnly
 ### Historical-Source Notes
 
 - The canonical IRD page preserves separate assessment-period collections. Each collection, instruction PDF, and lookup PDF must be registered and effective-dated independently.
-- The 2025-2026 formula must not be applied before 2025-04-01. Older APIT collections have different tables and require separate specifications and fixtures before historical calculation support is enabled.
+- The 2025-2026 formula must not be applied outside 2025-04-01 through 2026-03-31. Other APIT collections require separate specifications and fixtures before calculation support is enabled.
 - An assessment-period directory name or a continued link on the current index does not by itself prove that a rule applies to an earlier or later date. Runtime resolution must use an independently reviewed effective range.
 - The full lookup is important evidence for the 2025-2026 whole-rupee ceiling; do not assume that the same input precision or rounding applies to an older table without reviewing that table.
 
@@ -237,6 +238,8 @@ The accepted MVP fixtures all use whole-rupee earnings and therefore produce exa
 | 12345.67 | 370.3701 | Reject input | Fractional-cent case outside the MVP contract |
 
 ## Initial Product Boundary
+
+The development seed provisions local `1.0.0` rule packages for all three definitions with the governing primary sources and every accepted golden fixture above. It completes the review and publication workflow only in the local development database so calculators can be exercised end to end. This is not production approval, and the seed must never be run in production.
 
 The narrow first implementation should:
 

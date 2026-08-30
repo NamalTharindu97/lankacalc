@@ -60,6 +60,11 @@ describe("APIT rule engine", () => {
     },
   );
 
+  it("returns a JSON-safe null upper bound for the open-ended bracket", () => {
+    expect(calculateApit({ monthlyTaxableIncome: "358334" }, apitPayload).selectedBracket)
+      .toMatchObject({ index: 5, upperBound: null });
+  });
+
   it.each([
     ["150001", "1"],
     ["233334", "5001"],

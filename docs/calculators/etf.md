@@ -14,7 +14,7 @@
 - Status: Approved candidate specification
 - Implementation use: approved for implementation and automated fixture testing with whole-rupee earnings
 - Production publication: blocked pending independent formula/accounting review
-- Source research and link verification: 2026-08-14
+- Source research and link verification: 2026-08-30
 - Source dossier: `docs/employment-rule-sources.md`
 
 The whole-rupee input boundary is material to approval. It avoids an unresolved fractional-cent policy but does not resolve that policy for a future decimal-earnings contract. The calculator implements only employer-funded 3% ETF for employment already determined to be covered.
@@ -96,7 +96,7 @@ Invalid-input fixture: `eligibleEarnings: 12345.67` is rejected. Its mathematica
 
 ## Provenance
 
-Every result must include the calculation version, resolved ETF rule version and coverage-effective date, all attached legal, Gazette, and operational sources, and the latest successful source verification time. Link verification on `2026-08-14` confirms availability, not independent formula/accounting approval. Regulated execution is server-authoritative and must fail if a reviewed applicable rule, supported coverage scope, or required source provenance cannot be resolved.
+Every result must include the calculation version, resolved ETF rule version and coverage-effective date, all attached legal, Gazette, and operational sources, and the latest successful source verification time. Link verification on `2026-08-30` confirms availability, not independent formula/accounting approval. Regulated execution is server-authoritative and must fail if a reviewed applicable rule, supported coverage scope, or required source provenance cannot be resolved.
 
 ## Localization Strings
 

@@ -96,7 +96,7 @@ export function calculateApit(input: ApitInput, payload: ApitPayload) {
       lowerBound: previousUpperBound
         ? decimal(previousUpperBound).plus(1).toFixed(0)
         : "0",
-      upperBound: bracket.upperBound,
+      upperBound: bracket.upperBound ?? null,
       rate: bracket.rate,
       deduction: bracket.deduction,
     },
