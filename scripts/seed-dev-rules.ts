@@ -453,6 +453,18 @@ const observedLendingRatesPayload = {
   ],
 } as const;
 
+const fuelPumpPricesPayload = {
+  authority: "ceypetco-cpc-sri-lanka",
+  effectiveFrom: "2026-06-30",
+  rounding: "nearest-cent",
+  prices: [
+    { fuelType: "petrol-92", label: "Lanka Petrol 92 Octane", pricePerLitre: "414.00" },
+    { fuelType: "petrol-95", label: "Lanka Petrol 95 Octane Euro 4", pricePerLitre: "495.00" },
+    { fuelType: "auto-diesel", label: "Lanka Auto Diesel", pricePerLitre: "382.00" },
+    { fuelType: "super-diesel", label: "Lanka Super Diesel 4 Star Euro 4", pricePerLitre: "478.00" },
+  ],
+} as const;
+
 const vehicleLeaseLtvPayload = {
   authority: "cbsl",
   effectiveFrom: "2025-07-18",
@@ -1139,6 +1151,84 @@ const devRules: DevRuleInput[] = [
           ["rateType", "awpr"],
           ["value", "8.99"],
           ["observedOn", "2026-01-31"],
+        ],
+      },
+    ],
+  },
+  {
+    key: "fuel-pump-prices-cpc-2026",
+    calculatorKey: "fuel-cost",
+    scope: "lk",
+    name: "Ceypetco retail pump prices",
+    description: "Ceypetco retail pump prices recorded in the official historical price table from 30 June 2026.",
+    version: "1.0.0",
+    effectiveFrom: "2026-06-30",
+    payload: fuelPumpPricesPayload as unknown as JsonValue,
+    sources: [
+      {
+        key: "ceypetco-historical-fuel-prices",
+        authority: "Ceylon Petroleum Corporation",
+        title: "Historical fuel prices",
+        url: "https://ceypetco.gov.lk/historical-prices/",
+      },
+      {
+        key: "ceypetco-historical-fuel-prices-api",
+        authority: "Ceylon Petroleum Corporation",
+        title: "Historical fuel prices machine-readable page record",
+        url: "https://ceypetco.gov.lk/wp-json/wp/v2/pages/3085",
+      },
+    ],
+    fixtures: [
+      {
+        name: "official petrol 95 monthly cost",
+        input: {
+          asOfDate: "2026-08-16",
+          fuelType: "petrol-95",
+          distancePerTripKm: "30",
+          tripsPerMonth: 40,
+          fuelEfficiency: "12",
+        } as unknown as JsonValue,
+        expected: [
+          ["officialPricePerLitre", "495.00"],
+          ["priceSource", "official"],
+          ["costPerTrip", "1237.50"],
+          ["costPerMonth", "49500.00"],
+          ["costPerYear", "594000.00"],
+          ["costPerHundredKm", "4125.00"],
+        ],
+      },
+      {
+        name: "official auto diesel single-trip cost",
+        input: {
+          asOfDate: "2026-08-16",
+          fuelType: "auto-diesel",
+          distancePerTripKm: "50",
+          tripsPerMonth: 1,
+          fuelEfficiency: "15",
+        } as unknown as JsonValue,
+        expected: [
+          ["officialPricePerLitre", "382.00"],
+          ["litresPerTrip", "3.33"],
+          ["costPerTrip", "1273.33"],
+          ["costPerYear", "15280.00"],
+          ["costPerHundredKm", "2546.67"],
+        ],
+      },
+      {
+        name: "custom price preserves official default",
+        input: {
+          asOfDate: "2026-08-16",
+          fuelType: "petrol-95",
+          distancePerTripKm: "30",
+          tripsPerMonth: 40,
+          fuelEfficiency: "12",
+          pricePerLitreOverride: "500.00",
+        } as unknown as JsonValue,
+        expected: [
+          ["officialPricePerLitre", "495.00"],
+          ["pricePerLitre", "500.00"],
+          ["priceSource", "user"],
+          ["costPerTrip", "1250.00"],
         ],
       },
     ],

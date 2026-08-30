@@ -12,13 +12,13 @@ import {
 const fuelPumpPricesPayload = {
   fuelPumpPrices: {
     authority: "ceypetco-cpc-sri-lanka",
-    effectiveFrom: "2026-06-29",
+    effectiveFrom: "2026-06-30",
     rounding: "nearest-cent",
     prices: [
-      { fuelType: "petrol-92", label: "Lanka Petrol 92 Octane", pricePerLitre: "318.00" },
-      { fuelType: "petrol-95", label: "Lanka Petrol 95 Octane Euro 4", pricePerLitre: "383.00" },
-      { fuelType: "auto-diesel", label: "Lanka Auto Diesel", pricePerLitre: "333.00" },
-      { fuelType: "super-diesel", label: "Lanka Super Diesel 4 Star Euro 4", pricePerLitre: "369.00" },
+      { fuelType: "petrol-92", label: "Lanka Petrol 92 Octane", pricePerLitre: "414.00" },
+      { fuelType: "petrol-95", label: "Lanka Petrol 95 Octane Euro 4", pricePerLitre: "495.00" },
+      { fuelType: "auto-diesel", label: "Lanka Auto Diesel", pricePerLitre: "382.00" },
+      { fuelType: "super-diesel", label: "Lanka Super Diesel 4 Star Euro 4", pricePerLitre: "478.00" },
     ],
   },
 } satisfies { fuelPumpPrices: FuelPumpPricePayload };
@@ -60,14 +60,14 @@ describe("regulated fuel cost calculator definition", () => {
         fuelType: "petrol-95",
         fuelTypeLabel: "Lanka Petrol 95 Octane Euro 4",
         priceSource: "official",
-        officialPricePerLitre: "383.00",
-        pricePerLitre: "383.00",
+        officialPricePerLitre: "495.00",
+        pricePerLitre: "495.00",
         litresPerTrip: "2.50",
         litresPerMonth: "100.00",
-        costPerTrip: "957.50",
-        costPerMonth: "38300.00",
-        costPerYear: "459600.00",
-        costPerHundredKm: "3191.67",
+        costPerTrip: "1237.50",
+        costPerMonth: "49500.00",
+        costPerYear: "594000.00",
+        costPerHundredKm: "4125.00",
       },
     });
     expect(result.breakdown.length).toBeGreaterThan(0);
@@ -92,15 +92,15 @@ describe("fuel cost engine", () => {
 
     expect(result).toMatchObject({
       fuelTypeLabel: "Lanka Auto Diesel",
-      officialPricePerLitre: "333.00",
-      pricePerLitre: "333.00",
+      officialPricePerLitre: "382.00",
+      pricePerLitre: "382.00",
       priceSource: "official",
       litresPerTrip: "3.33",
       litresPerMonth: "3.33",
-      costPerTrip: "1110.00",
-      costPerMonth: "1110.00",
-      costPerYear: "13320.00",
-      costPerHundredKm: "2220.00",
+      costPerTrip: "1273.33",
+      costPerMonth: "1273.33",
+      costPerYear: "15280.00",
+      costPerHundredKm: "2546.67",
     });
   });
 
@@ -118,7 +118,7 @@ describe("fuel cost engine", () => {
     );
 
     expect(result).toMatchObject({
-      officialPricePerLitre: "383.00",
+      officialPricePerLitre: "495.00",
       pricePerLitre: "400.00",
       priceSource: "user",
       costPerTrip: "1000.00",
@@ -137,7 +137,7 @@ describe("fuel cost engine", () => {
           fuelEfficiency: "10",
           pricePerLitreOverride: undefined,
         },
-        { ...fuelPumpPricesPayload.fuelPumpPrices, prices: [{ fuelType: "petrol-95", label: "P95", pricePerLitre: "383.00" }] },
+        { ...fuelPumpPricesPayload.fuelPumpPrices, prices: [{ fuelType: "petrol-95", label: "P95", pricePerLitre: "495.00" }] },
       ),
     ).toThrow(RangeError);
   });
@@ -146,15 +146,15 @@ describe("fuel cost engine", () => {
     const duplicated = {
       ...fuelPumpPricesPayload.fuelPumpPrices,
       prices: [
-        { fuelType: "petrol-92", label: "P92", pricePerLitre: "318.00" },
-        { fuelType: "petrol-92", label: "P92 again", pricePerLitre: "318.00" },
+        { fuelType: "petrol-92", label: "P92", pricePerLitre: "414.00" },
+        { fuelType: "petrol-92", label: "P92 again", pricePerLitre: "414.00" },
       ],
     };
     expect(() => fuelPumpPricePayloadSchema.parse(duplicated)).toThrow();
 
     const tooPrecise = {
       ...fuelPumpPricesPayload.fuelPumpPrices,
-      prices: [{ fuelType: "petrol-92", label: "P92", pricePerLitre: "318.001" }],
+      prices: [{ fuelType: "petrol-92", label: "P92", pricePerLitre: "414.001" }],
     };
     expect(() => fuelPumpPricePayloadSchema.parse(tooPrecise)).toThrow();
   });
@@ -178,7 +178,7 @@ describe("fuel cost engine", () => {
         distancePerTripKm: "10",
         tripsPerMonth: 1,
         fuelEfficiency: "12",
-        pricePerLitreOverride: "383.001",
+        pricePerLitreOverride: "495.001",
       }).success,
     ).toBe(false);
   });
