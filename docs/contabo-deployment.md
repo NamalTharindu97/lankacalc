@@ -69,6 +69,8 @@ With Cloudflare, use Full (strict) TLS and a dedicated origin certificate. Do no
 - Confirm `/robots.txt`, `/sitemap.xml`, canonical redirects, and structured data after setting the final domain.
 - Confirm only SSH, HTTP, and HTTPS are publicly reachable.
 
+Continuous probes, alert thresholds, incident triage, privacy-safe logging, and recovery verification are defined in [Production Monitoring And Incident Runbook](production-monitoring.md). Complete its activation record and alert test before treating production monitoring as operational.
+
 Before enabling indexing, run the launch contract against the public hostname. `EXPECTED_SITE_URL` is the canonical metadata origin; `APP_BASE_URL` may point to the public hostname or the private verification port. Set `REDIRECT_FROM_URL` to a secondary hostname such as the apex or `www` variant when that redirect exists.
 
 ```sh
@@ -80,11 +82,11 @@ npm run test:launch
 
 The verifier requires HTTPS, successful health and readiness checks, the `/en` root redirect, indexable pages, canonical and reciprocal language links, a canonical social image, valid JSON-LD, a canonical sitemap, and working `llms.txt`. It rejects local origins in public metadata. For a loopback rehearsal only, set `ALLOW_INSECURE_LAUNCH_CHECK=true`; never use that override as evidence that the public edge passed.
 
-After the verifier passes, confirm Cloudflare uses proxied DNS, Full (strict) TLS, an origin certificate, no caching for private or API routes, and canonical redirects at the edge. Then submit the canonical sitemap to Google Search Console and Bing Webmaster Tools. Keep `PUBLIC_INDEXING_ENABLED=false` until native-language review is complete and immediately return it to `false` if launch validation fails.
+After the verifier passes, follow the gated ownership, submission, observation, and indexability rollback procedure in [Search Platform Launch Checklist](search-platform-launch.md). Keep `PUBLIC_INDEXING_ENABLED=false` until every pre-launch gate, including native-language review, is complete and immediately return it to `false` if launch validation fails.
 
 ## Backup And Rollback
 
-Create encrypted daily `pg_dump` backups and copy them off the VPS. Test restoration into a temporary database. Every guarded release records `PREVIOUS_WEB_IMAGE`, `DATABASE_BACKUP`, and checksums before migration.
+Activate the encrypted daily off-server backup and isolated restore-verification procedure in [Production Backup And Restore Runbook](production-backups.md). Every guarded release also records `PREVIOUS_WEB_IMAGE`, `DATABASE_BACKUP`, and checksums before migration; that local pre-migration dump is not the daily disaster-recovery copy.
 
 To roll back application code, pass the failed deployment's release record:
 

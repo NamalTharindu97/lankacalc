@@ -1,0 +1,17 @@
+[Unit]
+Description=LankaCalc encrypted off-server PostgreSQL backup
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/lankacalc/repository
+Environment=PRODUCTION_ENV_FILE=/etc/lankacalc/production.env
+Environment=BACKUP_ENV_FILE=/etc/lankacalc/backup.env
+ExecStart=/opt/lankacalc/repository/scripts/backup-production.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+PrivateTmp=true
+NoNewPrivileges=true

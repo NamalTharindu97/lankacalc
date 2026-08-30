@@ -183,6 +183,8 @@ Deliverables:
 Exit gate:
 
 - Production health, readiness, edge, canonical, and sitemap checks pass.
+- External liveness, readiness, TLS, host-capacity, and container alerts are active; primary and backup alert delivery has been tested.
+- The production monitoring activation record identifies incident ownership and a successful edge-versus-origin exercise.
 - Search platforms accept the sitemap.
 - No local or temporary origin appears in public metadata.
 
@@ -263,11 +265,13 @@ Completed in the current discoverability sequence:
 - Initial-HTML answer extraction checks in the fail-closed launch verifier
 - Comprehensive structured-data parity and URL validation across every locale and public entity
 - Expanded mobile and desktop Lighthouse checks for home, category, calculator, and trust routes
+- Provider-neutral production monitoring, encrypted off-server backup, and Google/Bing search-launch runbooks with explicit activation evidence and rollback gates
 
 Remaining work that does not authorize indexing:
 
 - Audit unpublished calculators against the Stage 8 readiness sequence without adding them to navigation or sitemap
-- Improve repeatable private-production deployment, rollback, and verification tooling
+- Activate the documented production monitoring and incident-response checks with operator contacts and tested alert delivery
+- Activate the documented encrypted off-server backup timer and alerts, then record an isolated restore drill
 - Deploy the completed pre-launch changes while preserving `PUBLIC_INDEXING_ENABLED=false`
 
 External launch gates remain unchanged: obtain the permanent domain and canonical decision, configure Cloudflare and shared Caddy, complete Sinhala and Tamil native-speaker review, run the indexed launch contract, and only then submit the sitemap to search platforms.
