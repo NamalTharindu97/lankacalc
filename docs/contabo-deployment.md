@@ -55,6 +55,19 @@ The script refuses a dirty or unexpected revision, validates Compose and the pri
 
 Override locations only with `PRODUCTION_ENV_FILE`, `BACKUP_DIRECTORY`, or `RELEASE_DIRECTORY`. Copy encrypted backups off the VPS separately; a local dump is not an off-server backup.
 
+## Repeatable Public Release
+
+Public mode uses the same guarded release path but requires `PUBLIC_INDEXING_ENABLED=true`, a canonical `SITE_URL` match, and a distinct HTTPS redirect origin. Run it only after every gate in [Search Platform Launch Checklist](search-platform-launch.md) is approved:
+
+```sh
+sudo EXPECTED_SITE_URL=https://example.lk \
+  REDIRECT_FROM_URL=https://www.example.lk \
+  PREVIOUS_DEPLOYMENT_VISIBILITY=private \
+  ./scripts/deploy-production.sh "$(git rev-parse HEAD)" public
+```
+
+Set `PREVIOUS_DEPLOYMENT_VISIBILITY=private` for the first public launch and `public` when the currently running image is already a verified public release. Public mode rebuilds the web image with indexing enabled, performs the pre-migration backup and migrations, runs internal edge verification, then runs the complete launch contract through the canonical public edge. It records deployment and rollback visibility plus the canonical origins. Omitting the mode continues to mean `private`.
+
 ## Shared Caddy
 
 Attach Caddy and `lankacalc-production-proxy-1` to `edge`, then proxy the canonical hostname to `lankacalc-production-proxy-1:80`. The fixed edge subnet matches the trusted proxy range in `deploy/nginx.production.conf`; do not widen it or attach untrusted containers.
@@ -94,4 +107,4 @@ To roll back application code, pass the failed deployment's release record:
 sudo ./scripts/rollback-production.sh /var/lib/lankacalc/releases/<UTC timestamp>.env
 ```
 
-The rollback script verifies the recorded image still exists, retags it as the Compose web image, starts it without building, and reruns edge and private-indexing checks. It deliberately does not restore PostgreSQL. Review the migration direction and application compatibility first; restore the recorded dump only when an incompatible migration requires it, and test the restore procedure in an isolated database before using it on production.
+The rollback script verifies the recorded image still exists, requires the production indexing flag to match `ROLLBACK_VISIBILITY`, retags the image, force-recreates the web and proxy containers without building, and reruns edge checks plus the target private or public contract. A first-public-launch rollback therefore requires returning `PUBLIC_INDEXING_ENABLED` to `false`; later public-to-public rollback keeps it `true`. Legacy records without visibility remain private. The script deliberately does not restore PostgreSQL. Review the migration direction and application compatibility first; restore the recorded dump only when an incompatible migration requires it, and test the restore procedure in an isolated database before using it on production.
