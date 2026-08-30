@@ -44,7 +44,7 @@ const fuelCostMetadata = {
   version: "1.0.0",
   accent: "orange",
   fields: [
-    { name: "asOfDate", label: "Calculation date", type: "date", required: true, min: "2026-06-29", max: "9999-12-31" },
+    { name: "asOfDate", label: "Calculation date", type: "date", required: true, min: "2026-06-30", max: "9999-12-31" },
     { name: "fuelType", label: "Fuel type", type: "select", required: true, options: fuelTypeOptions },
     { name: "distancePerTripKm", label: "Distance per trip", type: "number", required: true, min: 0.01, max: 10_000, maxDecimalPlaces: 2, step: 0.01, suffix: "km" },
     { name: "tripsPerMonth", label: "Trips per month", type: "number", required: true, min: 1, max: 500, maxDecimalPlaces: 0, step: 1, suffix: "trips", defaultValue: 1 },

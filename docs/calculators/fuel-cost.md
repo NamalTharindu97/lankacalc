@@ -7,7 +7,7 @@
 - Owner: LankaCalc fuel cost kernel
 - Classification: configurable (official price rule defaults; user may override)
 - Calculation version: `1.0.0`
-- Candidate rule version: `fuel-pump-prices-cpc-2026-2026-06-29-candidate`
+- Candidate rule version: `fuel-pump-prices-cpc-2026-2026-06-30-candidate`
 
 ## Approval And Review
 
@@ -101,28 +101,28 @@ The rule version must attach the Ceypetco price announcement and the governing g
 
 ## Golden Fixtures
 
-These are candidate calculations, not official worked examples. All use the candidate payload (effective 2026-06-29).
+These are candidate calculations, not official worked examples. All use the candidate payload (effective 2026-06-30).
 
 | Input | Expected result |
 |---|---|
-| `fuelType: "petrol-95"`, `distancePerTripKm: "30"`, `tripsPerMonth: 40`, `fuelEfficiency: "12"` | `pricePerLitre: "383.00"`, `priceSource: "official"`, `litresPerTrip: "2.50"`, `costPerTrip: "957.50"`, `costPerMonth: "38300.00"`, `costPerYear: "459600.00"`, `costPerHundredKm: "3191.67"` |
-| `fuelType: "auto-diesel"`, `distancePerTripKm: "50"`, `tripsPerMonth: 1`, `fuelEfficiency: "15"` | `pricePerLitre: "333.00"`, `litresPerTrip: "3.33"`, `costPerTrip: "1110.00"`, `costPerMonth: "1110.00"`, `costPerYear: "13320.00"`, `costPerHundredKm: "2220.00"` |
-| `fuelType: "petrol-95"`, `distancePerTripKm: "30"`, `tripsPerMonth: 40`, `fuelEfficiency: "12"`, `pricePerLitreOverride: "400.00"` | `priceSource: "user"`, `officialPricePerLitre: "383.00"`, `pricePerLitre: "400.00"`, `costPerTrip: "1000.00"` |
+| `fuelType: "petrol-95"`, `distancePerTripKm: "30"`, `tripsPerMonth: 40`, `fuelEfficiency: "12"` | `pricePerLitre: "495.00"`, `priceSource: "official"`, `litresPerTrip: "2.50"`, `costPerTrip: "1237.50"`, `costPerMonth: "49500.00"`, `costPerYear: "594000.00"`, `costPerHundredKm: "4125.00"` |
+| `fuelType: "auto-diesel"`, `distancePerTripKm: "50"`, `tripsPerMonth: 1`, `fuelEfficiency: "15"` | `pricePerLitre: "382.00"`, `litresPerTrip: "3.33"`, `costPerTrip: "1273.33"`, `costPerMonth: "1273.33"`, `costPerYear: "15280.00"`, `costPerHundredKm: "2546.67"` |
+| `fuelType: "petrol-95"`, `distancePerTripKm: "30"`, `tripsPerMonth: 40`, `fuelEfficiency: "12"`, `pricePerLitreOverride: "500.00"` | `priceSource: "user"`, `officialPricePerLitre: "495.00"`, `pricePerLitre: "500.00"`, `costPerTrip: "1250.00"` |
 
 ## Candidate Rule Payload
 
-The candidate payload below is what the test suite loads inline and what a reviewed rule version must contain. All prices are the Ceypetco retail prices effective 2026-06-29.
+The candidate payload below is what the test suite loads inline and what a reviewed rule version must contain. All prices are from Ceypetco's historical-price row dated 2026-06-30.
 
 ```json
 {
   "authority": "ceypetco-cpc-sri-lanka",
-  "effectiveFrom": "2026-06-29",
+  "effectiveFrom": "2026-06-30",
   "rounding": "nearest-cent",
   "prices": [
-    { "fuelType": "petrol-92", "label": "Lanka Petrol 92 Octane", "pricePerLitre": "318.00" },
-    { "fuelType": "petrol-95", "label": "Lanka Petrol 95 Octane Euro 4", "pricePerLitre": "383.00" },
-    { "fuelType": "auto-diesel", "label": "Lanka Auto Diesel", "pricePerLitre": "333.00" },
-    { "fuelType": "super-diesel", "label": "Lanka Super Diesel 4 Star Euro 4", "pricePerLitre": "369.00" }
+    { "fuelType": "petrol-92", "label": "Lanka Petrol 92 Octane", "pricePerLitre": "414.00" },
+    { "fuelType": "petrol-95", "label": "Lanka Petrol 95 Octane Euro 4", "pricePerLitre": "495.00" },
+    { "fuelType": "auto-diesel", "label": "Lanka Auto Diesel", "pricePerLitre": "382.00" },
+    { "fuelType": "super-diesel", "label": "Lanka Super Diesel 4 Star Euro 4", "pricePerLitre": "478.00" }
   ]
 }
 ```
